@@ -1,6 +1,6 @@
 {**********************************************************************
- Package pl_VirtualTreeExtra.pkg
- This unit is part of CodeTyphon Studio  (http://www.pilotlogic.com/)
+ Package pltis_sogrid.pkg
+ This unit is based on package virtualtreesextra work from CodeTyphon Studio  (http://www.pilotlogic.com/)
 ***********************************************************************}
 
 unit sogrid;
