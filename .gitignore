@@ -11,3 +11,4 @@ bin/*
 .svn
 lib/*
 /demo/lib/*
+lib
