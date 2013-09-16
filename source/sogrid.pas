@@ -53,6 +53,8 @@ type
     procedure DoHeaderClick(HitInfo: TVTHeaderHitInfo); override;
     procedure DoPopupMenu(Node: PVirtualNode; Column: TColumnIndex; const Position: TPoint
       ); override;
+    procedure Clear; override;
+
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -294,13 +296,13 @@ var
   ItemData:PSOItemData;
 begin
   if (FData = nil) or (FData.AsArray=Nil) then
-    Clear
+    inherited Clear
   else
   begin
     //todo handle object
     BeginUpdate;
     try
-      Clear;
+      inherited Clear;
       RootNodeCount := FData.AsArray.Length;
     finally
       EndUpdate;
@@ -531,6 +533,12 @@ procedure TSOGrid.DoPopupMenu(Node: PVirtualNode; Column: TColumnIndex;
   const Position: TPoint);
 begin
   inherited DoPopupMenu(Node, Column, Position);
+end;
+
+procedure TSOGrid.Clear;
+begin
+  inherited Clear;
+  FData := Nil;
 end;
 
 end.
