@@ -12,17 +12,55 @@ interface
 
 uses
   Classes, SysUtils, VirtualTrees, Controls,
-  SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs;
+  SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages;
 
 type
 
   TSOGrid = class;
   { TSOGridColumn }
 
+  TSODataEvent = (deFieldChange, deRecordChange, deDataSetChange,
+    deUpdateRecord, deUpdateState,deFieldListChange);
+
+  TSODataChangeEvent = procedure(Sender: TObject;  EventType:TSODataEvent; PropertyName: String;OldValue,NewValue:ISuperObject) of object;
+
+  TSOUpdateStatus = (usUnmodified, usModified, usInserted, usDeleted);
+  TSOUpdateStatusSet = SET OF TSOUpdateStatus;
+
+  TSOUpdateMode = (upWhereAll, upWhereChanged, upWhereKeyOnly);
+  TSOResolverResponse = (rrSkip, rrAbort, rrMerge, rrApply, rrIgnore);
+
+  { TSODataSource }
+
+  TSODataSource = class(TComponent)
+  private
+    FData: ISuperObject;
+    FDataViews: TList;
+    FEnabled: Boolean;
+    FOnDataChange: TSODataChangeEvent;
+    FOnStateChange: TNotifyEvent;
+    procedure DistributeEvent(Event: TSODataEvent; Info: Ptrint);
+    Procedure ProcessEvent(Event : TSODataEvent; Info : Ptrint);
+    procedure SetData(AData: ISuperObject);
+    procedure SetDataViews(AValue: TList);
+    procedure SetEnabled(Value: Boolean);
+  protected
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    property DataViews:TList read FDataViews write SetDataViews;
+  published
+    property Enabled: Boolean read FEnabled write SetEnabled default True;
+    property OnStateChange: TNotifyEvent read FOnStateChange write FOnStateChange;
+    property OnDataChange: TSODataChangeEvent read FOnDataChange write FOnDataChange;
+  end;
+
   TSOGridColumn = class(TVirtualTreeColumn)
   private
     FPropertyName: string;
     procedure SetPropertyName(const Value: string);
+  public
+    procedure Assign(Source: TPersistent); override;
   published
     property PropertyName: string read FPropertyName write SetPropertyName;
   end;
@@ -107,6 +145,7 @@ type
     procedure SetSettings(AValue: ISuperObject);
 
   protected
+    procedure WndProc(var Message: TLMessage); override;
     procedure DoNewText(Node: PVirtualNode; Column: TColumnIndex;
       const AText: string); override;
     procedure DoGetText(Node: PVirtualNode; Column: TColumnIndex;
@@ -177,6 +216,8 @@ type
     function NodesForData(sodata: ISuperObject): TNodeArray;
     procedure InvalidateFordata(sodata: ISuperObject);
 
+    function FocusedColumnObject:TSOGridColumn;
+
     // sauvegarde et restauration des customisations utilisateurs
     property Settings: ISuperObject read GetSettings write SetSettings;
     procedure SaveSettingsToIni(inifilename: string);
@@ -185,7 +226,7 @@ type
     function FindColumnByPropertyName(propertyname: string): TSOGridColumn;
 
     //Ajouter les colonnes en s'inspirant du contenu Data
-    procedure CreateColumnsFromData;
+    procedure CreateColumnsFromData(FitWidth:Boolean);
 
     function ContentAsCSV(Source: TVSTTextSourceType; const Separator: String
       ): Utf8String;
@@ -395,7 +436,7 @@ resourcestring
   GSConst_ConfDeleteRow = 'Confirmer la suppression des lignes ?';
   GSConst_SelectAll = 'Selectionner toutes les lignes';
   GSConst_ExportSelectedExcel = 'Exporter la sélection vers un fichier Excel...';
-  GSConst_ExportAllExcel = 'Exporter la sélection vers un fichier Excel...';
+  GSConst_ExportAllExcel = 'Exporter toutes les lignes vers un fichier Excel...';
   GSConst_Print = 'Imprimer...';
   GSConst_ExpandAll = 'Tout déplier';
   GSConst_CollapseAll = 'Tour replier';
@@ -407,6 +448,44 @@ type
   end;
   PSOItemData = ^TSOItemData;
 
+{ TSODataSource }
+
+procedure TSODataSource.DistributeEvent(Event: TSODataEvent; Info: Ptrint);
+begin
+
+end;
+
+procedure TSODataSource.ProcessEvent(Event: TSODataEvent; Info: Ptrint);
+begin
+
+end;
+
+procedure TSODataSource.SetData(AData: ISuperObject);
+begin
+
+end;
+
+procedure TSODataSource.SetDataViews(AValue: TList);
+begin
+  if FDataViews=AValue then Exit;
+  FDataViews:=AValue;
+end;
+
+procedure TSODataSource.SetEnabled(Value: Boolean);
+begin
+
+end;
+
+constructor TSODataSource.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+end;
+
+destructor TSODataSource.Destroy;
+begin
+  inherited Destroy;
+end;
+
 
 { TSOGridColumn }
 procedure TSOGridColumn.SetPropertyName(const Value: string);
@@ -416,6 +495,21 @@ begin
   if (Text = '') or (Text = FPropertyName) then
     Text := Value;
   FPropertyName := Value;
+end;
+
+procedure TSOGridColumn.Assign(Source: TPersistent);
+
+var
+  OldOptions: TVTColumnOptions;
+
+begin
+  if Source is TSOGridColumn then
+  begin
+    inherited Assign(Source);
+    PropertyName:=TSOGridColumn(Source).PropertyName;
+  end
+  else
+    inherited Assign(Source);
 end;
 
 
@@ -533,7 +627,6 @@ begin
   inherited;
 end;
 
-
 { TSOGrid }
 function TSOGrid.GetItemData(Node: PVirtualNode): Pointer;
 begin
@@ -575,15 +668,16 @@ begin
       Break;
     end;
   end;
-
 end;
 
-procedure TSOGrid.CreateColumnsFromData;
+procedure TSOGrid.CreateColumnsFromData(FitWidth: Boolean);
 var
   values,prop,properties,Row,propname:ISuperObject;
   col : TSOGridColumn;
   i:Integer;
+  NewColStartIdx:Integer;
 begin
+  NewColStartIdx := NoColumn;
   BeginUpdate;
   try
     properties := TSuperObject.Create(stArray);
@@ -598,6 +692,7 @@ begin
         begin
           prop := row[propname.AsString];
           col :=Header.Columns.Add as TSOGridColumn;
+          NewColStartIdx:=col.Index;
           col.Text:=propname.AsString;
           col.PropertyName:=propname.AsString;
           col.Width:= 100;
@@ -614,7 +709,8 @@ begin
       end;
     end;
   finally
-    Header.AutoFitColumns(False);
+    if FitWidth and (NewColStartIdx<>NoColumn)  then
+        Header.AutoFitColumns(False,smaUseColumnOption,NewColStartIdx);
     EndUpdate;
   end;
 end;
@@ -628,18 +724,6 @@ var
 begin
   if AValue <> nil then
   begin
-    if AValue.AsObject.Find('sortcolumn', prop) then
-      Header.SortColumn := prop.AsInteger;
-
-    if AValue.AsObject.Find('sortdirection', prop) then
-      Header.SortDirection := TSortDirection(prop.AsInteger);
-
-    if AValue.AsObject.Find('headerheight', prop) then
-      Header.Height := prop.AsInteger;
-
-    if AValue.AsObject.Find('defaultnodeheight', prop) then
-      DefaultNodeHeight := prop.AsInteger;
-
     if AValue.AsObject.Find('columns', columns) then
     begin
       for column in Columns do
@@ -659,6 +743,18 @@ begin
         end;
       end;
     end;
+    if AValue.AsObject.Find('sortcolumn', prop) then
+      Header.SortColumn := prop.AsInteger;
+
+    if AValue.AsObject.Find('sortdirection', prop) then
+      Header.SortDirection := TSortDirection(prop.AsInteger);
+
+    if AValue.AsObject.Find('headerheight', prop) then
+      Header.Height := prop.AsInteger;
+
+    if AValue.AsObject.Find('defaultnodeheight', prop) then
+      DefaultNodeHeight := prop.AsInteger;
+
   end;
 end;
 
@@ -684,19 +780,24 @@ begin
 end;
 
 function TSOGrid.GetCellData(N: PVirtualNode; FieldName: string;
-  Default: ISuperObject): ISuperObject;
+  Default: ISuperObject=Nil): ISuperObject;
 var
   pdata: PSOItemData;
   idata: ISuperObject;
 begin
-  pdata := GetItemData(N);
-  if pdata <> nil then
+  if N<>Nil then
   begin
-    idata := pdata^.JSONData[FieldName];
-    if idata <> nil then
-      Result := idata
-    else
-      Result := Default;
+      pdata := GetItemData(N);
+      if pdata <> nil then
+      begin
+        idata := pdata^.JSONData[FieldName];
+        if idata <> nil then
+          Result := idata
+        else
+          Result := Default;
+      end
+      else
+        Result := Default;
   end
   else
     Result := Default;
@@ -709,7 +810,6 @@ begin
   FData := Value;
   LoadData;
 end;
-
 
 function TSOGrid.GetJSONdata: string;
 begin
@@ -812,11 +912,15 @@ begin
   inherited Create(AOwner);
   DefaultText := '';
   FItemDataOffset := AllocateInternalDataArea(SizeOf(TSOItemData));
+
+  WantTabs:=True;
+  TabStop:=True;
+
   with TreeOptions do
   begin
     PaintOptions := PaintOptions - [toShowRoot] +
       [toAlwaysHideSelection, toShowHorzGridLines, toShowVertGridLines, toHideFocusRect];
-    SelectionOptions := SelectionOptions + [toExtendedFocus, toSimpleDrawSelection];
+    SelectionOptions := SelectionOptions + [toExtendedFocus, toSimpleDrawSelection,toRightClickSelect];
     MiscOptions := MiscOptions + [toEditable, toGridExtensions, toFullRowDrag] -
       [toWheelPanning];
 
@@ -1052,6 +1156,14 @@ begin
       InvalidateNode(p);
     p := GetNext(p);
   end;
+end;
+
+function TSOGrid.FocusedColumnObject: TSOGridColumn;
+begin
+  if (FocusedColumn>=0) and Header.Columns.IsValidColumn(FocusedColumn) then
+    result := TSOGridColumn(Header.Columns[FocusedColumn])
+  else
+    result := Nil;
 end;
 
 procedure TSOGrid.SaveSettingsToIni(inifilename: string);
@@ -1413,7 +1525,6 @@ begin
   Until not FileExists(Result);
 end;
 
-
 function TSOGrid.ContentAsCSV(Source: TVSTTextSourceType; const Separator: String):Utf8String;
 var
   values,prop,Row,Rows,value:ISuperObject;
@@ -1504,6 +1615,65 @@ begin
   end;
   inherited DoNewText(Node, Column, AText);
 end;
+
+
+// hack to allow right click menu on header popup menu  and diffrent popup menu on rows
+//   set message.msg to 0 if handled to stop message processing.
+type
+  TVTHeaderHack = class(TVTHeader);
+//Bugfix :
+procedure TSOGrid.WndProc(var Message: TLMessage);
+
+var
+  Handled: Boolean;
+
+begin
+  Handled := False;
+
+  // Try the header whether it needs to take this message.
+  if Assigned(Header) and (Header.States <> []) then
+    Handled := TVTHeaderHack(Header).HandleMessage(Message);
+  if not Handled then
+  begin
+    // For auto drag mode, let tree handle itself, instead of TControl.
+    if not (csDesigning in ComponentState) and
+       ((Message.Msg = LM_LBUTTONDOWN) or (Message.Msg = LM_LBUTTONDBLCLK)) then
+    begin
+      //lclheader
+      //when FHeader.FStates = [] it comes until here unlike Delphi (uses NC messages)
+      //skip this code when is clicked inside the header
+      if (DragMode = dmAutomatic) and (DragKind = dkDrag) and
+        not Header.InHeader(SmallPointToPoint(TLMMouse(Message).Pos)) then
+      begin
+        if IsControlMouseMsg(TLMMouse(Message)) then
+          Handled := True;
+        if not Handled then
+        begin
+          ControlState := ControlState + [csLButtonDown];
+          Dispatch(Message);  // overrides TControl's BeginDrag
+          Handled := True;
+        end;
+      end;
+    end;
+
+    if not Handled and Assigned(Header) then
+      Handled := TVTHeaderHack(Header).HandleMessage(Message);
+
+    if not Handled then
+    begin
+      //lcl: probably not necessary
+      //if (Message.Msg in [WM_NCLBUTTONDOWN, WM_NCRBUTTONDOWN, WM_NCMBUTTONDOWN]) and not Focused and CanFocus then
+      //  SetFocus;
+      inherited;
+    end
+    //// BUGFIX Tranquil IT Systems.
+    else
+       Message.Msg := 0;
+    //// end BUGFIX
+  end;
+end;
+
+
 
 begin
   ClipbrdJson := RegisterClipboardFormat('application/json');

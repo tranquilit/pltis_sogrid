@@ -1,12 +1,12 @@
 object Form1: TForm1
-  Left = 385
+  Left = 404
   Height = 469
-  Top = 443
+  Top = 238
   Width = 917
   Caption = 'Form1'
   ClientHeight = 469
   ClientWidth = 917
-  LCLVersion = '1.1'
+  LCLVersion = '1.3'
   object Memo1: TMemo
     Left = 0
     Height = 309
@@ -84,9 +84,76 @@ object Form1: TForm1
     Align = alClient
     Color = clWhite
     Header.AutoSizeIndex = -1
-    Header.Columns = <>
+    Header.Columns = <    
+      item
+        Position = 1
+        Text = 'dmi'
+        Width = 64
+        PropertyName = 'dmi'
+      end    
+      item
+        Position = 0
+        Text = 'Dernière maj'
+        Width = 97
+        PropertyName = 'last_query_date'
+      end    
+      item
+        Position = 2
+        Text = 'packages'
+        Width = 67
+        PropertyName = 'packages'
+      end    
+      item
+        Position = 3
+        Text = 'Update status'
+        Width = 85
+        PropertyName = 'update_status'
+      end    
+      item
+        Position = 4
+        Text = 'Softs'
+        Width = 100
+        PropertyName = 'softwares'
+      end    
+      item
+        Position = 6
+        Text = 'wapt'
+        Width = 100
+        PropertyName = 'wapt'
+      end    
+      item
+        Position = 5
+        Text = 'uuid'
+        Width = 100
+        PropertyName = 'uuid'
+      end    
+      item
+        Position = 7
+        Text = 'host'
+        Width = 100
+        PropertyName = 'host'
+      end    
+      item
+        Position = 8
+        Text = 'force'
+        Width = 100
+        PropertyName = 'force'
+      end    
+      item
+        Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coAllowFocus]
+        Position = 9
+        Text = 'wapt_client'
+        Width = 100
+        PropertyName = 'wapt_client'
+      end    
+      item
+        Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coAllowFocus]
+        Position = 10
+        Text = 'waptclient_status'
+        Width = 258
+        PropertyName = 'waptclient_status'
+      end>
     Header.DefaultHeight = 17
-    Header.MainColumn = -1
     Header.Options = [hoColumnResize, hoDblClickResize, hoDrag, hoShowSortGlyphs, hoVisible]
     Header.Style = hsFlatButtons
     TabOrder = 2
@@ -133,6 +200,7 @@ object Form1: TForm1
     TreeOptions.MiscOptions = [toAcceptOLEDrop, toEditable, toFullRepaintOnResize, toGridExtensions, toInitOnSave, toToggleOnDblClick, toWheelPanning, toEditOnClick]
     TreeOptions.PaintOptions = [toHideFocusRect, toPopupMode, toShowButtons, toShowDropmark, toShowHorzGridLines, toShowTreeLines, toShowVertGridLines, toThemeAware, toUseBlendedImages]
     TreeOptions.SelectionOptions = [toExtendedFocus]
+    WantTabs = True
   end
   object ListBox1: TListBox
     Left = 709
@@ -145,6 +213,15 @@ object Form1: TForm1
     OnDragDrop = ListBox1DragDrop
     OnDragOver = ListBox1DragOver
     TabOrder = 4
+  end
+  object Button5: TButton
+    Left = 844
+    Height = 25
+    Top = 12
+    Width = 75
+    Caption = 'design'
+    OnClick = Button5Click
+    TabOrder = 5
   end
   object IdHTTP1: TIdHTTP
     AllowCookies = True
@@ -162,7 +239,285 @@ object Form1: TForm1
     Request.UserAgent = 'Mozilla/3.0 (compatible; Indy Library)'
     Request.Ranges = <>
     HTTPOptions = [hoForceEncodeParams]
-    left = 484
-    top = 104
+    left = 568
+    top = 96
+  end
+  object SODataSource1: TSODataSource
+    Enabled = False
+    left = 336
+    top = 72
+  end
+  object DataSource1: TDataSource
+    DataSet = SQLQuery1
+    left = 136
+    top = 112
+  end
+  object SQLQuery1: TSQLQuery
+    IndexName = 'DEFAULT_ORDER'
+    FieldDefs = <    
+      item
+        Name = 'id'
+        DataType = ftInteger
+        Precision = -1
+        Size = 0
+      end    
+      item
+        Name = 'package'
+        DataType = ftString
+        Precision = -1
+        Size = 255
+      end    
+      item
+        Name = 'version'
+        DataType = ftString
+        Precision = -1
+        Size = 255
+      end    
+      item
+        Name = 'version_pinning'
+        DataType = ftString
+        Precision = -1
+        Size = 255
+      end    
+      item
+        Name = 'explicit_by'
+        DataType = ftString
+        Precision = -1
+        Size = 255
+      end    
+      item
+        Name = 'architecture'
+        DataType = ftString
+        Precision = -1
+        Size = 255
+      end    
+      item
+        Name = 'install_date'
+        DataType = ftString
+        Precision = -1
+        Size = 255
+      end    
+      item
+        Name = 'install_status'
+        DataType = ftString
+        Precision = -1
+        Size = 255
+      end    
+      item
+        Name = 'install_output'
+        DataType = ftMemo
+        Precision = -1
+        Size = 0
+      end    
+      item
+        Name = 'install_params'
+        DataType = ftString
+        Precision = -1
+        Size = 800
+      end    
+      item
+        Name = 'uninstall_string'
+        DataType = ftString
+        Precision = -1
+        Size = 255
+      end    
+      item
+        Name = 'uninstall_key'
+        DataType = ftString
+        Precision = -1
+        Size = 255
+      end    
+      item
+        Name = 'setuppy'
+        DataType = ftMemo
+        Precision = -1
+        Size = 0
+      end    
+      item
+        Name = 'process_id'
+        DataType = ftInteger
+        Precision = -1
+        Size = 0
+      end>
+    Active = True
+    Database = SQLite3Connection1
+    Transaction = SQLTransaction1
+    SQL.Strings = (
+      '      select * from wapt_localstatus'
+    )
+    Params = <>
+    left = 136
+    top = 176
+    object SQLQuery1id: TLongintField
+      DisplayWidth = 10
+      FieldKind = fkData
+      FieldName = 'id'
+      Index = 0
+      LookupCache = False
+      ProviderFlags = [pfInUpdate, pfInWhere]
+      ReadOnly = False
+      Required = False
+    end
+    object SQLQuery1package: TStringField
+      DisplayWidth = 255
+      FieldKind = fkData
+      FieldName = 'package'
+      Index = 1
+      LookupCache = False
+      ProviderFlags = [pfInUpdate, pfInWhere]
+      ReadOnly = False
+      Required = False
+      Size = 255
+    end
+    object SQLQuery1version: TStringField
+      DisplayWidth = 255
+      FieldKind = fkData
+      FieldName = 'version'
+      Index = 2
+      LookupCache = False
+      ProviderFlags = [pfInUpdate, pfInWhere]
+      ReadOnly = False
+      Required = False
+      Size = 255
+    end
+    object SQLQuery1version_pinning: TStringField
+      DisplayWidth = 255
+      FieldKind = fkData
+      FieldName = 'version_pinning'
+      Index = 3
+      LookupCache = False
+      ProviderFlags = [pfInUpdate, pfInWhere]
+      ReadOnly = False
+      Required = False
+      Size = 255
+    end
+    object SQLQuery1explicit_by: TStringField
+      DisplayWidth = 255
+      FieldKind = fkData
+      FieldName = 'explicit_by'
+      Index = 4
+      LookupCache = False
+      ProviderFlags = [pfInUpdate, pfInWhere]
+      ReadOnly = False
+      Required = False
+      Size = 255
+    end
+    object SQLQuery1architecture: TStringField
+      DisplayWidth = 255
+      FieldKind = fkData
+      FieldName = 'architecture'
+      Index = 5
+      LookupCache = False
+      ProviderFlags = [pfInUpdate, pfInWhere]
+      ReadOnly = False
+      Required = False
+      Size = 255
+    end
+    object SQLQuery1install_date: TStringField
+      DisplayWidth = 255
+      FieldKind = fkData
+      FieldName = 'install_date'
+      Index = 6
+      LookupCache = False
+      ProviderFlags = [pfInUpdate, pfInWhere]
+      ReadOnly = False
+      Required = False
+      Size = 255
+    end
+    object SQLQuery1install_status: TStringField
+      DisplayWidth = 255
+      FieldKind = fkData
+      FieldName = 'install_status'
+      Index = 7
+      LookupCache = False
+      ProviderFlags = [pfInUpdate, pfInWhere]
+      ReadOnly = False
+      Required = False
+      Size = 255
+    end
+    object SQLQuery1install_output: TMemoField
+      DisplayWidth = 10
+      FieldKind = fkData
+      FieldName = 'install_output'
+      Index = 8
+      LookupCache = False
+      ProviderFlags = [pfInUpdate, pfInWhere]
+      ReadOnly = False
+      Required = False
+      BlobType = ftBlob
+      Transliterate = False
+    end
+    object SQLQuery1install_params: TStringField
+      DisplayWidth = 800
+      FieldKind = fkData
+      FieldName = 'install_params'
+      Index = 9
+      LookupCache = False
+      ProviderFlags = [pfInUpdate, pfInWhere]
+      ReadOnly = False
+      Required = False
+      Size = 800
+    end
+    object SQLQuery1uninstall_string: TStringField
+      DisplayWidth = 255
+      FieldKind = fkData
+      FieldName = 'uninstall_string'
+      Index = 10
+      LookupCache = False
+      ProviderFlags = [pfInUpdate, pfInWhere]
+      ReadOnly = False
+      Required = False
+      Size = 255
+    end
+    object SQLQuery1uninstall_key: TStringField
+      DisplayWidth = 255
+      FieldKind = fkData
+      FieldName = 'uninstall_key'
+      Index = 11
+      LookupCache = False
+      ProviderFlags = [pfInUpdate, pfInWhere]
+      ReadOnly = False
+      Required = False
+      Size = 255
+    end
+    object SQLQuery1setuppy: TMemoField
+      DisplayWidth = 10
+      FieldKind = fkData
+      FieldName = 'setuppy'
+      Index = 12
+      LookupCache = False
+      ProviderFlags = [pfInUpdate, pfInWhere]
+      ReadOnly = False
+      Required = False
+      BlobType = ftBlob
+      Transliterate = False
+    end
+    object SQLQuery1process_id: TLongintField
+      DisplayWidth = 10
+      FieldKind = fkData
+      FieldName = 'process_id'
+      Index = 13
+      LookupCache = False
+      ProviderFlags = [pfInUpdate, pfInWhere]
+      ReadOnly = False
+      Required = False
+    end
+  end
+  object SQLite3Connection1: TSQLite3Connection
+    Connected = True
+    LoginPrompt = False
+    DatabaseName = 'c:\wapt\db\waptdb.sqlite'
+    KeepConnection = False
+    Transaction = SQLTransaction1
+    LogEvents = []
+    Options = []
+    left = 40
+    top = 112
+  end
+  object SQLTransaction1: TSQLTransaction
+    Active = True
+    Database = SQLite3Connection1
+    left = 40
+    top = 176
   end
 end

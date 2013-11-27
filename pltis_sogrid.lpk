@@ -1,9 +1,9 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <Package Version="4">
     <PathDelim Value="\"/>
     <Name Value="pltis_sogrid"/>
-    <Author Value="Tranquilit"/>
+    <Author Value="Tranquil IT Systems"/>
     <CompilerOptions>
       <Version Value="11"/>
       <PathDelim Value="\"/>
@@ -20,7 +20,7 @@
       </Other>
     </CompilerOptions>
     <Description Value="Virtual SuperObject Grid Components"/>
-    <Version Minor="5" Release="1"/>
+    <Version Minor="6"/>
     <Files Count="3">
       <Item1>
         <Filename Value="source\sogrid_register.pas"/>
