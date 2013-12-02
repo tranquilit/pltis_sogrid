@@ -22,10 +22,10 @@ type
 
   TSOGrid = class;
 
-  TSODataEvent = (deFieldChange, deRecordChange, deDataSetChange,
+  TSODataEvent = (deFieldChange, deDataSetChange,
     deUpdateRecord, deUpdateState,deFieldListChange);
 
-  TSODataChangeEvent = procedure(Sender: TObject;  EventType:TSODataEvent; PropertyName: String;OldValue,NewValue:ISuperObject) of object;
+  TSODataChangeEvent = procedure (EventType:TSODataEvent;Row:ISuperObject;PropertyName:String;OldData,Newdata:ISuperObject) of object;
 
   TSOUpdateStatus = (usUnmodified, usModified, usInserted, usDeleted);
   TSOUpdateStatusSet = SET OF TSOUpdateStatus;
@@ -33,6 +33,10 @@ type
   TSOUpdateMode = (upWhereAll, upWhereChanged, upWhereKeyOnly);
   TSOResolverResponse = (rrSkip, rrAbort, rrMerge, rrApply, rrIgnore);
 
+  ISODataView = interface
+    ['{2DF865FF-684D-453E-A9F0-7D7307DD0BDD}']
+    procedure NotifyChange(EventType:TSODataEvent;Row:ISuperObject;PropertyName:String;OldData,Newdata:ISuperObject);
+  end;
 
   { TSODataSource }
 
@@ -46,17 +50,27 @@ type
     procedure DistributeEvent(Event: TSODataEvent; Info: Ptrint);
     Procedure ProcessEvent(Event : TSODataEvent; Info : Ptrint);
     procedure SetData(AData: ISuperObject);
-    procedure SetDataViews(AValue: TList);
     procedure SetEnabled(Value: Boolean);
   protected
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    property DataViews:TList read FDataViews write SetDataViews;
+
+    // List of visual components to be notified of data changes
+    property DataViews:TList read FDataViews write FDataViews;
+
+    // Data store
+    property Data:ISuperObject read FData write SetData;
+
+    // add a component to the list of notified objects
+    procedure RegisterView(AComponent:TComponent);
+    procedure UnregisterView(AComponent:TComponent);
+    procedure NotifyChange(EventType:TSODataEvent;Row:ISuperObject;PropertyName:String = '';OldData:ISuperObject=Nil;Newdata:ISuperObject=Nil);
   published
     property Enabled: Boolean read FEnabled write SetEnabled default True;
     property OnStateChange: TNotifyEvent read FOnStateChange write FOnStateChange;
     property OnDataChange: TSODataChangeEvent read FOnDataChange write FOnDataChange;
+    //property OnNewRecord: TNotifyEvent;
   end;
 
   { TSOGridColumn }
@@ -172,7 +186,7 @@ type
     RowData, CellData: ISuperObject; Column: TColumnIndex; TextType: TVSTTextType;
     var CellText: string) of object;
 
-  TSOGrid = class(TCustomVirtualStringTree)
+  TSOGrid = class(TCustomVirtualStringTree,ISODataView)
   private
     FTextFound: boolean;
     FindDlg: TFindDialog;
@@ -186,6 +200,8 @@ type
     FItemDataOffset: integer;
     FOnGetText: TSOGridGetText;
 
+    FDatasource: TSODataSource;
+
     FDefaultPopupMenu: TPopupMenu;
     FMenuFilled: boolean;
     HMUndo, HMRevert: HMENU;
@@ -197,11 +213,13 @@ type
     HMCustomize: HMENU;
 
     function FocusedPropertyName: String;
+    function GetData: ISuperObject;
     function GetJSONdata: string;
     function GetSettings: ISuperObject;
 
     procedure SetColumnToFind(AValue: integer);
     procedure SetData(const Value: ISuperObject);
+    procedure SetDatasource(AValue: TSODataSource);
     procedure SetJSONdata(AValue: string);
     procedure SetOptions(const Value: TStringTreeOptions);
     function GetOptions: TStringTreeOptions;
@@ -274,12 +292,14 @@ type
 
     function DoKeyAction(var CharCode: Word; var Shift: TShiftState): Boolean; override;
 
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    function GetData(Node: PVirtualNode): ISuperObject;
+    function GetNodeSOData(Node: PVirtualNode): ISuperObject;
     procedure LoadData;
-    property Data: ISuperObject read FData write SetData;
+    property Data: ISuperObject read GetData write SetData;
     function ClipboardData: ISuperObject;
     function GetCellData(N: PVirtualNode; FieldName: string;
       Default: ISuperObject = nil): ISuperObject;
@@ -290,6 +310,8 @@ type
     procedure InvalidateFordata(sodata: ISuperObject);
     procedure Clear; override;
 
+    // SODatasource events handling
+    procedure NotifyChange(EventType:TSODataEvent;Row:ISuperObject;PropertyName:String;OldData,Newdata:ISuperObject);
     function FocusedColumnObject:TSOGridColumn;
 
     // sauvegarde et restauration des customisations utilisateurs
@@ -308,6 +330,9 @@ type
   published
     property OnGetText: TSOGridGetText read FOnGetText write FOnGetText;
     property JSONdata: string read GetJSONdata write SetJSONdata;
+
+    property Datasource: TSODataSource read FDataSource write SetDatasource;
+
     //inherited properties
     property Action;
     property Align;
@@ -537,30 +562,53 @@ end;
 
 procedure TSODataSource.SetData(AData: ISuperObject);
 begin
-
-end;
-
-procedure TSODataSource.SetDataViews(AValue: TList);
-begin
-  if FDataViews=AValue then Exit;
-  FDataViews:=AValue;
+  if Adata = FData then
+    Exit;
+  FData := AData;
+  NotifyChange(deDataSetChange,Nil,'',Nil,AData);
 end;
 
 procedure TSODataSource.SetEnabled(Value: Boolean);
 begin
-
+  if Value = FEnabled then
+      Exit;
+  NotifyChange(deUpdateState ,Nil,'',Nil,Nil);
 end;
 
 constructor TSODataSource.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  FDataViews := TList.Create;
+  FEnabled:=True;
 end;
 
 destructor TSODataSource.Destroy;
 begin
+  if Assigned(FDataViews) then
+    FreeAndNil(FDataViews);
   inherited Destroy;
 end;
 
+procedure TSODataSource.RegisterView(AComponent: TComponent);
+begin
+  if DataViews.IndexOf(AComponent)<0 then
+    DataViews.Add(AComponent);
+end;
+
+procedure TSODataSource.UnregisterView(AComponent: TComponent);
+begin
+  DataViews.Remove(AComponent);
+end;
+
+procedure TSODataSource.NotifyChange(EventType: TSODataEvent;
+  Row: ISuperObject; PropertyName: String; OldData, Newdata: ISuperObject);
+var
+  i:integer;
+begin
+  if Enabled then
+    for i:=0 to DataViews.Count-1 do
+      (TInterfacedObject(DataViews[i]) as ISODataView).NotifyChange(EventType,Row,PropertyName,OldData,Newdata);
+end;
 
 { TSOGridColumn }
 procedure TSOGridColumn.SetPropertyName(const Value: string);
@@ -586,8 +634,6 @@ begin
   else
     inherited Assign(Source);
 end;
-
-
 
 type
   TVirtualTreeCast = class(TBaseVirtualTree); // Necessary to make the header accessible.
@@ -871,7 +917,7 @@ var
   Node: PVirtualNode;
   ItemData: PSOItemData;
 begin
-  if (FData = nil) or (FData.AsArray = nil) then
+  if (Data = nil) or (Data.AsArray = nil) then
     inherited Clear
   else
   begin
@@ -879,7 +925,7 @@ begin
     BeginUpdate;
     try
       inherited Clear;
-      RootNodeCount := FData.AsArray.Length;
+      RootNodeCount := Data.AsArray.Length;
     finally
       EndUpdate;
     end;
@@ -912,15 +958,36 @@ end;
 
 procedure TSOGrid.SetData(const Value: ISuperObject);
 begin
-  if FData = Value then
-    exit;
-  FData := Value;
-  LoadData;
+  //redirect to datasource if defined
+  if Assigned(FDatasource) then
+    FDatasource.Data := Value
+  else
+  begin
+    if FData = Value then
+      exit;
+    LoadData;
+    FData := Value;
+  end;
+end;
+
+procedure TSOGrid.SetDatasource(AValue: TSODataSource);
+begin
+  if FDataSource = AValue then
+    Exit;
+  if Assigned(FDatasource) then
+    FDataSource.UnregisterView(Self);
+  FDataSource := AValue;
+  if Assigned(FDatasource) then
+  begin
+    FDataSource.RegisterView(Self);
+    // be sure to release interface
+    FData := Nil;
+  end;
 end;
 
 function TSOGrid.GetJSONdata: string;
 begin
-  if FData <> nil then
+  if Data <> nil then
     Result := Data.AsJSon(True)
   else
     Result := '';
@@ -1128,7 +1195,7 @@ begin
   inherited Destroy;
 end;
 
-function TSOGrid.GetData(Node: PVirtualNode): ISuperObject;
+function TSOGrid.GetNodeSOData(Node: PVirtualNode): ISuperObject;
 var
   ItemData: PSOItemData;
 begin
@@ -1153,7 +1220,7 @@ begin
   if ItemData <> nil then
   begin
     //This increment the refcount of the interface
-    ItemData^.JSONData := FData.AsArray[Node^.Index];
+    ItemData^.JSONData := Data.AsArray[Node^.Index];
     Node^.CheckType := ctCheckBox;
     //Node^.States:=Node^.States + [vsMultiline];
   end;
@@ -1183,7 +1250,7 @@ begin
   Result := TSuperObject.Create(stArray);
   while (N <> nil) do
   begin
-    Result.AsArray.Add(GetData(N));
+    Result.AsArray.Add(GetNodeSOData(N));
     N := GetNextSelected(N);
   end;
 end;
@@ -1209,8 +1276,8 @@ begin
     OnCompareNodes(Self, Node1, Node2, Column, Result)
   else
   begin
-    n1 := GetData(Node1);
-    n2 := GetData(Node2);
+    n1 := GetNodeSOData(Node1);
+    n2 := GetNodeSOData(Node2);
 
     if (Column >= 0) and (n1 <> nil) and (n2 <> nil) then
     begin
@@ -1254,7 +1321,7 @@ begin
   p := TopNode;
   while (p <> nil) do
   begin
-    if GetData(p) = sodata then
+    if GetNodeSOData(p) = sodata then
     begin
       SetLength(Result, length(Result) + 1);
       Result[length(Result) - 1] := p;
@@ -1271,7 +1338,7 @@ begin
   p := TopNode;
   while (p <> nil) do
   begin
-    if GetData(p) = sodata then
+    if GetNodeSOData(p) = sodata then
       InvalidateNode(p);
     p := GetNext(p);
   end;
@@ -1448,10 +1515,28 @@ begin
     Result:=inherited DoKeyAction(CharCode, Shift);
 end;
 
+procedure TSOGrid.Notification(AComponent: TComponent; Operation: TOperation);
+begin
+  Inherited Notification(AComponent,Operation);
+  if (Operation = opRemove) and (AComponent = FDatasource) then
+    FDatasource := nil;
+end;
+
 procedure TSOGrid.Clear;
 begin
   inherited Clear;
   FData := nil;
+end;
+
+procedure TSOGrid.NotifyChange(EventType:TSODataEvent;Row:ISuperObject;PropertyName:String;OldData,Newdata:ISuperObject);
+begin
+  //deFieldChange, deDataSetChange,deUpdateRecord, deUpdateState,deFieldListChange
+  if (EventType in [deUpdateRecord,deFieldChange]) and (Row<>Nil) then
+    InvalidateFordata(Row)
+  else if EventType in [deUpdateState,deDataSetChange] then
+    LoadData
+  else
+    Invalidate;
 end;
 
 procedure TSOGrid.PrepareCell(var PaintInfo: TVTPaintInfo;
@@ -1657,6 +1742,14 @@ begin
   Result := TSOGridColumn(Header.Columns[FocusedColumn]).PropertyName;
 end;
 
+function TSOGrid.GetData: ISuperObject;
+begin
+  if Assigned(FDatasource) then
+    Result := FDatasource.Data
+  else
+    Result := FData;
+end;
+
 procedure TSOGrid.DoUndoLastUpdate(Sender: TObject);
 begin
 
@@ -1750,10 +1843,13 @@ procedure TSOGrid.DoNewText(Node: PVirtualNode; Column: TColumnIndex;
   const AText: string);
 var
   ItemData: PSOItemData;
-  RowData, CellData: ISuperObject;
+  RowData, OldCelldata, NewCellData: ISuperObject;
+  PropertyName:String;
 begin
   RowData := nil;
-  CellData := nil;
+  OldCellData := nil;
+  NewCellData := nil;
+
   if Node <> nil then
   begin
     ItemData := GetItemData(Node);
@@ -1763,24 +1859,34 @@ begin
       if RowData <> nil then
       begin
         if Column >= 0 then
-          RowData.S[TSOGridColumn(Header.Columns.Items[Column]).PropertyName] :=
-            UTF8Decode(AText)
+        begin
+          PropertyName:=TSOGridColumn(Header.Columns.Items[Column]).PropertyName;
+          OldCelldata := RowData[PropertyName];
+          NewCellData := SO(UTF8Decode(AText));
+          RowData[PropertyName] := NewCellData;
+        end
         else
-          RowData.S[DefaultText] := UTF8Decode(AText);
+        begin
+          PropertyName:=DefaultText;
+          OldCelldata := RowData[DefaultText];
+          NewCellData := SO(UTF8Decode(AText));
+          RowData[DefaultText] := NewCellData;
+        end;
       end;
     end;
   end;
   inherited DoNewText(Node, Column, AText);
+  if Assigned(FDatasource) then
+    FDatasource.NotifyChange(deFieldChange,RowData,PropertyName,OldCelldata,NewCellData);
 end;
 
-
-// hack to allow right click menu on header popup menu  and diffrent popup menu on rows
+// hack to allow right click menu on header popup menu  and different popup menu on rows
 //   set message.msg to 0 if handled to stop message processing.
 type
   TVTHeaderHack = class(TVTHeader);
+
 //Bugfix :
 procedure TSOGrid.WndProc(var Message: TLMessage);
-
 var
   Handled: Boolean;
 
@@ -1832,8 +1938,7 @@ end;
 
 
 //----------------- TSOEdit --------------------------------------------------------------------------------------------
-
-// Implementation of a generic node caption editor.
+// Implementation of a generic node cell editor.
 
 constructor TSOEdit.Create(Link: TSOStringEditLink);
 

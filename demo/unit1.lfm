@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 276
+  Left = 401
   Height = 469
-  Top = 136
+  Top = 181
   Width = 917
   Caption = 'Form1'
   ClientHeight = 469
@@ -81,6 +81,7 @@ object Form1: TForm1
     Height = 309
     Top = 50
     Width = 596
+    Datasource = SODataSource1
     Align = alClient
     Color = clWhite
     EditDelay = 100
@@ -167,31 +168,52 @@ object Form1: TForm1
     OnFocusChanged = SOGrid1FocusChanged
     OnHeaderDraggedOut = SOGrid1HeaderDraggedOut
     OnKeyAction = SOGrid1KeyAction
-    OnNewText = SOGrid1NewText
   end
   object SOGrid2: TSOGrid
     Left = 0
     Height = 110
     Top = 359
     Width = 917
+    Datasource = SODataSource1
     Align = alBottom
     Color = clWhite
-    Header.AutoSizeIndex = 0
+    Header.AutoSizeIndex = -1
     Header.Columns = <    
       item
         Position = 0
-        Text = 'uuid'
-        PropertyName = 'uuid'
-      end    
-      item
-        Position = 1
         Text = 'host.computer_fqdn'
+        Width = 159
         PropertyName = 'host.computer_fqdn'
       end    
       item
+        Position = 1
+        Text = 'uuid'
+        Width = 251
+        PropertyName = 'uuid'
+      end    
+      item
         Position = 2
-        Text = 'dmi.system_information.serial_number'
-        PropertyName = 'dmi.system_information.serial_number'
+        Text = 'last_query_date'
+        Width = 100
+        PropertyName = 'last_query_date'
+      end    
+      item
+        Position = 3
+        Text = 'wapt_client'
+        Width = 100
+        PropertyName = 'wapt_client'
+      end    
+      item
+        Position = 4
+        Text = 'force'
+        Width = 100
+        PropertyName = 'force'
+      end    
+      item
+        Position = 5
+        Text = 'waptclient_status'
+        Width = 258
+        PropertyName = 'waptclient_status'
       end>
     Header.DefaultHeight = 17
     Header.Options = [hoColumnResize, hoDblClickResize, hoDrag, hoShowSortGlyphs, hoVisible]
@@ -249,13 +271,8 @@ object Form1: TForm1
     Request.UserAgent = 'Mozilla/3.0 (compatible; Indy Library)'
     Request.Ranges = <>
     HTTPOptions = [hoForceEncodeParams]
-    left = 568
-    top = 96
-  end
-  object SODataSource1: TSODataSource
-    Enabled = False
-    left = 336
-    top = 72
+    left = 448
+    top = 68
   end
   object DataSource1: TDataSource
     DataSet = SQLQuery1
@@ -529,5 +546,9 @@ object Form1: TForm1
     Database = SQLite3Connection1
     left = 40
     top = 176
+  end
+  object SODataSource1: TSODataSource
+    left = 338
+    top = 123
   end
 end

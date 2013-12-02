@@ -65,8 +65,6 @@ type
       const DropPosition: TPoint);
     procedure SOGrid1KeyAction(Sender: TBaseVirtualTree; var CharCode: Word;
       var Shift: TShiftState; var DoDefault: Boolean);
-    procedure SOGrid1NewText(Sender: TBaseVirtualTree; Node: PVirtualNode;
-      Column: TColumnIndex; const NewText: String);
   private
     { private declarations }
   public
@@ -83,14 +81,12 @@ uses tisstrings,superobject, sogrideditor;
 
 procedure TForm1.Button1Click(Sender: TObject);
 begin
-
-  sogrid1.Data := SO(IdHTTP1.Get(EdURL.Text));
-  sogrid1.CreateColumnsFromData(True);
+  DataSource1.Data := SO(IdHTTP1.Get(EdURL.Text));
+  //sogrid1.CreateColumnsFromData(True);
   //sogrid1.Header.AutoFitColumns(False);
 
-  sogrid2.Data := SOGrid1.Data;
-  sogrid2.Header.AutoFitColumns(False);
-
+  //sogrid2.Data := SOGrid1.Data;
+  //sogrid2.Header.AutoFitColumns(False);
 end;
 
 procedure TForm1.Button2Click(Sender: TObject);
@@ -193,18 +189,7 @@ begin
     SOGrid1.Data.AsArray.Add(SO());
     SOGrid1.RootNodeCount:=SOGrid1.RootNodeCount+1;
     SOGrid1.FocusedNode:=SOGrid1.GetLast;
-
-
   end;
-end;
-
-procedure TForm1.SOGrid1NewText(Sender: TBaseVirtualTree; Node: PVirtualNode;
-  Column: TColumnIndex; const NewText: String);
-var
-   row:ISuperObject;
-begin
-  row := SOGrid1.GetData(Node);
-  SOGrid2.InvalidateFordata(row);
 end;
 
 {$R *.lfm}
