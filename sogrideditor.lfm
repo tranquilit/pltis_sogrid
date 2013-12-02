@@ -218,6 +218,7 @@ object SOGridEditor: TSOGridEditor
     top = 95
     object ActLoadData: TAction
       Caption = 'Load data'
+      OnExecute = ActLoadDataExecute
       OnUpdate = ActLoadDataUpdate
     end
     object ActPasteJsontemplate: TAction
@@ -241,10 +242,22 @@ object SOGridEditor: TSOGridEditor
     object ActCopySettings: TAction
       Caption = 'Copy grid configuration to clipboard'
     end
+    object ActpasteCSV: TAction
+      Caption = 'Paste CSV data'
+      OnExecute = ActpasteCSVExecute
+    end
+    object ActAddColumns: TAction
+      Caption = 'Add missing columns from sample data'
+      OnExecute = ActAddColumnsExecute
+    end
+    object ActRemoveAllColumns: TAction
+      Caption = 'Remove all columns'
+      OnExecute = ActRemoveAllColumnsExecute
+    end
   end
   object PopupMenu1: TPopupMenu
     left = 176
-    top = 104
+    top = 95
     object MenuItem1: TMenuItem
       Action = ActAddColumn
     end
@@ -254,8 +267,17 @@ object SOGridEditor: TSOGridEditor
     object MenuItem3: TMenuItem
       Action = ActCopySettings
     end
+    object MenuItem7: TMenuItem
+      Action = ActPasteJsontemplate
+    end
     object MenuItem4: TMenuItem
-      Caption = 'New Item4'
+      Action = ActpasteCSV
+    end
+    object MenuItem5: TMenuItem
+      Action = ActAddColumns
+    end
+    object MenuItem6: TMenuItem
+      Action = ActRemoveAllColumns
     end
   end
 end

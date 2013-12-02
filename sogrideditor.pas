@@ -16,6 +16,9 @@ type
         ActAddColumn: TAction;
         ActDelColumn: TAction;
         ActCopySettings: TAction;
+        ActAddColumns: TAction;
+        ActRemoveAllColumns: TAction;
+        ActpasteCSV: TAction;
         ActUpdateColumn: TAction;
         ActPasteJsontemplate: TAction;
         ActLoadData: TAction;
@@ -36,14 +39,21 @@ type
         MenuItem2: TMenuItem;
         MenuItem3: TMenuItem;
         MenuItem4: TMenuItem;
+        MenuItem5: TMenuItem;
+        MenuItem6: TMenuItem;
+        MenuItem7: TMenuItem;
         Panel1: TPanel;
         ASOGrid: TSOGrid;
         Panel2: TPanel;
         PopupMenu1: TPopupMenu;
         procedure ActAddColumnExecute(Sender: TObject);
+        procedure ActAddColumnsExecute(Sender: TObject);
         procedure ActDelColumnExecute(Sender: TObject);
+        procedure ActLoadDataExecute(Sender: TObject);
         procedure ActLoadDataUpdate(Sender: TObject);
+        procedure ActpasteCSVExecute(Sender: TObject);
         procedure ActPasteJsontemplateExecute(Sender: TObject);
+        procedure ActRemoveAllColumnsExecute(Sender: TObject);
         procedure ActUpdateColumnExecute(Sender: TObject);
         procedure ActUpdateColumnUpdate(Sender: TObject);
         procedure ASOGridFocusChanged(Sender: TBaseVirtualTree;
@@ -59,7 +69,7 @@ type
 
 implementation
 
-uses Clipbrd,superobject;
+uses Clipbrd,superobject,soutils,tishttp;
 
 {$R *.lfm}
 
@@ -72,6 +82,11 @@ begin
     ActLoadData.Enabled := EdJSONUrl.text<>'';
 end;
 
+procedure TSOGridEditor.ActpasteCSVExecute(Sender: TObject);
+begin
+  ASOGrid.Data := CSV2SO(Clipboard.Astext);
+end;
+
 procedure TSOGridEditor.ActAddColumnExecute(Sender: TObject);
 var
   col : TSOGridColumn;
@@ -80,6 +95,11 @@ begin
     col.Text := 'Col '+IntToStr(col.Index);
     col.PropertyName := 'column'+IntToStr(col.Index);
     ASOGrid.FocusedColumn:=col.Index;
+end;
+
+procedure TSOGridEditor.ActAddColumnsExecute(Sender: TObject);
+begin
+  ASOGrid.CreateColumnsFromData(false);
 end;
 
 procedure TSOGridEditor.ActDelColumnExecute(Sender: TObject);
@@ -98,13 +118,18 @@ begin
 
 end;
 
+procedure TSOGridEditor.ActLoadDataExecute(Sender: TObject);
+begin
+  ASOGrid.Data := SO(httpGetString(EdJSONUrl.Text));
+end;
+
 procedure TSOGridEditor.ActPasteJsontemplateExecute(Sender: TObject);
 var
   newData:ISuperObject;
 begin
     try
       if Clipboard.HasFormat(ClipbrdJson) then
-        newData :=ASOGrid.ClipboardData
+        newData :=ClipboardSOData
       else
         newData := SO(Clipboard.AsText);
       if (newData.DataType = stArray) and (newData.AsArray.Length>0) and (newData.AsArray[0].DataType=stObject) then
@@ -127,6 +152,11 @@ begin
       ASOGrid.Data := SO(sampleJsonData);
       ShowMessage('Clipboard content is not a valid json Array of records');
     end;
+end;
+
+procedure TSOGridEditor.ActRemoveAllColumnsExecute(Sender: TObject);
+begin
+  ASOGrid.Header.Columns.Clear;
 end;
 
 procedure TSOGridEditor.ActUpdateColumnExecute(Sender: TObject);

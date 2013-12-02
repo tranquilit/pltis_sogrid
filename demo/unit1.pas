@@ -24,9 +24,9 @@ type
     DBEdit1: TDBEdit;
     Edit1: TEdit;
     EdURL: TEdit;
-    IdHTTP1: TIdHTTP;
     ListBox1: TListBox;
     Memo1: TMemo;
+    OpenDialog1: TOpenDialog;
     Panel1: TPanel;
     SODataSource1: TSODataSource;
     SOGrid1: TSOGrid;
@@ -56,11 +56,10 @@ type
     procedure ListBox1DragDrop(Sender, Source: TObject; X, Y: Integer);
     procedure ListBox1DragOver(Sender, Source: TObject; X, Y: Integer;
       State: TDragState; var Accept: Boolean);
+    procedure SOGrid1Change(Sender: TBaseVirtualTree; Node: PVirtualNode);
     procedure SOGrid1DragDrop(Sender: TBaseVirtualTree; Source: TObject;
       DataObject: IDataObject; Formats: TFormatArray; Shift: TShiftState;
       const Pt: TPoint; var Effect: DWORD; Mode: TDropMode);
-    procedure SOGrid1FocusChanged(Sender: TBaseVirtualTree; Node: PVirtualNode;
-      Column: TColumnIndex);
     procedure SOGrid1HeaderDraggedOut(Sender: TVTHeader; Column: TColumnIndex;
       const DropPosition: TPoint);
     procedure SOGrid1KeyAction(Sender: TBaseVirtualTree; var CharCode: Word;
@@ -75,13 +74,13 @@ var
   Form1: TForm1;
 
 implementation
-uses tisstrings,superobject, sogrideditor;
+uses tisstrings,superobject, sogrideditor, tishttp;
 
 { TForm1 }
 
 procedure TForm1.Button1Click(Sender: TObject);
 begin
-  DataSource1.Data := SO(IdHTTP1.Get(EdURL.Text));
+  SODataSource1.Data :=  SO(httpGetString(EdURL.Text));
   //sogrid1.CreateColumnsFromData(True);
   //sogrid1.Header.AutoFitColumns(False);
 
@@ -91,7 +90,7 @@ end;
 
 procedure TForm1.Button2Click(Sender: TObject);
 begin
-  Memo1.Lines.Text := SOGrid1.JSONdata;
+  Memo1.Lines.Text := SODataSource1.Data.AsJSon(True);
 end;
 
 procedure TForm1.Button5Click(Sender: TObject);
@@ -100,15 +99,25 @@ var
   col : TSOGridColumn;
   target : TSOGrid;
 begin
+
+  target := (SOGrid1 as TSOGrid);
+
   With TSOGridEditor.Create(Application) do
   try
-      target := (SOGrid1 as TSOGrid);
       for i:=0 to target.Header.Columns.count-1 do
       begin
          col := ASOGrid.Header.Columns.Add as TSOGridColumn;
          col.Assign(target.Header.Columns[i]);
       end;
       asogrid.Settings := target.Settings;
+      ASOGrid.Datasource := target.Datasource;
+      if ASOGrid.data = Nil then
+        ASOGrid.Data := TSuperObject.Create(stArray);
+      if ASOGrid.Data.AsArray.Length=0 then
+      begin
+        ASOGrid.Data.AsArray.Add(TSuperObject.Create);
+        ASOGrid.LoadData;
+      end;
       if ShowModal = mrOK then
       begin
         target.Header.Columns.Clear;
@@ -135,21 +144,21 @@ begin
   Accept := Source is TVirtualTreeColumn;
 end;
 
+procedure TForm1.SOGrid1Change(Sender: TBaseVirtualTree; Node: PVirtualNode);
+begin
+  if Node<>Nil then
+    Edit1.Text:= SOGrid1.GetCellData(Node,'host.computer_fqdn',SO('')).AsString
+  else
+   Edit1.Text:='';;
+
+end;
+
 procedure TForm1.SOGrid1DragDrop(Sender: TBaseVirtualTree; Source: TObject;
   DataObject: IDataObject; Formats: TFormatArray; Shift: TShiftState;
   const Pt: TPoint; var Effect: DWORD; Mode: TDropMode);
 begin
     showmessage('toto');
 
-end;
-
-procedure TForm1.SOGrid1FocusChanged(Sender: TBaseVirtualTree;
-  Node: PVirtualNode; Column: TColumnIndex);
-begin
-  if Node<>Nil then
-    Edit1.Text:= SOGrid1.GetCellData(Node,'host.computer_fqdn',SO('')).AsString
-  else
-   Edit1.Text:='';;
 end;
 
 procedure TForm1.SOGrid1HeaderDraggedOut(Sender: TVTHeader;

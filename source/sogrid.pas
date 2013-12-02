@@ -26,6 +26,7 @@ type
     deUpdateRecord, deUpdateState,deFieldListChange);
 
   TSODataChangeEvent = procedure (EventType:TSODataEvent;Row:ISuperObject;PropertyName:String;OldData,Newdata:ISuperObject) of object;
+  TSuperObjectRowEvent = procedure (ARow:ISuperObject) of object;
 
   TSOUpdateStatus = (usUnmodified, usModified, usInserted, usDeleted);
   TSOUpdateStatusSet = SET OF TSOUpdateStatus;
@@ -46,6 +47,7 @@ type
     FDataViews: TList;
     FEnabled: Boolean;
     FOnDataChange: TSODataChangeEvent;
+    FOnNewRecord: TSuperObjectRowEvent;
     FOnStateChange: TNotifyEvent;
     procedure DistributeEvent(Event: TSODataEvent; Info: Ptrint);
     Procedure ProcessEvent(Event : TSODataEvent; Info : Ptrint);
@@ -65,12 +67,30 @@ type
     // add a component to the list of notified objects
     procedure RegisterView(AComponent:TComponent);
     procedure UnregisterView(AComponent:TComponent);
-    procedure NotifyChange(EventType:TSODataEvent;Row:ISuperObject;PropertyName:String = '';OldData:ISuperObject=Nil;Newdata:ISuperObject=Nil);
+    procedure NotifyChange(EventType:TSODataEvent;Row:ISuperObject=Nil;PropertyName:String = '';OldData:ISuperObject=Nil;Newdata:ISuperObject=Nil);
+
+    procedure LoadDataset; Virtual;
+    procedure Emptydataset; Virtual;
+
+    function  AppendRecord:ISuperObject;Virtual;
+    procedure DeleteRecord(row:ISuperObject); Virtual;
+    procedure UpdateRecord(row:ISuperObject;PropertyName:String;NewValue:ISuperObject);Virtual;
+
+    procedure LoadFromFile(Filename:String); Virtual;
+    procedure SaveToFile(Filename:String); Virtual;
+
+    function ChangeCount:Integer; virtual;
+    procedure UndolastChange; virtual;
+    function ApplyUpdates:Integer; virtual;
+
+    procedure PasteFromClipboard;
+
   published
     property Enabled: Boolean read FEnabled write SetEnabled default True;
     property OnStateChange: TNotifyEvent read FOnStateChange write FOnStateChange;
     property OnDataChange: TSODataChangeEvent read FOnDataChange write FOnDataChange;
-    //property OnNewRecord: TNotifyEvent;
+
+    property OnNewRecord: TSuperObjectRowEvent read FOnNewRecord write FOnNewRecord;
   end;
 
   { TSOGridColumn }
@@ -214,13 +234,11 @@ type
 
     function FocusedPropertyName: String;
     function GetData: ISuperObject;
-    function GetJSONdata: string;
     function GetSettings: ISuperObject;
 
     procedure SetColumnToFind(AValue: integer);
     procedure SetData(const Value: ISuperObject);
     procedure SetDatasource(AValue: TSODataSource);
-    procedure SetJSONdata(AValue: string);
     procedure SetOptions(const Value: TStringTreeOptions);
     function GetOptions: TStringTreeOptions;
     procedure SetSettings(AValue: ISuperObject);
@@ -300,7 +318,6 @@ type
     function GetNodeSOData(Node: PVirtualNode): ISuperObject;
     procedure LoadData;
     property Data: ISuperObject read GetData write SetData;
-    function ClipboardData: ISuperObject;
     function GetCellData(N: PVirtualNode; FieldName: string;
       Default: ISuperObject = nil): ISuperObject;
     function GetCellStrValue(N: PVirtualNode; FieldName: string;
@@ -329,7 +346,6 @@ type
 
   published
     property OnGetText: TSOGridGetText read FOnGetText write FOnGetText;
-    property JSONdata: string read GetJSONdata write SetJSONdata;
 
     property Datasource: TSODataSource read FDataSource write SetDatasource;
 
@@ -508,9 +524,6 @@ type
   end;
 
 
-var
-  ClipbrdJson: TClipboardFormat;
-
 implementation
 
 uses soutils, base64, IniFiles,LCLIntf,messages,forms;
@@ -597,17 +610,113 @@ end;
 
 procedure TSODataSource.UnregisterView(AComponent: TComponent);
 begin
-  DataViews.Remove(AComponent);
+  if Assigned(FDataviews) then
+    FDataViews.Remove(AComponent);
 end;
 
 procedure TSODataSource.NotifyChange(EventType: TSODataEvent;
-  Row: ISuperObject; PropertyName: String; OldData, Newdata: ISuperObject);
+  Row: ISuperObject; PropertyName: String; OldData: ISuperObject;
+  Newdata: ISuperObject);
 var
   i:integer;
 begin
   if Enabled then
     for i:=0 to DataViews.Count-1 do
       (TInterfacedObject(DataViews[i]) as ISODataView).NotifyChange(EventType,Row,PropertyName,OldData,Newdata);
+end;
+
+procedure TSODataSource.LoadDataset;
+begin
+  Data := TSuperObject.Create(stArray);
+end;
+
+procedure TSODataSource.Emptydataset;
+begin
+  Data := TSuperObject.Create(stArray);
+end;
+
+function TSODataSource.AppendRecord: ISuperObject;
+begin
+  if not Assigned(Data) then
+      Emptydataset;
+
+  result := TSuperObject.Create;
+  if Assigned(OnNewRecord) then
+      OnNewRecord(result);
+  data.AsArray.Add(result);
+  NotifyChange(deDataSetChange,result);
+end;
+
+procedure TSODataSource.DeleteRecord(row: ISuperObject);
+var
+  i:Integer;
+begin
+  for i:=data.AsArray.Length-1 downto 0 do
+    if Data.AsArray[i]=row then
+      Data.AsArray.Delete(i);
+  NotifyChange(deDataSetChange);
+end;
+
+procedure TSODataSource.UpdateRecord(row: ISuperObject; PropertyName: String;
+  NewValue: ISuperObject);
+var
+  oldvalue:ISuperObject;
+begin
+  oldValue := Row[PropertyName];
+  Row[PropertyName] := NewValue;
+  NotifyChange(deFieldChange,Row,PropertyName,oldvalue,NewValue);
+end;
+
+procedure TSODataSource.LoadFromFile(Filename: String);
+begin
+  data := TSuperObject.ParseFile(Filename,False);
+  NotifyChange(deDataSetChange);
+end;
+
+procedure TSODataSource.SaveToFile(Filename: String);
+begin
+  if Assigned(Data) then
+      Data.SaveTo(Filename);
+end;
+
+function TSODataSource.ChangeCount: Integer;
+begin
+  Result := 0;
+end;
+
+procedure TSODataSource.UndolastChange;
+begin
+  raise Exception.Create('Not implemented');;
+end;
+
+// return count of not applied records.
+function TSODataSource.ApplyUpdates: Integer;
+begin
+  raise Exception.Create('Not implemented');;
+end;
+
+procedure TSODataSource.PasteFromClipboard;
+var
+  newData:ISuperObject;
+begin
+    try
+      if Clipboard.HasFormat(ClipbrdJson) then
+        newData :=ClipboardSOData
+      else
+        newData := SO(Clipboard.AsText);
+      if (newData.DataType = stArray) and (newData.AsArray.Length>0) and (newData.AsArray[0].DataType=stObject) then
+        Data := newData
+      else
+      if (newData.DataType = stObject) then
+      begin
+        Data := TSuperObject.Create(stArray);
+        Data.AsArray.Add(SO(Clipboard.AsText));
+      end;
+      NotifyChange(deDataSetChange);
+    except
+      Data := TSuperObject.Create(stArray);
+      raise;
+    end;
 end;
 
 { TSOGridColumn }
@@ -982,15 +1091,8 @@ begin
     FDataSource.RegisterView(Self);
     // be sure to release interface
     FData := Nil;
+    LoadData;
   end;
-end;
-
-function TSOGrid.GetJSONdata: string;
-begin
-  if Data <> nil then
-    Result := Data.AsJSon(True)
-  else
-    Result := '';
 end;
 
 function TSOGrid.GetSettings: ISuperObject;
@@ -1021,11 +1123,6 @@ begin
   if FColumnToFind = AValue then
     Exit;
   FColumnToFind := AValue;
-end;
-
-procedure TSOGrid.SetJSONdata(AValue: string);
-begin
-  Data := SO(AValue);
 end;
 
 procedure TSOGrid.SetOptions(const Value: TStringTreeOptions);
@@ -1191,7 +1288,9 @@ end;
 
 destructor TSOGrid.Destroy;
 begin
-  Data := Nil;
+  FData := Nil;
+  if Assigned(FDatasource) then
+    FDatasource.UnregisterView(Self);
   inherited Destroy;
 end;
 
@@ -1217,7 +1316,7 @@ var
   ItemData: PSOItemData;
 begin
   ItemData := GetItemData(Node);
-  if ItemData <> nil then
+  if (ItemData <> nil) and (Data<>Nil) and (Node^.Index < Data.AsArray.Length) then
   begin
     //This increment the refcount of the interface
     ItemData^.JSONData := Data.AsArray[Node^.Index];
@@ -1430,35 +1529,13 @@ begin
   end;
 end;
 
-function TSOGrid.ClipboardData:ISuperObject;
-var
-  NewData, row: ISuperObject;
-  St: TStringStream;
-begin
-  Result := TSuperObject.Create(stArray);
-  if Clipboard.HasFormat(ClipbrdJson) then
-  try
-    st := TStringStream.Create('');
-    if Clipboard.GetFormat(ClipbrdJson, St) then
-    begin
-      St.Seek(0, 0);
-      NewData := SO(St.DataString);
-      if NewData.DataType = stArray then
-        for row in NewData do
-          Result.AsArray.Add(row);
-    end;
-  finally
-    St.Free;
-  end;
-end;
-
 procedure TSOGrid.DoPaste(Sender: TObject);
 var
   row: ISuperObject;
 begin
   if Data = Nil then
     Data := TSuperObject.Create(stArray);
-  for row in ClipboardData do
+  for row in ClipboardSOData do
     Data.AsArray.Add(row);
   LoadData;
 end;
@@ -1517,9 +1594,9 @@ end;
 
 procedure TSOGrid.Notification(AComponent: TComponent; Operation: TOperation);
 begin
-  Inherited Notification(AComponent,Operation);
   if (Operation = opRemove) and (AComponent = FDatasource) then
     FDatasource := nil;
+  Inherited Notification(AComponent,Operation);
 end;
 
 procedure TSOGrid.Clear;
@@ -1531,12 +1608,15 @@ end;
 procedure TSOGrid.NotifyChange(EventType:TSODataEvent;Row:ISuperObject;PropertyName:String;OldData,Newdata:ISuperObject);
 begin
   //deFieldChange, deDataSetChange,deUpdateRecord, deUpdateState,deFieldListChange
-  if (EventType in [deUpdateRecord,deFieldChange]) and (Row<>Nil) then
-    InvalidateFordata(Row)
-  else if EventType in [deUpdateState,deDataSetChange] then
-    LoadData
-  else
-    Invalidate;
+  if not (csDestroying in ComponentState) then
+  begin
+    if (EventType in [deUpdateRecord,deFieldChange]) and (Row<>Nil) then
+      InvalidateFordata(Row)
+    else if EventType in [deUpdateState,deDataSetChange] then
+      LoadData
+    else
+      Invalidate;
+  end;
 end;
 
 procedure TSOGrid.PrepareCell(var PaintInfo: TVTPaintInfo;
@@ -2345,10 +2425,5 @@ begin
     end;
   end;
 end;
-
-
-
-begin
-  ClipbrdJson := RegisterClipboardFormat('application/json');
 
 end.

@@ -44,9 +44,9 @@ object Form1: TForm1
       TabOrder = 1
     end
     object Edit1: TEdit
-      Left = 600
+      Left = 596
       Height = 21
-      Top = 7
+      Top = 8
       Width = 152
       TabOrder = 2
       Text = 'Edit1'
@@ -71,7 +71,7 @@ object Form1: TForm1
       Left = 8
       Height = 21
       Top = 11
-      Width = 180
+      Width = 196
       TabOrder = 5
       Text = 'http://srvwapt:8080/json/host_list'
     end
@@ -88,72 +88,114 @@ object Form1: TForm1
     Header.AutoSizeIndex = -1
     Header.Columns = <    
       item
-        Position = 1
-        Text = 'dmi'
-        Width = 64
-        PropertyName = 'dmi'
-      end    
-      item
         Position = 0
-        Text = 'Dernière maj'
-        Width = 97
-        PropertyName = 'last_query_date'
-      end    
-      item
-        Position = 2
-        Text = 'packages'
-        Width = 67
-        PropertyName = 'packages'
-      end    
-      item
-        Position = 3
-        Text = 'Update status'
-        Width = 85
-        PropertyName = 'update_status'
-      end    
-      item
-        Position = 4
-        Text = 'Softs'
-        Width = 100
-        PropertyName = 'softwares'
-      end    
-      item
-        Position = 6
-        Text = 'wapt'
-        Width = 100
-        PropertyName = 'wapt'
-      end    
-      item
-        Position = 5
         Text = 'uuid'
         Width = 100
         PropertyName = 'uuid'
       end    
       item
-        Position = 7
-        Text = 'host'
-        Width = 100
-        PropertyName = 'host'
-      end    
-      item
-        Position = 8
-        Text = 'force'
-        Width = 100
-        PropertyName = 'force'
-      end    
-      item
         Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coAllowFocus]
-        Position = 9
+        Position = 1
         Text = 'wapt_client'
         Width = 100
         PropertyName = 'wapt_client'
       end    
       item
         Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coAllowFocus]
-        Position = 10
+        Position = 2
         Text = 'waptclient_status'
         Width = 258
         PropertyName = 'waptclient_status'
+      end    
+      item
+        Position = 3
+        Text = 'price_subtotal'
+        Width = 100
+        PropertyName = 'price_subtotal'
+      end    
+      item
+        Position = 4
+        Text = 'zip'
+        Width = 100
+        PropertyName = 'zip'
+      end    
+      item
+        Position = 5
+        Text = 'street'
+        Width = 100
+        PropertyName = 'street'
+      end    
+      item
+        Position = 6
+        Text = 'amount_tax'
+        Width = 100
+        PropertyName = 'amount_tax'
+      end    
+      item
+        Position = 7
+        Text = 'amount_untaxed'
+        Width = 100
+        PropertyName = 'amount_untaxed'
+      end    
+      item
+        Position = 8
+        Text = 'number'
+        Width = 100
+        PropertyName = 'number'
+      end    
+      item
+        Position = 9
+        Text = 'name'
+        Width = 100
+        PropertyName = 'name'
+      end    
+      item
+        Position = 10
+        Text = 'city'
+        Width = 100
+        PropertyName = 'city'
+      end    
+      item
+        Position = 11
+        Text = 'dmi'
+        Width = 100
+        PropertyName = 'dmi'
+      end    
+      item
+        Position = 12
+        Text = 'last_query_date'
+        Width = 100
+        PropertyName = 'last_query_date'
+      end    
+      item
+        Position = 13
+        Text = 'packages'
+        Width = 100
+        PropertyName = 'packages'
+      end    
+      item
+        Position = 14
+        Text = 'update_status'
+        Width = 100
+        PropertyName = 'update_status'
+      end    
+      item
+        Position = 15
+        Text = 'softwares'
+        Width = 100
+        PropertyName = 'softwares'
+      end    
+      item
+        Position = 16
+        Text = 'wapt'
+        Width = 100
+        PropertyName = 'wapt'
+      end    
+      item
+        Position = 17
+        Text = 'host'
+        Width = 100
+        PropertyName = 'host'
       end>
     Header.DefaultHeight = 17
     Header.Options = [hoColumnResize, hoDblClickResize, hoDrag, hoShowSortGlyphs, hoVisible]
@@ -164,8 +206,8 @@ object Form1: TForm1
     TreeOptions.PaintOptions = [toHideFocusRect, toPopupMode, toShowButtons, toShowDropmark, toShowHorzGridLines, toShowRoot, toShowTreeLines, toShowVertGridLines, toThemeAware, toUseBlendedImages, toAlwaysHideSelection]
     TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toMultiSelect]
     WantTabs = True
+    OnChange = SOGrid1Change
     OnDragDrop = SOGrid1DragDrop
-    OnFocusChanged = SOGrid1FocusChanged
     OnHeaderDraggedOut = SOGrid1HeaderDraggedOut
     OnKeyAction = SOGrid1KeyAction
   end
@@ -181,39 +223,57 @@ object Form1: TForm1
     Header.Columns = <    
       item
         Position = 0
-        Text = 'host.computer_fqdn'
-        Width = 159
-        PropertyName = 'host.computer_fqdn'
+        Text = 'price_subtotal'
+        Width = 100
+        PropertyName = 'price_subtotal'
       end    
       item
         Position = 1
-        Text = 'uuid'
-        Width = 251
-        PropertyName = 'uuid'
+        Text = 'zip'
+        Width = 100
+        PropertyName = 'zip'
       end    
       item
         Position = 2
-        Text = 'last_query_date'
+        Text = 'name2'
         Width = 100
-        PropertyName = 'last_query_date'
+        PropertyName = 'name2'
       end    
       item
         Position = 3
-        Text = 'wapt_client'
+        Text = 'street'
         Width = 100
-        PropertyName = 'wapt_client'
+        PropertyName = 'street'
       end    
       item
         Position = 4
-        Text = 'force'
+        Text = 'amount_tax'
         Width = 100
-        PropertyName = 'force'
+        PropertyName = 'amount_tax'
       end    
       item
         Position = 5
-        Text = 'waptclient_status'
-        Width = 258
-        PropertyName = 'waptclient_status'
+        Text = 'amount_untaxed'
+        Width = 100
+        PropertyName = 'amount_untaxed'
+      end    
+      item
+        Position = 6
+        Text = 'number'
+        Width = 100
+        PropertyName = 'number'
+      end    
+      item
+        Position = 7
+        Text = 'name'
+        Width = 100
+        PropertyName = 'name'
+      end    
+      item
+        Position = 8
+        Text = 'city'
+        Width = 100
+        PropertyName = 'city'
       end>
     Header.DefaultHeight = 17
     Header.Options = [hoColumnResize, hoDblClickResize, hoDrag, hoShowSortGlyphs, hoVisible]
@@ -254,25 +314,6 @@ object Form1: TForm1
     CharCase = ecNormal
     MaxLength = 0
     TabOrder = 6
-  end
-  object IdHTTP1: TIdHTTP
-    AllowCookies = True
-    ProxyParams.BasicAuthentication = False
-    ProxyParams.ProxyPort = 0
-    Request.ContentLength = -1
-    Request.ContentRangeEnd = -1
-    Request.ContentRangeStart = -1
-    Request.ContentRangeInstanceLength = -1
-    Request.Date = 0
-    Request.Expires = 0
-    Request.LastModified = 0
-    Request.Accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-    Request.BasicAuthentication = False
-    Request.UserAgent = 'Mozilla/3.0 (compatible; Indy Library)'
-    Request.Ranges = <>
-    HTTPOptions = [hoForceEncodeParams]
-    left = 448
-    top = 68
   end
   object DataSource1: TDataSource
     DataSet = SQLQuery1
@@ -547,8 +588,13 @@ object Form1: TForm1
     left = 40
     top = 176
   end
+  object OpenDialog1: TOpenDialog
+    Filter = 'All|*.*|JSon files|*.json'
+    left = 432
+    top = 164
+  end
   object SODataSource1: TSODataSource
-    left = 338
-    top = 123
+    left = 404
+    top = 94
   end
 end

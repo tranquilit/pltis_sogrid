@@ -7,7 +7,7 @@ unit pltis_sogrid;
 interface
 
 uses
-  sogrid_register, sogrid, LazarusPackageIntf;
+  sogrid_register, sogrid, tishttp, LazarusPackageIntf;
 
 implementation
 
