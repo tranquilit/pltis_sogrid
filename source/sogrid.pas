@@ -5,19 +5,22 @@
 
 unit sogrid;
 
-{$mode objfpc}{$H+}
+{$mode delphi}{$H+}
+
+//{$packset 1}
+
+//{$mode objfpc}{$H+}
 //{$mode delphi}
 
 interface
 
 uses
   Classes, SysUtils, VirtualTrees, Controls,
-  SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages;
+  Windows,SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages,StdCtrls,Types;
 
 type
 
   TSOGrid = class;
-  { TSOGridColumn }
 
   TSODataEvent = (deFieldChange, deRecordChange, deDataSetChange,
     deUpdateRecord, deUpdateState,deFieldListChange);
@@ -29,6 +32,7 @@ type
 
   TSOUpdateMode = (upWhereAll, upWhereChanged, upWhereKeyOnly);
   TSOResolverResponse = (rrSkip, rrAbort, rrMerge, rrApply, rrIgnore);
+
 
   { TSODataSource }
 
@@ -55,6 +59,7 @@ type
     property OnDataChange: TSODataChangeEvent read FOnDataChange write FOnDataChange;
   end;
 
+  { TSOGridColumn }
   TSOGridColumn = class(TVirtualTreeColumn)
   private
     FPropertyName: string;
@@ -65,8 +70,6 @@ type
     property PropertyName: string read FPropertyName write SetPropertyName;
   end;
 
-
-type
   TSOHeaderPopupOption = (
     poOriginalOrder, // Show menu items in original column order as they were added to the tree.
     poAllowHideAll   // Allows to hide all columns, including the last one.
@@ -102,6 +105,66 @@ type
 
     property OnAddHeaderPopupItem: TAddHeaderPopupItemEvent read FOnAddHeaderPopupItem write FOnAddHeaderPopupItem;
     property OnColumnChange: TColumnChangeEvent read FOnColumnChange write FOnColumnChange;
+  end;
+
+  { TSOStringEditLink }
+
+  // Edit support classes.
+  TSOStringEditLink = class;
+
+  TSOEdit = class(TCustomEdit)
+  private
+    procedure CMAutoAdjust(var Message: TLMessage); message CM_AUTOADJUST;
+    procedure CMExit(var Message: TLMessage); message CM_EXIT;
+    procedure CMRelease(var Message: TLMessage); message CM_RELEASE;
+    procedure CNCommand(var Message: TLMCommand); message CN_COMMAND;
+    procedure WMChar(var Message: TLMChar); message LM_CHAR;
+    procedure WMDestroy(var Message: TLMDestroy); message LM_DESTROY;
+    procedure WMGetDlgCode(var Message: TLMNoParams); message LM_GETDLGCODE;
+    procedure WMKeyDown(var Message: TLMKeyDown); message LM_KEYDOWN;
+  protected
+    FRefLink: IVTEditLink;
+    FLink: TSOStringEditLink;
+    procedure AutoAdjustSize; virtual;
+    procedure CreateParams(var Params: TCreateParams); override;
+  public
+    constructor Create(Link: TSOStringEditLink); reintroduce;
+
+    procedure Release; virtual;
+
+    property AutoSelect;
+    property AutoSize;
+    property BorderStyle;
+    property CharCase;
+    //property HideSelection;
+    property MaxLength;
+    //property OEMConvert;
+    property PasswordChar;
+  end;
+
+  TSOStringEditLink = class(TInterfacedObject, IVTEditLink)
+  private
+    FEdit: TSOEdit;                  // A normal custom edit control.
+    procedure SetEdit(const Value: TSOEdit);
+  protected
+    FTree: TSOGrid; // A back reference to the tree calling.
+    FNode: PVirtualNode;             // The node to be edited.
+    FColumn: TColumnIndex;           // The column of the node.
+    FAlignment: TAlignment;
+    FTextBounds: TRect;              // Smallest rectangle around the text.
+    FStopping: Boolean;              // Set to True when the edit link requests stopping the edit action.
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function BeginEdit: Boolean; virtual; stdcall;
+    function CancelEdit: Boolean; virtual; stdcall;
+    property Edit: TSOEdit read FEdit write SetEdit;
+    function EndEdit: Boolean; virtual; stdcall;
+    function GetBounds: TRect; virtual; stdcall;
+    function PrepareEdit(Tree: TBaseVirtualTree; Node: PVirtualNode; Column: TColumnIndex): Boolean; virtual; stdcall;
+    procedure ProcessMessage(var Message: TLMessage); virtual; stdcall;
+    procedure SetBounds(R: TRect); virtual; stdcall;
   end;
 
   { TSOGrid }
@@ -144,10 +207,16 @@ type
     function GetOptions: TStringTreeOptions;
     procedure SetSettings(AValue: ISuperObject);
 
+    procedure WMKeyDown(var Message: TLMKeyDown); message LM_KEYDOWN;
+
+
   protected
     procedure WndProc(var Message: TLMessage); override;
+
+    // after cell editing to set data in Superobject
     procedure DoNewText(Node: PVirtualNode; Column: TColumnIndex;
       const AText: string); override;
+
     procedure DoGetText(Node: PVirtualNode; Column: TColumnIndex;
       TextType: TVSTTextType; var CellText: string); override;
     procedure DoInitNode(ParentNode, Node: PVirtualNode;
@@ -160,12 +229,13 @@ type
       override;
     procedure DoHeaderClick(HitInfo: TVTHeaderHitInfo); override;
 
+    function DoCreateEditor(Node: PVirtualNode; Column: TColumnIndex
+      ): IVTEditLink; override;
 
     //Gestion menu standard
     procedure FillMenu(LocalMenu: TPopupMenu);
     procedure DoEnter; override;
 
-    procedure Clear; override;
     procedure PrepareCell(var PaintInfo: TVTPaintInfo;
       WindowOrgX, MaxWidth: integer); override;
 
@@ -202,12 +272,15 @@ type
     property TextToFind: string read FTextToFind write FTextToFind;
     property TextFound: boolean read FTextFound write FTextFound;
 
+    function DoKeyAction(var CharCode: Word; var Shift: TShiftState): Boolean; override;
+
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function GetData(Node: PVirtualNode): ISuperObject;
     procedure LoadData;
     property Data: ISuperObject read FData write SetData;
+    function ClipboardData: ISuperObject;
     function GetCellData(N: PVirtualNode; FieldName: string;
       Default: ISuperObject = nil): ISuperObject;
     function GetCellStrValue(N: PVirtualNode; FieldName: string;
@@ -215,6 +288,7 @@ type
     function SelectedRows: ISuperObject;
     function NodesForData(sodata: ISuperObject): TNodeArray;
     procedure InvalidateFordata(sodata: ISuperObject);
+    procedure Clear; override;
 
     function FocusedColumnObject:TSOGridColumn;
 
@@ -414,7 +488,7 @@ var
 
 implementation
 
-uses soutils, base64, IniFiles,LCLIntf;
+uses soutils, base64, IniFiles,LCLIntf,messages,forms;
 
 resourcestring
   GSConst_NoRecordFind = 'Pas d''enregistrement trouvé';
@@ -447,6 +521,7 @@ type
     JSONData: ISuperObject;
   end;
   PSOItemData = ^TSOItemData;
+
 
 { TSODataSource }
 
@@ -607,7 +682,7 @@ begin
             NewMenuItem.Hint := Hint;
             NewMenuItem.ImageIndex := ImageIndex;
             NewMenuItem.Checked := coVisible in Options;
-            NewMenuItem.OnClick := @OnMenuItemClick;
+            NewMenuItem.OnClick := OnMenuItemClick;
             if Cmd = apDisabled then
               NewMenuItem.Enabled := False
             else
@@ -758,6 +833,38 @@ begin
   end;
 end;
 
+procedure TSOGrid.WMKeyDown(var Message: TLMKeyDown);
+
+var
+  Shift: TShiftState;
+  KeyState: TKeyboardState;
+  Buffer: array[0..1] of Char;
+  amsg:TLMessage;
+
+begin
+  // manage immediate editor
+  with Message do
+  begin
+    Shift := KeyDataToShiftState(KeyData);
+    GetKeyboardState(KeyState);
+    // Avoid conversion to control characters. We have captured the control key state already in Shift.
+    KeyState[VK_CONTROL] := 0;
+    if (ToASCII(Message.CharCode, (Message.KeyData shr 16) and 7, KeyState, @Buffer, 0) > 0)
+        and (Shift * [ssCtrl, ssAlt] = []) and (CharCode >= 32) then
+    begin
+      //case Buffer[0] of
+      EditColumn := FocusedColumn;
+      DoEdit;
+      amsg.msg:=WM_CHAR;
+      amsg.wParam:=ord(Buffer[0]);
+      amsg.lParam:=0;
+      EditLink.ProcessMessage( amsg);
+    end
+    else
+      inherited;
+  end;
+end;
+
 procedure TSOGrid.LoadData;
 var
   row: ISuperObject;
@@ -875,7 +982,7 @@ begin
       RowData := ItemData^.JSONData;
       if RowData <> nil then
       begin
-        if Column >= 0 then
+        if (Column >= 0) and Header.Columns.IsValidColumn(Column) then
           CellData := RowData[TSOGridColumn(Header.Columns.Items[Column]).PropertyName]
         else
           CellData := RowData[DefaultText];
@@ -920,7 +1027,7 @@ begin
   begin
     PaintOptions := PaintOptions - [toShowRoot] +
       [toAlwaysHideSelection, toShowHorzGridLines, toShowVertGridLines, toHideFocusRect];
-    SelectionOptions := SelectionOptions + [toExtendedFocus, toSimpleDrawSelection,toRightClickSelect];
+    SelectionOptions := SelectionOptions + [toExtendedFocus, toSimpleDrawSelection{,toRightClickSelect}];
     MiscOptions := MiscOptions + [toEditable, toGridExtensions, toFullRowDrag] -
       [toWheelPanning];
 
@@ -933,7 +1040,7 @@ begin
 
   // Initialisation de la boite de dialogue de recherche
   FindDlg := TFindDialog.Create(nil);
-  FindDlg.OnFind := @FindDlgFind;
+  FindDlg.OnFind := FindDlgFind;
   FindDlg.Options := FindDlg.Options + [frHideMatchCase,frHideEntireScope,frEntireScope];
 
   Header.PopupMenu :=  TSOHeaderPopupMenu.Create(Self);
@@ -972,26 +1079,26 @@ begin
       if (HMRevert = 0) then
         HMRevert := AddItem(GSConst_RevertRecord, 0, @DoRevertRecord);
       AddItem('-', 0, nil);}
-      HMFind := AddItem(GSConst_Find, ShortCut(Ord('F'), [ssCtrl]), @DoFindText);
-      HMFindNext := AddItem(GSConst_FindNext, VK_F3, @DoFindNext);
+      HMFind := AddItem(GSConst_Find, ShortCut(Ord('F'), [ssCtrl]), DoFindText);
+      HMFindNext := AddItem(GSConst_FindNext, VK_F3, DoFindNext);
       {HMFindReplace := AddItem(GSConst_FindReplace, ShortCut(Ord('H'), [ssCtrl]),
         @DoFindReplace);}
       AddItem('-', 0, nil);
       if (toEditable in TreeOptions.MiscOptions) then
-        HMCut := AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), @DoCutToClipBoard);
-      HMCopy := AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), @DoCopyToClipBoard);
+        HMCut := AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), DoCutToClipBoard);
+      HMCopy := AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), DoCopyToClipBoard);
       if (toEditable in TreeOptions.MiscOptions) then
-        HMPast := AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), @DoPaste);
+        HMPast := AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), DoPaste);
       AddItem('-', 0, nil);
       if (toEditable in TreeOptions.MiscOptions) then
-        HMDelete := AddItem(GSConst_Delete, ShortCut(VK_DELETE, [ssCtrl]), @DoDeleteRows);
+        HMDelete := AddItem(GSConst_Delete, ShortCut(VK_DELETE, [ssCtrl]), DoDeleteRows);
       if toMultiSelect in TreeOptions.SelectionOptions then
-        HMSelAll := AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), @DoSelectAllRows);
+        HMSelAll := AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), DoSelectAllRows);
       AddItem('-', 0, nil);
       if (toMultiSelect in TreeOptions.SelectionOptions) then
-        HMExcel := AddItem(GSConst_ExportSelectedExcel, 0, @DoExportExcel)
+        HMExcel := AddItem(GSConst_ExportSelectedExcel, 0, DoExportExcel)
       else
-        HMExcel := AddItem(GSConst_ExportAllExcel, 0, @DoExportExcel);
+        HMExcel := AddItem(GSConst_ExportAllExcel, 0, DoExportExcel);
       {if (HMPrint = 0) then
         HMPrint := AddItem(GSConst_Print, ShortCut(Ord('P'), [ssCtrl]), @DoPrint);
       AddItem('-', 0, nil);
@@ -1000,7 +1107,7 @@ begin
       HMCollAll := AddItem(GSConst_CollapseAll, Shortcut(Ord('R'), [ssCtrl, ssShift]),
         @DoCollapseAll);}
       AddItem('-', 0, nil);
-      HMCustomize := AddItem(GSConst_CustomizeColumns, 0, @DoCustomizeColumns);
+      HMCustomize := AddItem(GSConst_CustomizeColumns, 0, DoCustomizeColumns);
     finally
       FMenuFilled := True;
     end;
@@ -1017,6 +1124,7 @@ end;
 
 destructor TSOGrid.Destroy;
 begin
+  Data := Nil;
   inherited Destroy;
 end;
 
@@ -1079,6 +1187,17 @@ begin
     N := GetNextSelected(N);
   end;
 end;
+
+
+function TSOGrid.DoCreateEditor(Node: PVirtualNode; Column: TColumnIndex): IVTEditLink;
+
+begin
+  //Result := inherited DoCreateEditor(Node, Column);
+  // Enable generic label editing support if the application does not have own editors.
+  //if Result = nil then
+  Result := TSOStringEditLink.Create;
+end;
+
 
 function TSOGrid.DoCompare(Node1, Node2: PVirtualNode; Column: TColumnIndex): integer;
 var
@@ -1244,26 +1363,37 @@ begin
   end;
 end;
 
-procedure TSOGrid.DoPaste(Sender: TObject);
+function TSOGrid.ClipboardData:ISuperObject;
 var
   NewData, row: ISuperObject;
   St: TStringStream;
 begin
+  Result := TSuperObject.Create(stArray);
   if Clipboard.HasFormat(ClipbrdJson) then
-    try
-      st := TStringStream.Create('');
-      if Clipboard.GetFormat(ClipbrdJson, St) then
-      begin
-        St.Seek(0, 0);
-        NewData := SO(St.DataString);
-        if NewData.DataType = stArray then
-          for row in NewData do
-            Data.AsArray.Add(row);
-        LoadData;
-      end;
-    finally
-      St.Free;
+  try
+    st := TStringStream.Create('');
+    if Clipboard.GetFormat(ClipbrdJson, St) then
+    begin
+      St.Seek(0, 0);
+      NewData := SO(St.DataString);
+      if NewData.DataType = stArray then
+        for row in NewData do
+          Result.AsArray.Add(row);
     end;
+  finally
+    St.Free;
+  end;
+end;
+
+procedure TSOGrid.DoPaste(Sender: TObject);
+var
+  row: ISuperObject;
+begin
+  if Data = Nil then
+    Data := TSuperObject.Create(stArray);
+  for row in ClipboardData do
+    Data.AsArray.Add(row);
+  LoadData;
 end;
 
 procedure TSOGrid.DoSelectAllRows(Sender: TObject);
@@ -1289,6 +1419,33 @@ end;
 procedure TSOGrid.DoCollapseAll(Sender: TObject);
 begin
   FullCollapse;
+end;
+
+function TSOGrid.DoKeyAction(var CharCode: Word; var Shift: TShiftState
+  ): Boolean;
+var
+  msg:TLMessage;
+begin
+  {if (Shift * [ssCtrl, ssAlt] = []) and (CharCode >= 32) then
+  begin
+    ToASCII(CharCode, , KeyState, @Buffer, 0);
+    if (Shift = []) and Assigned(FocusedNode) and CanEdit(FocusedNode, FocusedColumn) then
+    begin
+      EditColumn := FocusedColumn;
+      DoEdit;
+      msg.msg:=WM_KEYDOWN;
+      msg.wParam:=CharCode;
+      msg.lParam:=0;
+      msg.Result:=0;
+      EditLink.ProcessMessage(msg);
+      //DoStateChange([tsEditPending]);
+      Result := False;
+    end
+    else
+      Result := True;
+  end
+  else}
+    Result:=inherited DoKeyAction(CharCode, Shift);
 end;
 
 procedure TSOGrid.Clear;
@@ -1670,6 +1827,417 @@ begin
     else
        Message.Msg := 0;
     //// end BUGFIX
+  end;
+end;
+
+
+//----------------- TSOEdit --------------------------------------------------------------------------------------------
+
+// Implementation of a generic node caption editor.
+
+constructor TSOEdit.Create(Link: TSOStringEditLink);
+
+begin
+  inherited Create(nil);
+  ShowHint := False;
+  ParentShowHint := False;
+  // This assignment increases the reference count for the interface.
+  FRefLink := Link;
+  // This reference is used to access the link.
+  FLink := Link;
+end;
+
+
+procedure TSOEdit.CMAutoAdjust(var Message: TLMessage);
+
+begin
+  AutoAdjustSize;
+end;
+
+
+procedure TSOEdit.CMExit(var Message: TLMessage);
+
+begin
+  if Assigned(FLink) and not FLink.FStopping then
+    with FLink, FTree do
+    begin
+      if (toAutoAcceptEditChange in TreeOptions.StringOptions) then
+        DoEndEdit
+      else
+        DoCancelEdit;
+    end;
+end;
+
+
+procedure TSOEdit.CMRelease(var Message: TLMessage);
+
+begin
+  Free;
+end;
+
+
+procedure TSOEdit.CNCommand(var Message: TLMCommand);
+
+begin
+  {if Assigned(FLink) and Assigned(FLink.FTree) and (Message.NotifyCode = EN_UPDATE) and
+    not (toGridExtensions in FLink.FTree.FOptions.FMiscOptions) and
+    not (vsMultiline in FLink.FNode.States) then
+    // Instead directly calling AutoAdjustSize it is necessary on Win9x/Me to decouple this notification message
+    // and eventual resizing. Hence we use a message to accomplish that.
+    if IsWinNT then
+      AutoAdjustSize
+    else
+      PostMessage(Handle, CM_AUTOADJUST, 0, 0);}
+end;
+
+
+procedure TSOEdit.WMChar(var Message: TLMChar);
+
+begin
+  if not (Message.CharCode in [VK_ESCAPE, VK_TAB]) then
+    inherited;
+end;
+
+
+procedure TSOEdit.WMDestroy(var Message: TLMDestroy);
+
+begin
+  // If editing stopped by other means than accept or cancel then we have to do default processing for
+  // pending changes.
+  if Assigned(FLink) and not FLink.FStopping then
+  begin
+    with FLink, FTree do
+    begin
+      if (toAutoAcceptEditChange in TreeOptions.StringOptions) and Modified then
+        Text[FNode, FColumn] := FEdit.Text;
+    end;
+    FLink := nil;
+    FRefLink := nil;
+  end;
+
+  inherited;
+end;
+
+
+procedure TSOEdit.WMGetDlgCode(var Message: TLMNoParams);
+
+begin
+  inherited;
+
+  Message.Result := Message.Result or DLGC_WANTALLKEYS or DLGC_WANTTAB or DLGC_WANTARROWS;
+end;
+
+
+procedure TSOEdit.WMKeyDown(var Message: TLMKeyDown);
+
+// Handles some control keys.
+
+var
+  Shift: TShiftState;
+  EndEdit: Boolean;
+  Tree: TSOGrid;
+
+begin
+  case Message.CharCode of
+    VK_ESCAPE:
+      begin
+        Tree := FLink.FTree;
+        FLink.FTree.DoCancelEdit;
+        Tree.SetFocus;
+      end;
+    VK_RETURN:
+      begin
+        EndEdit := not (vsMultiline in FLink.FNode^.States);
+        if not EndEdit then
+        begin
+          // If a multiline node is being edited the finish editing only if Ctrl+Enter was pressed,
+          // otherwise allow to insert line breaks into the text.
+          Shift := KeyDataToShiftState(Message.KeyData);
+          EndEdit := ssCtrl in Shift;
+        end;
+        if EndEdit then
+        begin
+          Tree := FLink.FTree;
+          FLink.FTree.InvalidateNode(FLink.FNode);
+          FLink.FTree.DoEndEdit;
+          Tree.SetFocus;
+        end;
+      end;
+    VK_UP,VK_DOWN:
+      begin
+        if not (vsMultiline in FLink.FNode^.States) then
+        begin
+            Tree := (FLink as TSOStringEditLink).FTree;
+            Tree.InvalidateNode((FLink as TSOStringEditLink).FNode);
+            Tree.DoEndEdit;
+            Tree.SetFocus;
+            SendMessage(Tree.Handle,Message.Msg,Message.CharCode,Message.KeyData);
+        end
+        else
+          inherited;
+      end;
+    VK_TAB:
+      begin
+          Tree := (FLink as TSOStringEditLink).FTree;
+          Tree.InvalidateNode((FLink as TSOStringEditLink).FNode);
+          Tree.DoEndEdit;
+          Tree.SetFocus;
+          SendMessage(Tree.Handle,Message.Msg,Message.CharCode,Message.KeyData);
+      end;
+  else
+    inherited;
+  end;
+end;
+
+
+procedure TSOEdit.AutoAdjustSize;
+
+// Changes the size of the edit to accomodate as much as possible of its text within its container window.
+// NewChar describes the next character which will be added to the edit's text.
+
+var
+  DC: HDC;
+  Size: TSize;
+  LastFont: THandle;
+
+begin
+  if not (vsMultiline in FLink.FNode^.States) then
+  begin
+    DC := GetDC(Handle);
+    LastFont := SelectObject(DC, Font.Reference.Handle);
+    try
+      // Read needed space for the current text.
+      GetTextExtentPoint32(DC, PChar(Text), Length(Text), Size);
+      Inc(Size.cx, 2 * FLink.FTree.TextMargin);
+
+      // Repaint associated node if the edit becomes smaller.
+      if Size.cx < Width then
+        FLink.FTree.InvalidateNode(FLink.FNode);
+
+      if FLink.FAlignment = taRightJustify then
+        FLink.SetBounds(Rect(Left + Width - Size.cx, Top, Left + Width, Top + Height))
+      else
+        FLink.SetBounds(Rect(Left, Top, Left + Size.cx, Top + Height));
+    finally
+      SelectObject(DC, LastFont);
+      ReleaseDC(Handle, DC);
+    end;
+  end;
+end;
+
+
+procedure TSOEdit.CreateParams(var Params: TCreateParams);
+
+begin
+  inherited;
+
+  // Only with multiline style we can use the text formatting rectangle.
+  // This does not harm formatting as single line control, if we don't use word wrapping.
+  with Params do
+  begin
+    //todo: delphi uses Multiline for all
+    //Style := Style or ES_MULTILINE;
+    if vsMultiline in FLink.FNode^.States then
+    begin
+      Style := Style and not (ES_AUTOHSCROLL or WS_HSCROLL) or WS_VSCROLL or ES_AUTOVSCROLL;
+      Style := Style or ES_MULTILINE;
+    end;
+    {if tsUseThemes in FLink.FTree.States then
+    begin
+      Style := Style and not WS_BORDER;
+      ExStyle := ExStyle or WS_EX_CLIENTEDGE;
+    end
+    else}
+    begin
+      Style := Style or WS_BORDER;
+      ExStyle := ExStyle and not WS_EX_CLIENTEDGE;
+    end;
+  end;
+end;
+
+
+procedure TSOEdit.Release;
+
+begin
+  if HandleAllocated then
+    PostMessage(Handle, CM_RELEASE, 0, 0);
+end;
+
+//----------------- TSOStringEditLink ------------------------------------------------------------------------------------
+
+constructor TSOStringEditLink.Create;
+
+begin
+  inherited;
+  FEdit := TSOEdit.Create(Self);
+  with FEdit do
+  begin
+    Visible := False;
+    BorderStyle := bsSingle;
+    AutoSize := False;
+  end;
+end;
+
+
+destructor TSOStringEditLink.Destroy;
+
+begin
+  FEdit.Release;
+  inherited;
+end;
+
+
+function TSOStringEditLink.BeginEdit: Boolean; stdcall;
+
+// Notifies the edit link that editing can start now. descendants may cancel node edit
+// by returning False.
+
+begin
+  Result := not FStopping;
+  if Result then
+  begin
+    FEdit.Show;
+    FEdit.SelectAll;
+    FEdit.SetFocus;
+  end;
+end;
+
+
+procedure TSOStringEditLink.SetEdit(const Value: TSOEdit);
+
+begin
+  if Assigned(FEdit) then
+    FEdit.Free;
+  FEdit := Value;
+end;
+
+
+function TSOStringEditLink.CancelEdit: Boolean; stdcall;
+
+begin
+  Result := not FStopping;
+  if Result then
+  begin
+    FStopping := True;
+    FEdit.Hide;
+    FTree.CancelEditNode;
+    FEdit.FLink := nil;
+    FEdit.FRefLink := nil;
+  end;
+end;
+
+
+function TSOStringEditLink.EndEdit: Boolean; stdcall;
+
+begin
+  Result := not FStopping;
+  if Result then
+  try
+    FStopping := True;
+    if FEdit.Modified then
+      FTree.Text[FNode, FColumn] := FEdit.Text;
+    FEdit.Hide;
+    FEdit.FLink := nil;
+    FEdit.FRefLink := nil;
+  except
+    FStopping := False;
+    raise;
+  end;
+end;
+
+
+function TSOStringEditLink.GetBounds: TRect; stdcall;
+
+begin
+  Result := FEdit.BoundsRect;
+end;
+
+
+function TSOStringEditLink.PrepareEdit(Tree: TBaseVirtualTree; Node: PVirtualNode; Column: TColumnIndex): Boolean; stdcall;
+
+// Retrieves the true text bounds from the owner tree.
+
+var
+  Text: String;
+
+begin
+  Result := Tree is TCustomVirtualStringTree;
+  if Result then
+  begin
+    FTree := Tree as TSOGrid;
+    FNode := Node;
+    FColumn := Column;
+    // Initial size, font and text of the node.
+    FTree.GetTextInfo(Node, Column, FEdit.Font, FTextBounds, Text);
+    FEdit.Font.Color := clWindowText;
+    FEdit.Parent := Tree;
+    FEdit.HandleNeeded;
+    FEdit.Text := Text;
+
+    if Column <= NoColumn then
+    begin
+      FEdit.BidiMode := FTree.BidiMode;
+      FAlignment := FTree.Alignment;
+    end
+    else
+    begin
+      FEdit.BidiMode := FTree.Header.Columns[Column].BidiMode;
+      FAlignment := FTree.Header.Columns[Column].Alignment;
+    end;
+
+    if FEdit.BidiMode <> bdLeftToRight then
+      ChangeBidiModeAlignment(FAlignment);
+  end;
+end;
+
+
+procedure TSOStringEditLink.ProcessMessage(var Message: TLMessage); stdcall;
+begin
+  Message.Result := SendMessage(FEdit.Handle,Message.msg,Message.wParam,Message.lParam);
+  //FEdit.WindowProc(Message);
+end;
+
+
+procedure TSOStringEditLink.SetBounds(R: TRect); stdcall;
+
+// Sets the outer bounds of the edit control and the actual edit area in the control.
+
+var
+  Offset: Integer;
+
+begin
+  if not FStopping then
+  begin
+    with R do
+    begin
+      // Set the edit's bounds but make sure there's a minimum width and the right border does not
+      // extend beyond the parent's left/right border.
+      if Left < 0 then
+        Left := 0;
+      if Right - Left < 30 then
+      begin
+        if FAlignment = taRightJustify then
+          Left := Right - 30
+        else
+          Right := Left + 30;
+      end;
+      if Right > FTree.ClientWidth then
+        Right := FTree.ClientWidth;
+      FEdit.BoundsRect := R;
+
+      // The selected text shall exclude the text margins and be centered vertically.
+      // We have to take out the two pixel border of the edit control as well as a one pixel "edit border" the
+      // control leaves around the (selected) text.
+      R := FEdit.ClientRect;
+      Offset := 2;
+      {if tsUseThemes in FTree.FStates then
+        Inc(Offset);}
+      InflateRect(R, -FTree.TextMargin + Offset, Offset);
+      if not (vsMultiline in FNode^.States) then
+        OffsetRect(R, 0, FTextBounds.Top - FEdit.Top);
+
+      SendMessage(FEdit.Handle, EM_SETRECTNP, 0, PtrUInt(@R));
+    end;
   end;
 end;
 

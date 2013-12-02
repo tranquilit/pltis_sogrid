@@ -6,7 +6,7 @@ interface
 
 uses
     Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs,
-    ButtonPanel, ExtCtrls, StdCtrls, ActnList, sogrid, VirtualTrees;
+    ButtonPanel, ExtCtrls, StdCtrls, ActnList, Menus, sogrid, VirtualTrees;
 
 type
 
@@ -15,6 +15,7 @@ type
     TSOGridEditor = class(TForm)
         ActAddColumn: TAction;
         ActDelColumn: TAction;
+        ActCopySettings: TAction;
         ActUpdateColumn: TAction;
         ActPasteJsontemplate: TAction;
         ActLoadData: TAction;
@@ -31,9 +32,14 @@ type
         EdColumnIndex: TLabeledEdit;
         EdJSONUrl: TLabeledEdit;
         LstEditorType: TLabel;
+        MenuItem1: TMenuItem;
+        MenuItem2: TMenuItem;
+        MenuItem3: TMenuItem;
+        MenuItem4: TMenuItem;
         Panel1: TPanel;
         ASOGrid: TSOGrid;
         Panel2: TPanel;
+        PopupMenu1: TPopupMenu;
         procedure ActAddColumnExecute(Sender: TObject);
         procedure ActDelColumnExecute(Sender: TObject);
         procedure ActLoadDataUpdate(Sender: TObject);
@@ -97,10 +103,14 @@ var
   newData:ISuperObject;
 begin
     try
-      newData := SO(Clipboard.AsText);
+      if Clipboard.HasFormat(ClipbrdJson) then
+        newData :=ASOGrid.ClipboardData
+      else
+        newData := SO(Clipboard.AsText);
       if (newData.DataType = stArray) and (newData.AsArray.Length>0) and (newData.AsArray[0].DataType=stObject) then
       begin
-        ASOGrid.Data := SO(Clipboard.AsText);
+        ASOGrid.Data := newData;
+        ASOGrid.LoadData;
         ASOGrid.CreateColumnsFromData(True);
       end
       else

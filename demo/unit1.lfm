@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 404
+  Left = 276
   Height = 469
-  Top = 238
+  Top = 136
   Width = 917
   Caption = 'Form1'
   ClientHeight = 469
@@ -73,7 +73,7 @@ object Form1: TForm1
       Top = 11
       Width = 180
       TabOrder = 5
-      Text = '''http://srvwapt:8080/json/host_list'''
+      Text = 'http://srvwapt:8080/json/host_list'
     end
   end
   object SOGrid1: TSOGrid
@@ -83,6 +83,7 @@ object Form1: TForm1
     Width = 596
     Align = alClient
     Color = clWhite
+    EditDelay = 100
     Header.AutoSizeIndex = -1
     Header.Columns = <    
       item
@@ -160,7 +161,7 @@ object Form1: TForm1
     TreeOptions.AutoOptions = [toAutoDropExpand, toAutoScrollOnExpand, toAutoSort, toAutoTristateTracking, toAutoDeleteMovedNodes]
     TreeOptions.MiscOptions = [toAcceptOLEDrop, toEditable, toFullRepaintOnResize, toGridExtensions, toInitOnSave, toToggleOnDblClick, toEditOnClick]
     TreeOptions.PaintOptions = [toHideFocusRect, toPopupMode, toShowButtons, toShowDropmark, toShowHorzGridLines, toShowRoot, toShowTreeLines, toShowVertGridLines, toThemeAware, toUseBlendedImages, toAlwaysHideSelection]
-    TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toMultiSelect, toRightClickSelect]
+    TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toMultiSelect]
     WantTabs = True
     OnDragDrop = SOGrid1DragDrop
     OnFocusChanged = SOGrid1FocusChanged
@@ -222,6 +223,15 @@ object Form1: TForm1
     Caption = 'design'
     OnClick = Button5Click
     TabOrder = 5
+  end
+  object DBEdit1: TDBEdit
+    Left = 156
+    Height = 21
+    Top = 244
+    Width = 80
+    CharCase = ecNormal
+    MaxLength = 0
+    TabOrder = 6
   end
   object IdHTTP1: TIdHTTP
     AllowCookies = True

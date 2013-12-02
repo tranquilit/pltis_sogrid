@@ -7,7 +7,8 @@ interface
 uses
   Classes, SysUtils, FileUtil, vte_stringlist, vte_treedata, Forms, Controls,
   Graphics, Dialogs, StdCtrls, ExtCtrls, sogrid, db, sqldb, sqlite3conn, IdHTTP,
-  VirtualTrees, VTHeaderPopup, LCLType, DBGrids, ComCtrls, types, ActiveX;
+  VirtualTrees, VTHeaderPopup, LCLType, DBGrids, ComCtrls, DbCtrls, types,
+  ActiveX;
 
 type
 
@@ -20,6 +21,7 @@ type
     Button4: TButton;
     Button5: TButton;
     DataSource1: TDataSource;
+    DBEdit1: TDBEdit;
     Edit1: TEdit;
     EdURL: TEdit;
     IdHTTP1: TIdHTTP;
@@ -100,24 +102,26 @@ procedure TForm1.Button5Click(Sender: TObject);
 var
   i:Integer;
   col : TSOGridColumn;
+  target : TSOGrid;
 begin
   With TSOGridEditor.Create(Application) do
   try
-      for i:=0 to SOGrid1.Header.Columns.count-1 do
+      target := (SOGrid1 as TSOGrid);
+      for i:=0 to target.Header.Columns.count-1 do
       begin
          col := ASOGrid.Header.Columns.Add as TSOGridColumn;
-         col.Assign(sogrid1.Header.Columns[i]);
+         col.Assign(target.Header.Columns[i]);
       end;
-      asogrid.Settings := SOGrid1.Settings;
+      asogrid.Settings := target.Settings;
       if ShowModal = mrOK then
       begin
-        SOGrid1.Header.Columns.Clear;
+        target.Header.Columns.Clear;
         for i:=0 to asogrid.Header.Columns.count-1 do
         begin
-           col := SOGrid1.Header.Columns.Add as TSOGridColumn;
+           col := target.Header.Columns.Add as TSOGridColumn;
            col.Assign(asogrid.Header.Columns[i]);
         end;
-        SOGrid1.Settings := asogrid.Settings;
+        target.Settings := asogrid.Settings;
       end;
   finally
     Free;
