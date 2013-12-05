@@ -23,7 +23,7 @@ type
   TSOGrid = class;
 
   TSODataEvent = (deFieldChange, deDataSetChange,
-    deUpdateRecord, deUpdateState,deFieldListChange);
+    deAddrecord,deDeleteRecord,deUpdateRecord, deUpdateState,deFieldListChange);
 
   TSODataChangeEvent = procedure (EventType:TSODataEvent;Row:ISuperObject;PropertyName:String;OldData,Newdata:ISuperObject) of object;
   TSuperObjectRowEvent = procedure (ARow:ISuperObject) of object;
@@ -34,23 +34,68 @@ type
   TSOUpdateMode = (upWhereAll, upWhereChanged, upWhereKeyOnly);
   TSOResolverResponse = (rrSkip, rrAbort, rrMerge, rrApply, rrIgnore);
 
+  TSOGetKeyEvent = procedure (ARow:ISuperObject;var key:String) of object;
+
   ISODataView = interface
     ['{2DF865FF-684D-453E-A9F0-7D7307DD0BDD}']
     procedure NotifyChange(EventType:TSODataEvent;Row:ISuperObject;PropertyName:String;OldData,Newdata:ISuperObject);
   end;
 
-  { TSODataSource }
 
+
+  { TSORowChange }
+  TSORowChange = class(TInterfacedObject)
+  private
+    FNewValue: ISuperObject;
+    FOldValue: ISuperObject;
+    FPropertyName: String;
+    FRow: ISuperObject;
+    FUpdateType: TSOUpdateStatus;
+    procedure SetNewValue(AValue: ISuperObject);
+    procedure SetOldValue(AValue: ISuperObject);
+    procedure SetPropertyName(AValue: String);
+    procedure SetRow(AValue: ISuperObject);
+    procedure SetUpdateType(AValue: TSOUpdateStatus);
+  public
+    property UpdateType : TSOUpdateStatus read FUpdateType write SetUpdateType;
+    property Row:ISuperObject read FRow write SetRow;
+    property PropertyName:String read FPropertyName write SetPropertyName;
+    property OldValue:ISuperObject read FOldValue write SetOldValue;
+    property NewValue:ISuperObject read FNewValue write SetNewValue;
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
+
+  { TSODataChanges }
+  TSODataSource = class;
+
+  TSODataChanges = class(TList)
+  private
+    Fdatasource:TSODataSource;
+  public
+    // count of changed rows
+    function ChangeCount:Integer;
+    function AddChange(UpdateType:TSOUpdateStatus;Row:ISuperObject=nil;PropertyName:String='';OldValue:ISuperObject=Nil;NewValue:ISuperObject=Nil):integer;
+    function Delta:ISUperObject;
+    constructor Create(adatasource:TSODatasource);
+    destructor Destroy; override;
+  end;
+
+  { TSODataSource }
   TSODataSource = class(TComponent)
   private
     FData: ISuperObject;
+    FDataChanges: TSODataChanges;
     FDataViews: TList;
     FEnabled: Boolean;
     FOnDataChange: TSODataChangeEvent;
+    FOnGetKey: TSOGetKeyEvent;
     FOnNewRecord: TSuperObjectRowEvent;
     FOnStateChange: TNotifyEvent;
     procedure DistributeEvent(Event: TSODataEvent; Info: Ptrint);
     Procedure ProcessEvent(Event : TSODataEvent; Info : Ptrint);
+    procedure RemoveRecordFromData(row: ISuperObject);
     procedure SetData(AData: ISuperObject);
     procedure SetEnabled(Value: Boolean);
   protected
@@ -61,8 +106,11 @@ type
     // List of visual components to be notified of data changes
     property DataViews:TList read FDataViews write FDataViews;
 
-    // Data store
+    // Data store : current state of records
     property Data:ISuperObject read FData write SetData;
+
+    // log of all changes for Applyupdates, UndoLastChange etc...:
+    property DataChanges:TSODataChanges read FDataChanges;
 
     // add a component to the list of notified objects
     procedure RegisterView(AComponent:TComponent);
@@ -72,25 +120,30 @@ type
     procedure LoadDataset; Virtual;
     procedure Emptydataset; Virtual;
 
-    function  AppendRecord:ISuperObject;Virtual;
+    function  AppendRecord(new:ISuperObject=Nil):ISuperObject;Virtual;
     procedure DeleteRecord(row:ISuperObject); Virtual;
     procedure UpdateRecord(row:ISuperObject;PropertyName:String;NewValue:ISuperObject);Virtual;
 
     procedure LoadFromFile(Filename:String); Virtual;
     procedure SaveToFile(Filename:String); Virtual;
 
+    // empty the log of changes
+    procedure MergeChangeLog; virtual;
     function ChangeCount:Integer; virtual;
-    procedure UndolastChange; virtual;
+    function UndolastChange:ISuperObject; virtual;
     function ApplyUpdates:Integer; virtual;
 
     procedure PasteFromClipboard;
+
+    //get a unique key for the row
+    function GetKey(Row:ISuperObject):String; virtual;
 
   published
     property Enabled: Boolean read FEnabled write SetEnabled default True;
     property OnStateChange: TNotifyEvent read FOnStateChange write FOnStateChange;
     property OnDataChange: TSODataChangeEvent read FOnDataChange write FOnDataChange;
-
     property OnNewRecord: TSuperObjectRowEvent read FOnNewRecord write FOnNewRecord;
+    property OnGetKey:TSOGetKeyEvent read FOnGetKey write FOnGetKey;
   end;
 
   { TSOGridColumn }
@@ -560,6 +613,174 @@ type
   end;
   PSOItemData = ^TSOItemData;
 
+{ TSODataChanges }
+
+function TSODataChanges.ChangeCount: Integer;
+begin
+  Result := 0;
+end;
+
+function TSODataChanges.AddChange(UpdateType: TSOUpdateStatus;
+  Row: ISuperObject; PropertyName: String; OldValue: ISuperObject;
+  NewValue: ISuperObject): integer;
+var
+  newChange:TSORowChange;
+begin
+  newChange := TSORowChange.Create;
+  newChange.UpdateType:=UpdateType;
+  newChange.Row := Row;
+  newChange.PropertyName := PropertyName;
+  newChange.OldValue := OldValue;
+  newChange.NewValue := NewValue;
+  result := Add(newChange);
+end;
+
+function SOCompare(so1,so2:Pointer):integer;
+var
+   seq1,seq2:Integer;
+begin
+  seq1 := ISuperObject(so1).I['seq'];
+  seq2 := ISuperObject(so2).I['seq'];
+  if seq1<seq2 then
+    Result := -1
+  else if seq1=seq2 then
+    Result :=0
+  else
+    Result := 1;
+end;
+
+
+// build an array of all changes
+function TSODataChanges.Delta: ISUperObject;
+var
+  i:Integer;
+  updates,rowdelta:ISuperObject;
+  change : TSORowChange;
+  key:String;
+  seq: String;
+
+  SortList:TList;
+
+
+begin
+  updates := TSuperObject.Create;
+
+  for i:=0 to count-1 do
+  begin
+    change := Items[i];
+    key := Fdatasource.GetKey(change.Row);
+    if not updates.AsObject.Exists(key) then
+    begin
+      rowdelta := TSuperObject.Create;
+      updates.AsObject.O[key] := rowdelta;
+      rowdelta.S['update_key'] := key;
+      rowdelta.I['seq'] := i;
+    end
+    else
+      rowdelta := updates.AsObject.O[key];
+
+    //cancel previous updates or inserts.
+    if change.UpdateType=usDeleted then
+    begin
+      rowdelta.Clear();
+      rowdelta.S['update_key'] := key;
+      rowdelta.S['update_type'] := 'delete';
+      rowdelta.I['seq'] := i;
+    end
+    else if change.UpdateType=usInserted then
+    begin
+      if rowdelta.AsObject.Exists('old') then
+        rowdelta.AsObject.Delete('old');
+      rowdelta['new'] := change.Row;
+      rowdelta.S['update_type'] := 'insert';
+    end
+    else if change.UpdateType=usModified then
+    begin
+      if rowdelta['old']=Nil then
+        rowdelta['old'] := TSuperObject.Create;
+      // keep oldest value
+      if rowdelta['old'][change.PropertyName]=Nil then
+        rowdelta['old'][change.PropertyName] := change.OldValue;
+      // override to update to newest value
+      if rowdelta['new']=Nil then
+        rowdelta['new'] := TSuperObject.Create;
+      rowdelta['new'][change.PropertyName] := change.NewValue;
+      rowdelta.S['update_type'] := 'update';
+    end
+  end;
+  SortList := TList.Create;
+  try
+    for rowdelta in updates  do
+      SortList.Add(rowdelta);
+    SortList.Sort(SOCompare);
+    result := TSuperObject.Create(stArray);
+    for rowdelta in SortList do
+      Result.AsArray.Add(rowdelta);
+  finally
+    SortList.Free;
+  end;
+end;
+
+constructor TSODataChanges.Create(adatasource: TSODatasource);
+begin
+  Fdatasource := adatasource;
+  inherited create;
+end;
+
+destructor TSODataChanges.Destroy;
+var
+  i:Integer;
+begin
+  for i:=0 to Count-1 do
+    TObject(Items[i]).Free;
+  inherited;
+end;
+
+{ TSORowChange }
+
+procedure TSORowChange.SetNewValue(AValue: ISuperObject);
+begin
+  if FNewValue=AValue then Exit;
+  FNewValue:=AValue;
+end;
+
+procedure TSORowChange.SetOldValue(AValue: ISuperObject);
+begin
+  if FOldValue=AValue then Exit;
+  FOldValue:=AValue;
+end;
+
+procedure TSORowChange.SetPropertyName(AValue: String);
+begin
+  if FPropertyName=AValue then Exit;
+  FPropertyName:=AValue;
+end;
+
+procedure TSORowChange.SetRow(AValue: ISuperObject);
+begin
+  if FRow=AValue then Exit;
+  FRow:=AValue;
+end;
+
+procedure TSORowChange.SetUpdateType(AValue: TSOUpdateStatus);
+begin
+  if FUpdateType=AValue then Exit;
+  FUpdateType:=AValue;
+end;
+
+constructor TSORowChange.Create;
+begin
+  FUpdateType:=usUnmodified;
+end;
+
+destructor TSORowChange.Destroy;
+begin
+  FOldValue:=Nil;
+  FNewValue:=Nil;
+  FRow:=Nil;
+  inherited Destroy;
+end;
+
 
 { TSODataSource }
 
@@ -593,12 +814,12 @@ begin
   inherited Create(AOwner);
   FDataViews := TList.Create;
   FEnabled:=True;
+  FDataChanges := TSODataChanges.Create(Self);
 end;
 
 destructor TSODataSource.Destroy;
 begin
-  if Assigned(FDataViews) then
-    FreeAndNil(FDataViews);
+  FreeAndNil(FDataChanges);
   inherited Destroy;
 end;
 
@@ -621,8 +842,12 @@ var
   i:integer;
 begin
   if Enabled then
+  begin
     for i:=0 to DataViews.Count-1 do
       (TInterfacedObject(DataViews[i]) as ISODataView).NotifyChange(EventType,Row,PropertyName,OldData,Newdata);
+    if Assigned(OnDataChange) then
+      OnDataChange(EventType,Row,PropertyName,OldData,Newdata);
+  end;
 end;
 
 procedure TSODataSource.LoadDataset;
@@ -635,26 +860,36 @@ begin
   Data := TSuperObject.Create(stArray);
 end;
 
-function TSODataSource.AppendRecord: ISuperObject;
+function TSODataSource.AppendRecord(new:ISuperObject=Nil): ISuperObject;
 begin
   if not Assigned(Data) then
       Emptydataset;
 
-  result := TSuperObject.Create;
+  if new<>Nil then
+    Result := new
+  else
+    result := TSuperObject.Create;
   if Assigned(OnNewRecord) then
       OnNewRecord(result);
   data.AsArray.Add(result);
-  NotifyChange(deDataSetChange,result);
+  DataChanges.AddChange(usInserted,Result);
+  NotifyChange(deAddrecord,result);
 end;
 
-procedure TSODataSource.DeleteRecord(row: ISuperObject);
+procedure TSODataSource.RemoveRecordFromData(row: ISuperObject);
 var
   i:Integer;
 begin
   for i:=data.AsArray.Length-1 downto 0 do
     if Data.AsArray[i]=row then
       Data.AsArray.Delete(i);
-  NotifyChange(deDataSetChange);
+end;
+
+procedure TSODataSource.DeleteRecord(row: ISuperObject);
+begin
+  RemoveRecordFromData(Row);
+  DataChanges.AddChange(usDeleted,row);
+  NotifyChange(deDeleteRecord,row);
 end;
 
 procedure TSODataSource.UpdateRecord(row: ISuperObject; PropertyName: String;
@@ -664,6 +899,7 @@ var
 begin
   oldValue := Row[PropertyName];
   Row[PropertyName] := NewValue;
+  DataChanges.AddChange(usModified,row,PropertyName,oldvalue,NewValue);
   NotifyChange(deFieldChange,Row,PropertyName,oldvalue,NewValue);
 end;
 
@@ -679,14 +915,53 @@ begin
       Data.SaveTo(Filename);
 end;
 
-function TSODataSource.ChangeCount: Integer;
+procedure TSODataSource.MergeChangeLog;
+var
+  i:integer;
+  p:TObject;
 begin
-  Result := 0;
+  for p in DataChanges do
+    FreeAndNil(p);
+  DataChanges.Clear;
 end;
 
-procedure TSODataSource.UndolastChange;
+function TSODataSource.ChangeCount: Integer;
 begin
-  raise Exception.Create('Not implemented');;
+  Result := DataChanges.Count;
+end;
+
+function TSODataSource.UndolastChange: ISuperObject;
+var
+  lastchange:TSORowChange;
+begin
+  //raise Exception.Create('Not implemented');;
+  Result := Nil;
+  if DataChanges.Count>0 then
+  begin
+    lastchange := DataChanges.Items[DataChanges.Count-1];
+    if lastchange.UpdateType = usDeleted then
+    begin
+      Data.AsArray.Add(lastchange.Row);
+      NotifyChange(deAddrecord,lastchange.Row);
+      Result := lastchange.Row;
+    end
+    else
+    if lastchange.UpdateType = usInserted then
+    begin
+      RemoveRecordFromData(lastchange.Row);
+      NotifyChange(deDeleteRecord,lastchange.Row);
+    end
+    else
+    if lastchange.UpdateType = usModified then
+    begin
+      lastchange.Row[lastchange.PropertyName] := lastchange.OldValue;
+      NotifyChange(deFieldChange,lastchange.Row,lastchange.PropertyName,lastchange.NewValue,lastchange.OldValue);
+      Result := lastchange.Row;
+    end;
+
+    lastchange.Free;
+    DataChanges.Delete(DataChanges.Count-1);
+  end;
 end;
 
 // return count of not applied records.
@@ -717,6 +992,19 @@ begin
       Data := TSuperObject.Create(stArray);
       raise;
     end;
+end;
+
+function TSODataSource.GetKey(Row: ISuperObject): String;
+begin
+  result := '';
+  if Assigned(FOnGetKey) then
+    FOnGetKey(Row,Result)
+  else
+  begin
+    if not Row.AsObject.Exists('id') then
+      raise Exception('Unable to get key data for row'+row.AsJson);
+    result := Row.S['id'];
+  end;
 end;
 
 { TSOGridColumn }
@@ -1237,12 +1525,15 @@ begin
       if (LocalMenu.Items.Count > 0) then
         AddItem('-', 0, nil);
 
-      {if (HMUndo = 0) then
-        HMUndo := AddItem(GSConst_UndoLastUpdate, ShortCut(Ord('Z'), [ssCtrl]),
-          @DoUndoLastUpdate);
-      if (HMRevert = 0) then
-        HMRevert := AddItem(GSConst_RevertRecord, 0, @DoRevertRecord);
-      AddItem('-', 0, nil);}
+      if Assigned(FDatasource) then
+      begin
+        if (HMUndo = 0) then
+          HMUndo := AddItem(GSConst_UndoLastUpdate, ShortCut(Ord('Z'), [ssCtrl]),
+            DoUndoLastUpdate);
+        {if (HMRevert = 0) then
+          HMRevert := AddItem(GSConst_RevertRecord, 0, @DoRevertRecord);}
+        AddItem('-', 0, nil);
+      end;
       HMFind := AddItem(GSConst_Find, ShortCut(Ord('F'), [ssCtrl]), DoFindText);
       HMFindNext := AddItem(GSConst_FindNext, VK_F3, DoFindNext);
       {HMFindReplace := AddItem(GSConst_FindReplace, ShortCut(Ord('H'), [ssCtrl]),
@@ -1369,6 +1660,7 @@ function TSOGrid.DoCompare(Node1, Node2: PVirtualNode; Column: TColumnIndex): in
 var
   n1, n2, d1, d2: ISuperObject;
   propname: string;
+  compresult : TSuperCompareResult;
 begin
   Result := 0;
   if Assigned(OnCompareNodes) then
@@ -1384,7 +1676,15 @@ begin
       d1 := n1[propname];
       d2 := n2[propname];
       if (d1 <> nil) and (d2 <> nil) then
-        Result := CompareText(d1.AsString, d2.AsString)
+      begin
+        CompResult := d1.Compare(d2);
+        case compresult of
+          cpLess : Result := -1;
+          cpEqu  : Result := 0;
+          cpGreat : Result := 1;
+          cpError : Result := 0;
+        end;
+      end
       else
         Result := 0;
     end
@@ -1402,8 +1702,13 @@ begin
   else
   if (HitInfo.Shift=[]) and (HitInfo.Button = mbLeft) then
   begin
-    if Header.SortDirection = sdAscending then
-      Direction := sdDescending
+    if Header.SortColumn = HitInfo.Column then
+    begin
+      if Header.SortDirection = sdAscending then
+        Direction := sdDescending
+      else
+        Direction := sdAscending;
+    end
     else
       Direction := sdAscending;
 
@@ -1508,7 +1813,7 @@ end;
 
 procedure TSOGrid.DoDeleteRows(Sender: TObject);
 var
-  row, sel: ISuperObject;
+  row, sel, todelete: ISuperObject;
   i: integer;
 
 begin
@@ -1516,14 +1821,18 @@ begin
     IntToStr(SelectedCount) + ' enregistrement(s) ?', mtConfirmation, mbYesNoCancel, 0) =
     mrYes then
   begin
-    for sel in SelectedRows do
+    todelete := SelectedRows;
+    for sel in todelete do
     begin
-      for i := 0 to Data.AsArray.Length - 1 do
-        if Data.AsArray[i] = sel then
-        begin
-          Data.AsArray.Delete(i);
-          break;
-        end;
+      if Assigned(Datasource) then
+        Datasource.DeleteRecord(sel)
+      else
+        for i := 0 to Data.AsArray.Length - 1 do
+          if Data.AsArray[i] = sel then
+          begin
+            Data.AsArray.Delete(i);
+            break;
+          end;
     end;
     DeleteSelectedNodes;
   end;
@@ -1536,8 +1845,13 @@ begin
   if Data = Nil then
     Data := TSuperObject.Create(stArray);
   for row in ClipboardSOData do
-    Data.AsArray.Add(row);
-  LoadData;
+    if Assigned(Datasource) then
+      Datasource.AppendRecord(row)
+    else
+    begin
+      Data.AsArray.Add(row);
+      LoadData;
+    end;
 end;
 
 procedure TSOGrid.DoSelectAllRows(Sender: TObject);
@@ -1612,7 +1926,7 @@ begin
   begin
     if (EventType in [deUpdateRecord,deFieldChange]) and (Row<>Nil) then
       InvalidateFordata(Row)
-    else if EventType in [deUpdateState,deDataSetChange] then
+    else if EventType in [deUpdateState,deDataSetChange,deAddrecord,deDeleteRecord] then
       LoadData
     else
       Invalidate;
@@ -1831,13 +2145,28 @@ begin
 end;
 
 procedure TSOGrid.DoUndoLastUpdate(Sender: TObject);
+var
+  refocus:ISuperObject;
+  nodesArr:TNodeArray;
 begin
-
+  if Assigned(FDatasource) then
+  begin
+    refocus := FDatasource.UndolastChange;
+    if refocus<>Nil then
+    begin
+      nodesArr := NodesForData(refocus);
+      if Length(nodesArr)>0 then
+      begin
+        ClearSelection;
+        FocusedNode := nodesArr[0];
+        Selected[FocusedNode] := True;
+      end;
+    end;
+  end;
 end;
 
 procedure TSOGrid.DoRevertRecord(Sender: TObject);
 begin
-
 end;
 
 Function GetTempFileName(Const ext : String) : String;
@@ -1941,9 +2270,15 @@ begin
         if Column >= 0 then
         begin
           PropertyName:=TSOGridColumn(Header.Columns.Items[Column]).PropertyName;
-          OldCelldata := RowData[PropertyName];
-          NewCellData := SO(UTF8Decode(AText));
-          RowData[PropertyName] := NewCellData;
+          if FDatasource<>Nil then
+            FDatasource.UpdateRecord(RowData,PropertyName,SO('"'+UTF8Decode(AText)+'"'))
+          else
+          //standalone grid
+          begin
+            OldCelldata := RowData[PropertyName];
+            NewCellData := SO('"'+UTF8Decode(AText)+'"');
+            RowData[PropertyName] := NewCellData;
+          end
         end
         else
         begin
