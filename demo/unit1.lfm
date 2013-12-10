@@ -209,7 +209,6 @@ object Form1: TForm1
     OnChange = SOGrid1Change
     OnDragDrop = SOGrid1DragDrop
     OnHeaderDraggedOut = SOGrid1HeaderDraggedOut
-    OnKeyAction = SOGrid1KeyAction
   end
   object SOGrid2: TSOGrid
     Left = 0
@@ -306,295 +305,32 @@ object Form1: TForm1
     OnClick = Button5Click
     TabOrder = 5
   end
-  object DBEdit1: TDBEdit
-    Left = 156
-    Height = 21
-    Top = 244
-    Width = 80
-    CharCase = ecNormal
-    MaxLength = 0
-    TabOrder = 6
-  end
-  object DataSource1: TDataSource
-    DataSet = SQLQuery1
-    left = 136
-    top = 112
-  end
-  object SQLQuery1: TSQLQuery
-    IndexName = 'DEFAULT_ORDER'
-    FieldDefs = <    
-      item
-        Name = 'id'
-        DataType = ftInteger
-        Precision = -1
-        Size = 0
-      end    
-      item
-        Name = 'package'
-        DataType = ftString
-        Precision = -1
-        Size = 255
-      end    
-      item
-        Name = 'version'
-        DataType = ftString
-        Precision = -1
-        Size = 255
-      end    
-      item
-        Name = 'version_pinning'
-        DataType = ftString
-        Precision = -1
-        Size = 255
-      end    
-      item
-        Name = 'explicit_by'
-        DataType = ftString
-        Precision = -1
-        Size = 255
-      end    
-      item
-        Name = 'architecture'
-        DataType = ftString
-        Precision = -1
-        Size = 255
-      end    
-      item
-        Name = 'install_date'
-        DataType = ftString
-        Precision = -1
-        Size = 255
-      end    
-      item
-        Name = 'install_status'
-        DataType = ftString
-        Precision = -1
-        Size = 255
-      end    
-      item
-        Name = 'install_output'
-        DataType = ftMemo
-        Precision = -1
-        Size = 0
-      end    
-      item
-        Name = 'install_params'
-        DataType = ftString
-        Precision = -1
-        Size = 800
-      end    
-      item
-        Name = 'uninstall_string'
-        DataType = ftString
-        Precision = -1
-        Size = 255
-      end    
-      item
-        Name = 'uninstall_key'
-        DataType = ftString
-        Precision = -1
-        Size = 255
-      end    
-      item
-        Name = 'setuppy'
-        DataType = ftMemo
-        Precision = -1
-        Size = 0
-      end    
-      item
-        Name = 'process_id'
-        DataType = ftInteger
-        Precision = -1
-        Size = 0
-      end>
-    Active = True
-    Database = SQLite3Connection1
-    Transaction = SQLTransaction1
-    SQL.Strings = (
-      '      select * from wapt_localstatus'
-    )
-    Params = <>
-    left = 136
-    top = 176
-    object SQLQuery1id: TLongintField
-      DisplayWidth = 10
-      FieldKind = fkData
-      FieldName = 'id'
-      Index = 0
-      LookupCache = False
-      ProviderFlags = [pfInUpdate, pfInWhere]
-      ReadOnly = False
-      Required = False
-    end
-    object SQLQuery1package: TStringField
-      DisplayWidth = 255
-      FieldKind = fkData
-      FieldName = 'package'
-      Index = 1
-      LookupCache = False
-      ProviderFlags = [pfInUpdate, pfInWhere]
-      ReadOnly = False
-      Required = False
-      Size = 255
-    end
-    object SQLQuery1version: TStringField
-      DisplayWidth = 255
-      FieldKind = fkData
-      FieldName = 'version'
-      Index = 2
-      LookupCache = False
-      ProviderFlags = [pfInUpdate, pfInWhere]
-      ReadOnly = False
-      Required = False
-      Size = 255
-    end
-    object SQLQuery1version_pinning: TStringField
-      DisplayWidth = 255
-      FieldKind = fkData
-      FieldName = 'version_pinning'
-      Index = 3
-      LookupCache = False
-      ProviderFlags = [pfInUpdate, pfInWhere]
-      ReadOnly = False
-      Required = False
-      Size = 255
-    end
-    object SQLQuery1explicit_by: TStringField
-      DisplayWidth = 255
-      FieldKind = fkData
-      FieldName = 'explicit_by'
-      Index = 4
-      LookupCache = False
-      ProviderFlags = [pfInUpdate, pfInWhere]
-      ReadOnly = False
-      Required = False
-      Size = 255
-    end
-    object SQLQuery1architecture: TStringField
-      DisplayWidth = 255
-      FieldKind = fkData
-      FieldName = 'architecture'
-      Index = 5
-      LookupCache = False
-      ProviderFlags = [pfInUpdate, pfInWhere]
-      ReadOnly = False
-      Required = False
-      Size = 255
-    end
-    object SQLQuery1install_date: TStringField
-      DisplayWidth = 255
-      FieldKind = fkData
-      FieldName = 'install_date'
-      Index = 6
-      LookupCache = False
-      ProviderFlags = [pfInUpdate, pfInWhere]
-      ReadOnly = False
-      Required = False
-      Size = 255
-    end
-    object SQLQuery1install_status: TStringField
-      DisplayWidth = 255
-      FieldKind = fkData
-      FieldName = 'install_status'
-      Index = 7
-      LookupCache = False
-      ProviderFlags = [pfInUpdate, pfInWhere]
-      ReadOnly = False
-      Required = False
-      Size = 255
-    end
-    object SQLQuery1install_output: TMemoField
-      DisplayWidth = 10
-      FieldKind = fkData
-      FieldName = 'install_output'
-      Index = 8
-      LookupCache = False
-      ProviderFlags = [pfInUpdate, pfInWhere]
-      ReadOnly = False
-      Required = False
-      BlobType = ftBlob
-      Transliterate = False
-    end
-    object SQLQuery1install_params: TStringField
-      DisplayWidth = 800
-      FieldKind = fkData
-      FieldName = 'install_params'
-      Index = 9
-      LookupCache = False
-      ProviderFlags = [pfInUpdate, pfInWhere]
-      ReadOnly = False
-      Required = False
-      Size = 800
-    end
-    object SQLQuery1uninstall_string: TStringField
-      DisplayWidth = 255
-      FieldKind = fkData
-      FieldName = 'uninstall_string'
-      Index = 10
-      LookupCache = False
-      ProviderFlags = [pfInUpdate, pfInWhere]
-      ReadOnly = False
-      Required = False
-      Size = 255
-    end
-    object SQLQuery1uninstall_key: TStringField
-      DisplayWidth = 255
-      FieldKind = fkData
-      FieldName = 'uninstall_key'
-      Index = 11
-      LookupCache = False
-      ProviderFlags = [pfInUpdate, pfInWhere]
-      ReadOnly = False
-      Required = False
-      Size = 255
-    end
-    object SQLQuery1setuppy: TMemoField
-      DisplayWidth = 10
-      FieldKind = fkData
-      FieldName = 'setuppy'
-      Index = 12
-      LookupCache = False
-      ProviderFlags = [pfInUpdate, pfInWhere]
-      ReadOnly = False
-      Required = False
-      BlobType = ftBlob
-      Transliterate = False
-    end
-    object SQLQuery1process_id: TLongintField
-      DisplayWidth = 10
-      FieldKind = fkData
-      FieldName = 'process_id'
-      Index = 13
-      LookupCache = False
-      ProviderFlags = [pfInUpdate, pfInWhere]
-      ReadOnly = False
-      Required = False
-    end
-  end
-  object SQLite3Connection1: TSQLite3Connection
-    Connected = True
-    LoginPrompt = False
-    DatabaseName = 'c:\wapt\db\waptdb.sqlite'
-    KeepConnection = False
-    Transaction = SQLTransaction1
-    LogEvents = []
-    Options = []
-    left = 40
-    top = 112
-  end
-  object SQLTransaction1: TSQLTransaction
-    Active = True
-    Database = SQLite3Connection1
-    left = 40
-    top = 176
-  end
   object OpenDialog1: TOpenDialog
     Filter = 'All|*.*|JSon files|*.json'
-    left = 432
+    left = 412
     top = 164
   end
   object SODataSource1: TSODataSource
     left = 404
     top = 94
+  end
+  object IdHTTP1: TIdHTTP
+    AllowCookies = True
+    ProxyParams.BasicAuthentication = False
+    ProxyParams.ProxyPort = 0
+    Request.ContentLength = -1
+    Request.ContentRangeEnd = -1
+    Request.ContentRangeStart = -1
+    Request.ContentRangeInstanceLength = -1
+    Request.Date = 0
+    Request.Expires = 0
+    Request.LastModified = 0
+    Request.Accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    Request.BasicAuthentication = False
+    Request.UserAgent = 'Mozilla/3.0 (compatible; Indy Library)'
+    Request.Ranges = <>
+    HTTPOptions = [hoForceEncodeParams]
+    left = 250
+    top = 143
   end
 end

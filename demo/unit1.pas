@@ -6,8 +6,8 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, vte_stringlist, vte_treedata, Forms, Controls,
-  Graphics, Dialogs, StdCtrls, ExtCtrls, sogrid, db, sqldb, sqlite3conn, IdHTTP,
-  VirtualTrees, VTHeaderPopup, LCLType, DBGrids, ComCtrls, DbCtrls, types,
+  Graphics, Dialogs, StdCtrls, ExtCtrls, sogrid, IdHTTP,
+  VirtualTrees, VTHeaderPopup, LCLType, ComCtrls, types,
   ActiveX;
 
 type
@@ -20,10 +20,9 @@ type
     Button3: TButton;
     Button4: TButton;
     Button5: TButton;
-    DataSource1: TDataSource;
-    DBEdit1: TDBEdit;
     Edit1: TEdit;
     EdURL: TEdit;
+    IdHTTP1: TIdHTTP;
     ListBox1: TListBox;
     Memo1: TMemo;
     OpenDialog1: TOpenDialog;
@@ -31,23 +30,6 @@ type
     SODataSource1: TSODataSource;
     SOGrid1: TSOGrid;
     SOGrid2: TSOGrid;
-    SQLite3Connection1: TSQLite3Connection;
-    SQLQuery1: TSQLQuery;
-    SQLQuery1architecture: TStringField;
-    SQLQuery1explicit_by: TStringField;
-    SQLQuery1id: TLongintField;
-    SQLQuery1install_date: TStringField;
-    SQLQuery1install_output: TMemoField;
-    SQLQuery1install_params: TStringField;
-    SQLQuery1install_status: TStringField;
-    SQLQuery1package: TStringField;
-    SQLQuery1process_id: TLongintField;
-    SQLQuery1setuppy: TMemoField;
-    SQLQuery1uninstall_key: TStringField;
-    SQLQuery1uninstall_string: TStringField;
-    SQLQuery1version: TStringField;
-    SQLQuery1version_pinning: TStringField;
-    SQLTransaction1: TSQLTransaction;
     VirtualList1: TVirtualList;
     VirtualStringTreeData1: TVirtualStringTreeData;
     procedure Button1Click(Sender: TObject);
@@ -62,8 +44,6 @@ type
       const Pt: TPoint; var Effect: DWORD; Mode: TDropMode);
     procedure SOGrid1HeaderDraggedOut(Sender: TVTHeader; Column: TColumnIndex;
       const DropPosition: TPoint);
-    procedure SOGrid1KeyAction(Sender: TBaseVirtualTree; var CharCode: Word;
-      var Shift: TShiftState; var DoDefault: Boolean);
   private
     { private declarations }
   public
@@ -80,7 +60,7 @@ uses tisstrings,superobject, sogrideditor, tishttp;
 
 procedure TForm1.Button1Click(Sender: TObject);
 begin
-  SODataSource1.Data :=  SO(httpGetString(EdURL.Text));
+  SODataSource1.Data :=  SO(IdHTTP1.Get(EdURL.Text));
   //sogrid1.CreateColumnsFromData(True);
   //sogrid1.Header.AutoFitColumns(False);
 
@@ -157,8 +137,7 @@ procedure TForm1.SOGrid1DragDrop(Sender: TBaseVirtualTree; Source: TObject;
   DataObject: IDataObject; Formats: TFormatArray; Shift: TShiftState;
   const Pt: TPoint; var Effect: DWORD; Mode: TDropMode);
 begin
-    showmessage('toto');
-
+    showmessage('Dropped');
 end;
 
 procedure TForm1.SOGrid1HeaderDraggedOut(Sender: TVTHeader;
@@ -167,38 +146,6 @@ begin
   if ListBox1.Items.IndexOfObject(Sender.Columns[Column])<0 then
     ListBox1.AddItem(Sender.Columns[Column].Text, Sender.Columns[Column]);
   Sender.Columns[Column].Options:=Sender.Columns[Column].Options - [coVisible] ;
-end;
-
-procedure TForm1.SOGrid1KeyAction(Sender: TBaseVirtualTree; var CharCode: Word;
-  var Shift: TShiftState; var DoDefault: Boolean);
-var
-  foc,newfoc:PVirtualNode;
-  newdata : ISuperObject;
-begin
-  if (ssCtrl in Shift) and (CharCode=VK_DELETE) then
-  begin
-    foc := SOGrid1.FocusedNode;
-    newfoc := SOGrid1.GetNext(SOGrid1.FocusedNode);
-    if newfoc = Nil then
-      newfoc := SOGrid1.GetPrevious(SOGrid1.FocusedNode);
-    SOGrid1.DeleteNode(foc);
-    if newfoc<>Nil then
-    begin
-      sogrid1.FocusedNode:=newfoc;
-      sogrid1.Selected[newfoc] := True;
-    end;
-    DoDefault:=False;
-  end;
-
-  if (CharCode=VK_INSERT) then
-  begin
-    if SOGrid1.Data=Nil then
-        SOGrid1.Data := TSuperObject.Create(stArray);
-
-    SOGrid1.Data.AsArray.Add(SO());
-    SOGrid1.RootNodeCount:=SOGrid1.RootNodeCount+1;
-    SOGrid1.FocusedNode:=SOGrid1.GetLast;
-  end;
 end;
 
 {$R *.lfm}
