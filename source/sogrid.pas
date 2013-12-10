@@ -632,7 +632,7 @@ type
 
 implementation
 
-uses soutils, base64, IniFiles,LCLIntf,messages,forms,IdUriUtils;
+uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms,IdUriUtils;
 
 resourcestring
   GSConst_NoRecordFind = 'Pas d''enregistrement trouvé';
@@ -1620,8 +1620,8 @@ begin
   begin
     if FData = Value then
       exit;
-    LoadData;
     FData := Value;
+    LoadData;
   end;
 end;
 

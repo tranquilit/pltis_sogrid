@@ -69,7 +69,7 @@ type
 
 implementation
 
-uses Clipbrd,superobject,soutils,tishttp;
+uses Clipbrd,superobject,soutils,soclipbrd, tishttp;
 
 {$R *.lfm}
 
