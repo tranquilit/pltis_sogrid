@@ -48,7 +48,7 @@ uses sogrideditor,forms,windows,controls,Dialogs,soutils,clipbrd,superobject;
 
 procedure Register;
 begin
-  RegisterComponents('Virtual Controls', [TSOGrid,TSODataSource]);
+  RegisterComponents('SuperObject Controls', [TSOGrid,TSODataSource,TSOConnection]);
   RegisterComponentEditor(TSOGrid,TSOGridComponentEditor);
   RegisterComponentEditor(TSODataSource,TSODatasourceComponentEditor);
 end;
