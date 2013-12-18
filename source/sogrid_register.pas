@@ -39,6 +39,13 @@ type
     function  GetVerbCount: Integer; override;
   end;
 
+  { TSuperObjectPropertyEditor }
+  TSuperObjectPropertyEditor = class(TPropertyEditor)
+    function GetAttributes: TPropertyAttributes; override;
+    function GetValue: string; override;
+    procedure SetValue(const Value: string); override;
+  end;
+
 
 procedure Register;
 
@@ -51,7 +58,37 @@ begin
   RegisterComponents('SuperObject Controls', [TSOGrid,TSODataSource,TSOConnection]);
   RegisterComponentEditor(TSOGrid,TSOGridComponentEditor);
   RegisterComponentEditor(TSODataSource,TSODatasourceComponentEditor);
+  //RegisterPropertyEditor(TypeInfo(ISuperObject), nil, '', TSuperObjectPropertyEditor);
 end;
+
+{ TSuperObjectPropertyEditor }
+
+function TSuperObjectPropertyEditor.GetAttributes: TPropertyAttributes;
+begin
+  Result := [paRevertable];
+end;
+
+function TSuperObjectPropertyEditor.GetValue: string;
+var
+  soval:ISuperObject ;
+begin
+  soval := GetIntfValue as ISuperObject;
+  if SOVAL<>Nil then
+    Result:=soval.AsString
+  else
+    Result:='null';
+end;
+
+procedure TSuperObjectPropertyEditor.SetValue(const Value: string);
+var
+  soval:ISuperObject ;
+begin
+  if Value='null' then
+    SetIntfValue(Nil)
+  else
+    SetIntfValue(SO(Value));
+end;
+
 
 { TSODatasourceComponentEditor }
 
@@ -144,8 +181,8 @@ end;
 procedure TSOGridComponentEditor.ExecuteVerb(Index: Integer);
 begin
   case Index of
-    0: DoShowColumnsEditor;
-    1: DoShowEditor;
+    0: DoShowEditor;
+    1: DoShowColumnsEditor;
     2: (Component as TSOGrid).CreateColumnsFromData(False);
   end;
 end;
@@ -153,8 +190,8 @@ end;
 function TSOGridComponentEditor.GetVerb(Index: Integer): String;
 begin
   case Index of
-    0: Result := 'Edit columns...';
-    1: Result := 'Edit grid...';
+    0: Result := 'Edit grid...';
+    1: Result := 'Edit columns...';
     2: Result := 'Create missing columns from sample data';
   end;
 

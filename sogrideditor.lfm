@@ -30,6 +30,7 @@ object SOGridEditor: TSOGridEditor
     TreeOptions.SelectionOptions = [toExtendedFocus, toSimpleDrawSelection]
     WantTabs = True
     OnFocusChanged = ASOGridFocusChanged
+    OnHeaderDragged = ASOGridHeaderDragged
   end
   object ButtonPanel1: TButtonPanel
     Left = 6
@@ -138,6 +139,7 @@ object SOGridEditor: TSOGridEditor
       EditLabel.ParentColor = False
       LabelPosition = lpLeft
       TabOrder = 0
+      OnExit = EdColumnTitleExit
       OnKeyPress = EdColumnTitleKeyPress
     end
     object EdColumnProperty: TLabeledEdit
@@ -158,6 +160,7 @@ object SOGridEditor: TSOGridEditor
       EditLabel.ParentColor = False
       LabelPosition = lpLeft
       TabOrder = 1
+      OnExit = EdColumnPropertyExit
       OnKeyPress = EdColumnPropertyKeyPress
     end
     object cbEditorType: TComboBox
@@ -211,6 +214,15 @@ object SOGridEditor: TSOGridEditor
       ParentColor = True
       ReadOnly = True
       TabOrder = 4
+    end
+    object EdPosition: TEdit
+      Left = 164
+      Height = 21
+      Top = 2
+      Width = 28
+      Color = clBtnFace
+      ReadOnly = True
+      TabOrder = 5
     end
   end
   object ActionList1: TActionList

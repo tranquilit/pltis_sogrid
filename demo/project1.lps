@@ -12,7 +12,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="70" Y="10"/>
-        <UsageCount Value="125"/>
+        <UsageCount Value="136"/>
       </Unit0>
       <Unit1>
         <Filename Value="unit1.pas"/>
@@ -21,12 +21,11 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="Unit1"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="0"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="127"/>
-        <CursorPos X="26" Y="140"/>
-        <UsageCount Value="125"/>
+        <TopLine Value="1"/>
+        <CursorPos X="1" Y="1"/>
+        <UsageCount Value="136"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit1>
@@ -34,7 +33,7 @@
         <Filename Value="..\..\wapt\wapt-get\tisinifiles.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="tisinifiles"/>
-        <UsageCount Value="125"/>
+        <UsageCount Value="136"/>
       </Unit2>
       <Unit3>
         <Filename Value="..\..\wapt\wapt-get\tisstrings.pas"/>
@@ -43,7 +42,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="125"/>
+        <UsageCount Value="136"/>
       </Unit3>
       <Unit4>
         <Filename Value="..\sogrideditor.pas"/>
@@ -52,10 +51,14 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="sogrideditor"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="191"/>
-        <CursorPos X="1" Y="228"/>
-        <UsageCount Value="53"/>
+        <TopLine Value="211"/>
+        <CursorPos X="26" Y="214"/>
+        <UsageCount Value="64"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
       </Unit4>
       <Unit5>
         <Filename Value="..\tishttp.pas"/>
@@ -63,18 +66,20 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="15" Y="19"/>
-        <UsageCount Value="26"/>
+        <UsageCount Value="25"/>
       </Unit5>
       <Unit6>
         <Filename Value="..\source\sogrid.pas"/>
         <UnitName Value="sogrid"/>
+        <EditorIndex Value="2"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="1584"/>
-        <CursorPos X="90" Y="1595"/>
-        <UsageCount Value="59"/>
+        <TopLine Value="2828"/>
+        <CursorPos X="67" Y="2848"/>
+        <UsageCount Value="61"/>
         <Bookmarks Count="1">
-          <Item0 X="1" Y="2026" ID="1"/>
+          <Item0 X="1" Y="2031" ID="1"/>
         </Bookmarks>
+        <Loaded Value="True"/>
       </Unit6>
       <Unit7>
         <Filename Value="..\..\wapt\waptconsole\uwaptconsole.pas"/>
@@ -85,7 +90,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="272"/>
         <CursorPos X="45" Y="288"/>
-        <UsageCount Value="3"/>
+        <UsageCount Value="2"/>
       </Unit7>
       <Unit8>
         <Filename Value="..\..\pltis_superobject\source\superobject.pas"/>
@@ -93,7 +98,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="2112"/>
         <CursorPos X="1" Y="2135"/>
-        <UsageCount Value="30"/>
+        <UsageCount Value="29"/>
       </Unit8>
       <Unit9>
         <Filename Value="C:\codetyphon\lazarus\components\pl_VirtualTrees\source\VirtualTrees.pas"/>
@@ -101,7 +106,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="7061"/>
         <CursorPos X="3" Y="7088"/>
-        <UsageCount Value="3"/>
+        <UsageCount Value="2"/>
       </Unit9>
       <Unit10>
         <Filename Value="C:\codetyphon\lazarus\components\pl_VirtualTreesExtra\source\vte_json.pas"/>
@@ -109,14 +114,16 @@
         <WindowIndex Value="0"/>
         <TopLine Value="951"/>
         <CursorPos X="13" Y="1007"/>
-        <UsageCount Value="3"/>
+        <UsageCount Value="2"/>
       </Unit10>
       <Unit11>
         <Filename Value="C:\codetyphon\fpcsrc\rtl\objpas\classes\classesh.inc"/>
+        <EditorIndex Value="3"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="291"/>
-        <CursorPos X="3" Y="303"/>
-        <UsageCount Value="11"/>
+        <TopLine Value="555"/>
+        <CursorPos X="15" Y="566"/>
+        <UsageCount Value="14"/>
+        <Loaded Value="True"/>
       </Unit11>
       <Unit12>
         <Filename Value="unit1.lfm"/>
@@ -129,20 +136,22 @@
           <TopLine Value="188"/>
           <CursorPos X="1" Y="219"/>
         </ExtraEditor1>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
         <DefaultSyntaxHighlighter Value="LFM"/>
       </Unit12>
       <Unit13>
         <Filename Value="C:\codetyphon\typhon\components\pl_VirtualTrees\source\VirtualTrees.pas"/>
         <UnitName Value="VirtualTrees"/>
+        <EditorIndex Value="4"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="16280"/>
-        <CursorPos X="86" Y="16311"/>
-        <UsageCount Value="40"/>
+        <TopLine Value="1251"/>
+        <CursorPos X="3" Y="1265"/>
+        <UsageCount Value="44"/>
         <Bookmarks Count="2">
           <Item0 X="1" Y="20688" ID="2"/>
           <Item1 X="21" Y="9711" ID="3"/>
         </Bookmarks>
+        <Loaded Value="True"/>
       </Unit13>
       <Unit14>
         <Filename Value="C:\codetyphon\typhon\components\pl_VirtualTrees\source\VTHeaderPopup.pas"/>
@@ -150,7 +159,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="16"/>
+        <UsageCount Value="15"/>
       </Unit14>
       <Unit15>
         <Filename Value="C:\codetyphon\typhon\lcl\controls.pp"/>
@@ -158,42 +167,42 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1951"/>
         <CursorPos X="24" Y="1981"/>
-        <UsageCount Value="13"/>
+        <UsageCount Value="12"/>
       </Unit15>
       <Unit16>
         <Filename Value="C:\codetyphon\fpcsrc\rtl\objpas\sysutils\osutilsh.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="16"/>
         <CursorPos X="19" Y="35"/>
-        <UsageCount Value="8"/>
+        <UsageCount Value="7"/>
       </Unit16>
       <Unit17>
         <Filename Value="C:\codetyphon\fpcsrc\rtl\objpas\sysutils\osutil.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="207"/>
         <CursorPos X="1" Y="234"/>
-        <UsageCount Value="8"/>
+        <UsageCount Value="7"/>
       </Unit17>
       <Unit18>
         <Filename Value="C:\codetyphon\fpcsrc\rtl\objpas\sysutils\filutilh.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="63"/>
         <CursorPos X="10" Y="82"/>
-        <UsageCount Value="7"/>
+        <UsageCount Value="6"/>
       </Unit18>
       <Unit19>
         <Filename Value="C:\codetyphon\fpcsrc\rtl\objpas\sysutils\sysstrh.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="81"/>
         <CursorPos X="10" Y="100"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="10"/>
       </Unit19>
       <Unit20>
         <Filename Value="C:\codetyphon\fpcsrc\rtl\objpas\sysutils\sysstr.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1186"/>
         <CursorPos X="19" Y="1216"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="10"/>
       </Unit20>
       <Unit21>
         <Filename Value="C:\codetyphon\typhon\components\pl_Indy\source\base\IdHTTP.pas"/>
@@ -201,7 +210,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="566"/>
         <CursorPos X="14" Y="584"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit21>
       <Unit22>
         <Filename Value="C:\codetyphon\fpcsrc\packages\fcl-db\src\base\db.pas"/>
@@ -209,21 +218,21 @@
         <WindowIndex Value="0"/>
         <TopLine Value="30"/>
         <CursorPos X="8" Y="53"/>
-        <UsageCount Value="23"/>
+        <UsageCount Value="22"/>
       </Unit22>
       <Unit23>
         <Filename Value="C:\codetyphon\fpcsrc\packages\fcl-db\src\base\datasource.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="620"/>
         <CursorPos X="27" Y="651"/>
-        <UsageCount Value="19"/>
+        <UsageCount Value="18"/>
       </Unit23>
       <Unit24>
         <Filename Value="C:\codetyphon\fpcsrc\packages\fcl-db\src\base\dataset.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1108"/>
         <CursorPos X="37" Y="1115"/>
-        <UsageCount Value="13"/>
+        <UsageCount Value="12"/>
       </Unit24>
       <Unit25>
         <Filename Value="..\source\sogrid_register.pas"/>
@@ -231,7 +240,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="100"/>
         <CursorPos X="1" Y="129"/>
-        <UsageCount Value="20"/>
+        <UsageCount Value="19"/>
       </Unit25>
       <Unit26>
         <Filename Value="C:\codetyphon\typhon\components\pl_VirtualTrees\source\registervirtualtreeview.pas"/>
@@ -239,7 +248,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="20" Y="9"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit26>
       <Unit27>
         <Filename Value="C:\codetyphon\typhon\components\ideintf\collectionpropeditform.pas"/>
@@ -250,7 +259,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="100"/>
         <CursorPos X="57" Y="100"/>
-        <UsageCount Value="14"/>
+        <UsageCount Value="13"/>
       </Unit27>
       <Unit28>
         <Filename Value="C:\codetyphon\typhon\components\ideintf\idewindowintf.pas"/>
@@ -258,7 +267,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="265"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit28>
       <Unit29>
         <Filename Value="C:\codetyphon\typhon\components\ideintf\newfield.pas"/>
@@ -269,7 +278,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="150" Y="22"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit29>
       <Unit30>
         <Filename Value="C:\codetyphon\typhon\components\ideintf\newitemintf.pas"/>
@@ -277,7 +286,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="106"/>
         <CursorPos X="151" Y="23"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit30>
       <Unit31>
         <Filename Value="C:\codetyphon\typhon\components\ideintf\propedits.pp"/>
@@ -285,7 +294,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="3880"/>
         <CursorPos X="37" Y="3894"/>
-        <UsageCount Value="14"/>
+        <UsageCount Value="13"/>
       </Unit31>
       <Unit32>
         <Filename Value="C:\codetyphon\typhon\components\ideintf\ideintf.pas"/>
@@ -293,7 +302,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit32>
       <Unit33>
         <Filename Value="C:\codetyphon\typhon\packager\registration\registerfcl.pas"/>
@@ -301,7 +310,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="27"/>
         <CursorPos X="10" Y="45"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit33>
       <Unit34>
         <Filename Value="C:\codetyphon\fpcsrc\packages\fcl-base\src\eventlog.pp"/>
@@ -309,7 +318,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="13"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit34>
       <Unit35>
         <Filename Value="..\..\pltis_openerp\OpenERPSourceEditor.pas"/>
@@ -318,14 +327,14 @@
         <WindowIndex Value="0"/>
         <TopLine Value="4"/>
         <CursorPos X="44" Y="10"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit35>
       <Unit36>
         <Filename Value="..\..\pltis_openerp\OpenERPSourceEditor.lfm"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
         <DefaultSyntaxHighlighter Value="LFM"/>
       </Unit36>
       <Unit37>
@@ -334,7 +343,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="325"/>
         <CursorPos X="23" Y="353"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit37>
       <Unit38>
         <Filename Value="..\..\pltis_openerp\tissqlite3ds.pas"/>
@@ -342,7 +351,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="43"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit38>
       <Unit39>
         <Filename Value="..\..\pltis_openerp\tiscustomsqliteds.pas"/>
@@ -350,7 +359,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit39>
       <Unit40>
         <Filename Value="..\..\pltis_openerp\tisutils.pas"/>
@@ -358,7 +367,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit40>
       <Unit41>
         <Filename Value="..\..\pltis_openerp\uLoginDlg.pas"/>
@@ -366,7 +375,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit41>
       <Unit42>
         <Filename Value="..\..\pltis_openerp\register_openerp.pas"/>
@@ -374,7 +383,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit42>
       <Unit43>
         <Filename Value="C:\codetyphon\typhon\lcl\forms.pp"/>
@@ -382,7 +391,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1651"/>
         <CursorPos X="10" Y="1670"/>
-        <UsageCount Value="13"/>
+        <UsageCount Value="12"/>
       </Unit43>
       <Unit44>
         <Filename Value="C:\codetyphon\typhon\lcl\lmessages.pp"/>
@@ -390,7 +399,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="405"/>
         <CursorPos X="12" Y="439"/>
-        <UsageCount Value="13"/>
+        <UsageCount Value="12"/>
       </Unit44>
       <Unit45>
         <Filename Value="C:\codetyphon\typhon\lcl\dbctrls.pp"/>
@@ -398,14 +407,14 @@
         <WindowIndex Value="0"/>
         <TopLine Value="159"/>
         <CursorPos X="15" Y="182"/>
-        <UsageCount Value="13"/>
+        <UsageCount Value="12"/>
       </Unit45>
       <Unit46>
         <Filename Value="C:\codetyphon\typhon\lcl\include\dbedit.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="138"/>
         <CursorPos X="1" Y="153"/>
-        <UsageCount Value="12"/>
+        <UsageCount Value="11"/>
       </Unit46>
       <Unit47>
         <Filename Value="C:\codetyphon\typhon\lcl\lcltype.pp"/>
@@ -413,35 +422,35 @@
         <WindowIndex Value="0"/>
         <TopLine Value="2655"/>
         <CursorPos X="3" Y="2674"/>
-        <UsageCount Value="12"/>
+        <UsageCount Value="11"/>
       </Unit47>
       <Unit48>
         <Filename Value="C:\codetyphon\fpcsrc\rtl\objpas\classes\lists.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="18" Y="16"/>
-        <UsageCount Value="12"/>
+        <UsageCount Value="11"/>
       </Unit48>
       <Unit49>
         <Filename Value="C:\codetyphon\fpcsrc\rtl\objpas\classes\collect.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit49>
       <Unit50>
         <Filename Value="C:\codetyphon\fpcsrc\rtl\inc\objpash.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="174"/>
         <CursorPos X="23" Y="193"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit50>
       <Unit51>
         <Filename Value="C:\codetyphon\fpcsrc\rtl\inc\objpas.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="275"/>
         <CursorPos X="9" Y="275"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit51>
       <Unit52>
         <Filename Value="C:\codetyphon\typhon\lcl\stdctrls.pp"/>
@@ -449,7 +458,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="687"/>
         <CursorPos X="61" Y="704"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="10"/>
       </Unit52>
       <Unit53>
         <Filename Value="C:\codetyphon\fpcsrc\rtl\objpas\types.pp"/>
@@ -457,28 +466,28 @@
         <WindowIndex Value="0"/>
         <TopLine Value="80"/>
         <CursorPos X="3" Y="98"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="10"/>
       </Unit53>
       <Unit54>
         <Filename Value="C:\codetyphon\typhon\lcl\include\wincontrol.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="7186"/>
         <CursorPos X="3" Y="7191"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit54>
       <Unit55>
         <Filename Value="C:\codetyphon\fpcsrc\rtl\win\wininc\messages.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1191"/>
         <CursorPos X="5" Y="1210"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="10"/>
       </Unit55>
       <Unit56>
         <Filename Value="C:\codetyphon\typhon\lcl\include\winapih.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="193"/>
         <CursorPos X="10" Y="212"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit56>
       <Unit57>
         <Filename Value="C:\codetyphon\typhon\components\pl_lclextensions\source\delphicompat.pas"/>
@@ -486,42 +495,42 @@
         <WindowIndex Value="0"/>
         <TopLine Value="77"/>
         <CursorPos X="26" Y="95"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit57>
       <Unit58>
         <Filename Value="C:\codetyphon\typhon\components\pl_lclextensions\source\include\delphicompat_win32.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="124"/>
         <CursorPos X="28" Y="126"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit58>
       <Unit59>
         <Filename Value="C:\codetyphon\fpcsrc\rtl\win\wininc\func.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="473"/>
         <CursorPos X="15" Y="492"/>
-        <UsageCount Value="12"/>
+        <UsageCount Value="11"/>
       </Unit59>
       <Unit60>
         <Filename Value="C:\codetyphon\typhon\components\pl_lclextensions\source\include\uses_win32.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="3" Y="2"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit60>
       <Unit61>
         <Filename Value="C:\codetyphon\fpcsrc\rtl\win\wininc\struct.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="2917"/>
         <CursorPos X="6" Y="2948"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit61>
       <Unit62>
         <Filename Value="C:\codetyphon\fpcsrc\packages\fcl-db\src\base\fields.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="10"/>
       </Unit62>
       <Unit63>
         <Filename Value="..\..\pltis_superobject\soutils.pas"/>
@@ -529,7 +538,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="250"/>
         <CursorPos X="77" Y="275"/>
-        <UsageCount Value="12"/>
+        <UsageCount Value="11"/>
       </Unit63>
       <Unit64>
         <Filename Value="C:\codetyphon\typhon\lcl\dialogs.pp"/>
@@ -537,7 +546,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="496"/>
         <CursorPos X="10" Y="514"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit64>
       <Unit65>
         <Filename Value="..\..\wapt\wapt-get\tiscommon.pas"/>
@@ -545,7 +554,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="108"/>
         <CursorPos X="1" Y="139"/>
-        <UsageCount Value="12"/>
+        <UsageCount Value="11"/>
       </Unit65>
       <Unit66>
         <Filename Value="C:\codetyphon\typhon\lcl\clipbrd.pp"/>
@@ -553,14 +562,14 @@
         <WindowIndex Value="0"/>
         <TopLine Value="217"/>
         <CursorPos X="43" Y="238"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="10"/>
       </Unit66>
       <Unit67>
         <Filename Value="C:\codetyphon\fpcsrc\rtl\objpas\classes\compon.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit67>
       <Unit68>
         <Filename Value="C:\codetyphon\typhon\lcl\lclclasses.pp"/>
@@ -568,149 +577,161 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit68>
       <Unit69>
         <Filename Value="C:\codetyphon\typhon\lcl\include\scrollingwincontrol.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit69>
       <Unit70>
         <Filename Value="C:\codetyphon\typhon\lcl\include\customform.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit70>
       <Unit71>
         <Filename Value="C:\codetyphon\typhon\lcl\include\customcontrol.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit71>
       <Unit72>
         <Filename Value="C:\codetyphon\typhon\lcl\include\control.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit72>
     </Units>
     <General>
       <ActiveWindowIndexAtStart Value="0"/>
     </General>
-    <JumpHistory Count="27" HistoryIndex="26">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="211" Column="5" TopLine="206"/>
       </Position1>
       <Position2>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="150" Column="28" TopLine="147"/>
+        <Filename Value="C:\codetyphon\typhon\components\pl_VirtualTrees\source\VirtualTrees.pas"/>
+        <Caret Line="1537" Column="14" TopLine="1525"/>
       </Position2>
       <Position3>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="159" Column="25" TopLine="146"/>
+        <Filename Value="C:\codetyphon\typhon\components\pl_VirtualTrees\source\VirtualTrees.pas"/>
+        <Caret Line="1265" Column="3" TopLine="1251"/>
       </Position3>
       <Position4>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="158" Column="25" TopLine="145"/>
+        <Filename Value="C:\codetyphon\fpcsrc\rtl\objpas\classes\classesh.inc"/>
+        <Caret Line="525" Column="3" TopLine="511"/>
       </Position4>
       <Position5>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="157" Column="25" TopLine="144"/>
+        <Filename Value="C:\codetyphon\fpcsrc\rtl\objpas\classes\classesh.inc"/>
+        <Caret Line="566" Column="19" TopLine="545"/>
       </Position5>
       <Position6>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="156" Column="25" TopLine="143"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="228" Column="40" TopLine="212"/>
       </Position6>
       <Position7>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="155" Column="25" TopLine="142"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="209" Column="39" TopLine="196"/>
       </Position7>
       <Position8>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="154" Column="25" TopLine="141"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="228" Column="1" TopLine="205"/>
       </Position8>
       <Position9>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="153" Column="25" TopLine="140"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="37" Column="19" TopLine="25"/>
       </Position9>
       <Position10>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="152" Column="25" TopLine="139"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="65" Column="9" TopLine="50"/>
       </Position10>
       <Position11>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="151" Column="25" TopLine="138"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="199" Column="47" TopLine="177"/>
       </Position11>
       <Position12>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="150" Column="25" TopLine="137"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="214" Column="27" TopLine="201"/>
       </Position12>
       <Position13>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="149" Column="25" TopLine="136"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="231" Column="20" TopLine="214"/>
       </Position13>
       <Position14>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="148" Column="25" TopLine="135"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position14>
       <Position15>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="147" Column="25" TopLine="134"/>
+        <Filename Value="..\source\sogrid.pas"/>
+        <Caret Line="1" Column="1" TopLine="25"/>
       </Position15>
       <Position16>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="146" Column="25" TopLine="133"/>
+        <Filename Value="..\source\sogrid.pas"/>
+        <Caret Line="46" Column="27" TopLine="25"/>
       </Position16>
       <Position17>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="145" Column="25" TopLine="132"/>
+        <Filename Value="..\source\sogrid.pas"/>
+        <Caret Line="270" Column="27" TopLine="249"/>
       </Position17>
       <Position18>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="144" Column="25" TopLine="131"/>
+        <Filename Value="..\source\sogrid.pas"/>
+        <Caret Line="2832" Column="1" TopLine="2821"/>
       </Position18>
       <Position19>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="143" Column="25" TopLine="130"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position19>
       <Position20>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="142" Column="25" TopLine="129"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="229" Column="30" TopLine="207"/>
       </Position20>
       <Position21>
         <Filename Value="unit1.pas"/>
-        <Caret Line="141" Column="25" TopLine="128"/>
+        <Caret Line="85" Column="15" TopLine="76"/>
       </Position21>
       <Position22>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="140" Column="25" TopLine="127"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="230" Column="1" TopLine="186"/>
       </Position22>
       <Position23>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="138" Column="183" TopLine="127"/>
+        <Filename Value="..\source\sogrid.pas"/>
+        <Caret Line="591" Column="24" TopLine="566"/>
       </Position23>
       <Position24>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="11" Column="50" TopLine="2"/>
+        <Filename Value="..\source\sogrid.pas"/>
+        <Caret Line="2836" Column="20" TopLine="2834"/>
       </Position24>
       <Position25>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="62" Column="36" TopLine="60"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="241" Column="1" TopLine="215"/>
       </Position25>
       <Position26>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="63" Column="1" TopLine="63"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="223" Column="42" TopLine="211"/>
       </Position26>
       <Position27>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="140" Column="26" TopLine="127"/>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="229" Column="15" TopLine="202"/>
       </Position27>
+      <Position28>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="237" Column="15" TopLine="211"/>
+      </Position28>
+      <Position29>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="214" Column="3" TopLine="211"/>
+      </Position29>
+      <Position30>
+        <Filename Value="..\sogrideditor.pas"/>
+        <Caret Line="231" Column="1" TopLine="228"/>
+      </Position30>
     </JumpHistory>
   </ProjectSession>
   <EditorMacros Count="0"/>

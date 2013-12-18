@@ -23,6 +23,7 @@ type
   ESOUnknownKey = class(Exception);
   ESOUndefinedDatasource = class(Exception);
   ESOUndefinedConnection = class(Exception);
+  ESONoDataReturned = class(Exception);
 
   TSOGrid = class;
 
@@ -45,6 +46,8 @@ type
     procedure NotifyChange(EventType:TSODataEvent;Row:ISuperObject;OldValues,NewValues:ISuperObject);
   end;
 
+  ISORowChanges = interface;
+
   { TSOConnection }
   TSOConnection = class(TComponent)
   private
@@ -59,9 +62,8 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-
     function CallServerMethod(httpMethod: String; Action: String;
-      Args: array of String; KWArgs:ISuperObject=Nil;PostParams: ISuperObject=Nil): ISuperObject;
+      Args: array of String; KWArgs:ISuperObject=Nil;PostParams: ISuperObject=Nil): String;
 
     // return a list of provider (=table) names available on server
     // name: ,  description:
@@ -80,10 +82,10 @@ type
     // read data from server, given providername and params return json packet
     function Refresh(provider:String;Params:ISuperObject):ISuperObject; virtual;
 
-
     // send Delta to server for updates : delta is an array of dict :
     //  [  {'seq':1,'update_type':'update','old':{ inkey,inwhere and old fields values},'new':{} },...  ]
-    function ApplyUpdates(provider:String;Params:ISuperObject;Delta:ISuperObject):ISuperObject; virtual;
+    //return remaining delta
+    function ApplyUpdates(provider:String;Params:ISuperObject;Delta:ISORowChanges):ISORowChanges; virtual;
 
   published
     property ServerURL:String read FServerURL write SetServerURL;
@@ -97,16 +99,19 @@ type
 
   ISORowChange = interface
     ['{36CD5EC4-43EC-4F83-98CF-2E0EC68D14BC}']
+    function GetKey: Variant;
     function GetNewValues: ISuperObject;
     function GetOldValues: ISuperObject;
     function GetRow: ISuperObject;
     function GetUpdateType: TSOUpdateStatus;
+    procedure SetKey(AValue: Variant);
     procedure SetNewValues(AValue: ISuperObject);
     procedure SetOldValues(AValue: ISuperObject);
     procedure SetRow(AValue: ISuperObject);
     procedure SetUpdateType(AValue: TSOUpdateStatus);
 
     property UpdateType : TSOUpdateStatus read GetUpdateType write SetUpdateType;
+    property Key:Variant read GetKey write SetKey;
     property Row:ISuperObject read GetRow write SetRow;
     property OldValues:ISuperObject read GetOldValues write SetOldValues;
     property NewValues:ISuperObject read GetNewValues write SetNewValues;
@@ -122,10 +127,13 @@ type
     FOldValues: ISuperObject;
     FRow: ISuperObject;
     FUpdateType: TSOUpdateStatus;
+    FKey:Variant;
+    function GetKey: Variant;
     function GetNewValues: ISuperObject;
     function GetOldValues: ISuperObject;
     function GetRow: ISuperObject;
     function GetUpdateType: TSOUpdateStatus;
+    procedure SetKey(AValue: Variant);
     procedure SetNewValues(AValue: ISuperObject);
     procedure SetOldValues(AValue: ISuperObject);
     procedure SetRow(AValue: ISuperObject);
@@ -140,21 +148,75 @@ type
   end;
 
 
-  { TSODataChanges }
+  { TSORowChanges }
   TSODataSource = class;
+  TSORowChangesEnumerator = class;
 
-  // list of rowchanges to log the history of insert/update/delete and build a delat for further database sync
-  TSODataChanges = class(TInterfaceList)
+  { ISORowChanges }
+
+  ISORowChanges = interface(IInterfaceList)
+    ['{310B128D-2751-4860-BC15-2F1AA1A0B2B7}']
+    function Get(i : Integer) : ISORowChange;
+    function GetDataSource: TSODataSource;
+    procedure Put(i : Integer;item : ISORowChange);
+    function GetEnumerator: TSORowChangesEnumerator;
+
+    //associated datasource for flatten operations
+    property Datasource:TSODataSource read GetDataSource;
+    //overriden to return proper interface
+    property Items[Index : Integer] : ISORowChange read Get write Put;default;
+    //Add a new change to the list
+    function AddChange(UpdateType:TSOUpdateStatus;Row:ISuperObject=nil;OldValues:ISuperObject=Nil;NewValues:ISuperObject=Nil):integer;
+    // Create a new list of changes grouping all changes of each row into one delta
+    procedure RemoveRowChanges(row:ISuperObject);
+    // return list of changes as a JSon object
+    function Flatten:ISORowChanges;
+    // Create a new list of changes grouping all changes of each row into one delta
+    function Delta:ISuperObject;
+    // return True if AChange is the first one for the specified row
+    function IsFirstChange(AChange:ISORowChange):Boolean;
+
+  end;
+
+  TSORowChanges = class;
+
+  { TSORowChangesEnumerator }
+
+  TSORowChangesEnumerator = class(TInterfaceListEnumerator)
+  public
+    constructor Create(AList: TSORowChanges);
+    function GetCurrent: ISORowChange;
+    property Current: ISORowChange read GetCurrent;
+  end;
+
+  // list of rowchanges to log the history of insert/update/delete and build a delta for further database sync
+  TSORowChanges = class(TInterfaceList,ISORowChanges)
   private
     Fdatasource:TSODataSource;
+    function Get(i : Integer) : ISORowChange;
+    function GetDataSource: TSODataSource;
+    procedure Put(i : Integer;item : ISORowChange);
+
   public
     constructor Create(adatasource:TSODatasource);
     destructor Destroy; override;
-    //procedure clear; override;
-    function ChangeCount:Integer;
+
+    function GetEnumerator: TSORowChangesEnumerator;
+
     function AddChange(UpdateType:TSOUpdateStatus;Row:ISuperObject=nil;OldValues:ISuperObject=Nil;NewValues:ISuperObject=Nil):integer;
+    //creates flat json array of changes, merging all changes of each row into one
     function Delta:ISuperObject;
+    //return true if AChange is the first one for target row.
     function IsFirstChange(AChange:ISORowChange):Boolean;
+
+    // Create a new list of changes grouping all changes of each row into one delta
+    function Flatten:ISORowChanges;
+    // Remove all changes from list which reference the row parameter
+    procedure RemoveRowChanges(row:ISuperObject);
+
+    property Datasource:TSODataSource read GetDataSource;
+    property Items[Index : Integer] : ISORowChange read Get write Put;default;
+
   end;
 
   { TSODataSource }
@@ -162,9 +224,9 @@ type
   private
     FConnection: TSOConnection;
     FData: ISuperObject;
-    FDataChanges: TSODataChanges;
+    FChangeLog: ISORowChanges;
     FDataViews: TList;
-    FEnabled: Boolean;
+    FDisableCount:Integer;
     FOnDataChange: TSODataChangeEvent;
     FOnGetKey: TSOGetKeyEvent;
     FOnNewRecord: TSuperObjectRowEvent;
@@ -173,12 +235,18 @@ type
     FParams: ISuperObject;
     FProviderName: String;
 
+    function GetActive: Boolean;
+    function GetEnabled: Boolean;
+    function GetParamsJSON: String;
     procedure RemoveRecordFromData(row: ISuperObject);
     procedure Reset;
+    procedure SetActive(AValue: Boolean);
     procedure SetConnection(AValue: TSOConnection);
     procedure SetData(AData: ISuperObject);
+    procedure SetDataChanges(AValue: ISORowChanges);
     procedure SetEnabled(Value: Boolean);
     procedure SetParams(AValue: ISuperObject);
+    procedure SetParamsJSON(AValue: String);
     procedure SetProviderName(AValue: String);
     function UndoSingle(change: ISORowChange;Notify:Boolean=True): ISuperObject;
   protected
@@ -194,7 +262,7 @@ type
     property Data:ISuperObject read FData write SetData;
 
     // log of all changes for Applyupdates, UndoLastChange etc...:
-    property DataChanges:TSODataChanges read FDataChanges;
+    property ChangeLog:ISORowChanges read FChangeLog write SetDataChanges;
 
     // add a component to the list of notified objects
     procedure RegisterView(AComponent:TComponent);
@@ -204,7 +272,12 @@ type
     procedure LoadDataset; Virtual;
     procedure Emptydataset; Virtual;
 
+    procedure EnableControls;
+    procedure DisableControls;
+
+    //Append a new row to the collection. update views after initialisation
     function  AppendRecord(new:ISuperObject=Nil):ISuperObject;Virtual;
+    //Delete a row from the collection
     procedure DeleteRecord(row:ISuperObject); Virtual;
 
     //update a filed of a record log changes and notify views
@@ -223,10 +296,14 @@ type
     function ChangeCount:Integer; virtual;
     // undo the last single change
     function UndolastChange:ISuperObject; virtual;
+    // revert row record to initial state, reverting all changes logged in datachanges
     function RevertRecord(row:ISuperObject):ISuperObject;Virtual;
 
     //send the delta to the datasource and remove from change log the applied updates
     function ApplyUpdates:Integer; virtual;
+
+    //reload data from server keeping initial filtering/parameters
+    procedure Refresh; virtual;
 
     //paste json data or csv data from the clipboard
     procedure PasteFromClipboard;
@@ -234,17 +311,35 @@ type
     //get a unique key for the row
     function GetKey(Row:ISuperObject):Variant; virtual;
 
+    //returns the row associated with a key
+    function FindKey(key:Variant):ISuperObject; virtual;
+
   published
     property Connection: TSOConnection read FConnection write SetConnection;
+    //name of REST Provider on connection
     property ProviderName:String read FProviderName write SetProviderName;
     property Params:ISuperObject read FParams write SetParams;
+    //Set the Params SuperObject and load data
+    property ParamsJSON:String read GetParamsJSON write SetParamsJSON;
 
-    property Enabled: Boolean read FEnabled write SetEnabled default True;
+    //True if Data contains rows else False : data is empty
+    property Active:Boolean read GetActive write SetActive;
+
+    //if True, attached views are notified from changes through OnDataChange
+    property Enabled: Boolean read GetEnabled write SetEnabled default True;
+
     property OnStateChange: TNotifyEvent read FOnStateChange write FOnStateChange;
+    //Called when data or state is changed and Enabled is True
     property OnDataChange: TSODataChangeEvent read FOnDataChange write FOnDataChange;
+    //Called when a row has been modified, before changes is logged into ChangeLog and before views are notified
     property OnUpdateRecord: TSODataChangeEvent read FOnUpdateRecord write FOnUpdateRecord;
+    //Called when new row is appended to Data
     property OnNewRecord: TSuperObjectRowEvent read FOnNewRecord write FOnNewRecord;
+    //called to get the unique key of a row as a variant
     property OnGetKey:TSOGetKeyEvent read FOnGetKey write FOnGetKey;
+
+    //called if Applyupdates can't apply all changes
+    //property OnApplyUpdateError
   end;
 
   { TSOGridColumn }
@@ -376,7 +471,7 @@ type
 
     FDatasource: TSODataSource;
 
-    FLastAppendedNode:PVirtualNode;
+    FPendingAppendNode:PVirtualNode;
 
     FDefaultPopupMenu: TPopupMenu;
     FMenuFilled: boolean;
@@ -390,11 +485,15 @@ type
 
     function FocusedPropertyName: String;
     function GetData: ISuperObject;
+    function GetFocusedColumnObject: TSOGridColumn;
+    function GetFocusedRow: ISuperObject;
     function GetSettings: ISuperObject;
 
     procedure SetColumnToFind(AValue: integer);
     procedure SetData(const Value: ISuperObject);
     procedure SetDatasource(AValue: TSODataSource);
+    procedure SetFocusedColumnObject(AValue: TSOGridColumn);
+    procedure SetFocusedRow(AValue: ISuperObject);
     procedure SetOptions(const Value: TStringTreeOptions);
     function GetOptions: TStringTreeOptions;
     procedure SetSettings(AValue: ISuperObject);
@@ -488,9 +587,12 @@ type
     procedure InvalidateFordata(sodata: ISuperObject);
     procedure Clear; override;
 
+    // sort columns headers collection based on manual positioning
+    procedure ReorderColumns;
+
     // SODatasource events handling
     procedure NotifyChange(EventType:TSODataEvent;Row:ISuperObject;OldValues,NewValues:ISuperObject);
-    function FocusedColumnObject:TSOGridColumn;
+    property FocusedColumnObject:TSOGridColumn read GetFocusedColumnObject write SetFocusedColumnObject;
 
     // sauvegarde et restauration des customisations utilisateurs
     property Settings: ISuperObject read GetSettings write SetSettings;
@@ -504,6 +606,8 @@ type
 
     function ContentAsCSV(Source: TVSTTextSourceType; const Separator: String
       ): Utf8String;
+
+    property FocusedRow:ISuperObject read GetFocusedRow write SetFocusedRow;
 
   published
     property OnGetText: TSOGridGetText read FOnGetText write FOnGetText;
@@ -772,6 +876,18 @@ type
     SetLength(Result, J-1);
   end;
 
+{ TSORowChangesEnumerator }
+
+constructor TSORowChangesEnumerator.Create(AList: TSORowChanges);
+begin
+  inherited Create(AList);
+end;
+
+function TSORowChangesEnumerator.GetCurrent: ISORowChange;
+begin
+  result := inherited GetCurrent as ISORowChange;
+end;
+
 procedure TSOConnection.SetPassword(AValue: String);
 begin
   if FPassword=AValue then Exit;
@@ -807,17 +923,15 @@ end;
 //  postcontent for POST or PUT http method.
 
 function TSOConnection.CallServerMethod(httpMethod: String; Action: String;
-  Args: array of String; KWArgs:ISuperObject=Nil;PostParams: ISuperObject=Nil): ISuperObject;
+  Args: array of String; KWArgs:ISuperObject=Nil;PostParams: ISuperObject=Nil): String;
 var
-  St:TMemoryStream;
   postSt:TMemoryStream;
-  url,paramsStr,output : String;
+  url,paramsStr : String;
   i : integer;
   key:ISuperObject;
 
 begin
   try
-    st := TMemoryStream.Create;
     url := ServerURL+'/'+action;
     if length(args)>0 then
     begin
@@ -834,6 +948,8 @@ begin
     if (KWArgs<>Nil) then
     begin
       paramsStr := '';
+      if KWArgs.DataType<>stObject then
+        Raise Exception.Create('Connection CallServerMethod kwargs is not a JSon Object type');
       for key in KWArgs.AsObject.GetNames do
       begin
         if paramsStr<>'' then
@@ -847,7 +963,7 @@ begin
     IdHttpClient.Response.ContentType:='application/json';
 
     if httpMethod='GET' then
-      output := IdHttpClient.Get(url)
+      result := IdHttpClient.Get(url)
     else
     if httpMethod='PUT' then
     begin
@@ -856,7 +972,7 @@ begin
         if PostParams<>Nil then
           PostParams.SaveTo(postSt);
         postSt.Seek(0,0);
-        output := IdHttpClient.put(url,postSt);
+        result := IdHttpClient.put(url,postSt);
       finally
         postSt.Free;
       end;
@@ -869,25 +985,48 @@ begin
         if PostParams<>Nil then
           PostParams.SaveTo(postSt);
         postSt.Seek(0,0);
-        output := IdHttpClient.Post(url,postSt);
+        result := IdHttpClient.Post(url,postSt);
       finally
         postSt.Free;
       end;
     end
     else
     if httpMethod='DELETE' then
-      output := IdHttpClient.Delete(url);
+      result := IdHttpClient.Delete(url);
 
-    //result := TSuperObject.ParseStream(st,false);
-    result := SO(output);
-  finally
-    St.Free;
+  except
+    on e:EIdHTTPProtocolException do
+      if e.ErrorCode = 400  then
+        result := e.ErrorMessage
+      else
+        raise
+    else
+      Raise
   end;
 end;
 
 function TSOConnection.GetProviders: ISuperObject;
+var
+  content,patterns,pattern,prov:ISuperObject;
+  crochidx:integer;
 begin
-  Result := TSuperObject.Create;
+  Result := TSuperObject.Create(stArray);
+  content := SO(CallServerMethod('GET','api',['patterns.json']));
+  if content<>Nil then
+  begin
+    patterns := content['content'];
+    for pattern in patterns do
+    begin
+      crochidx := pos('[',pattern.AsString);
+      if crochidx>0 then
+      begin
+        prov := TSuperObject.Create(stArray);
+        prov.AsArray.Add(copy(pattern.AsString,1,crochidx-1));
+        prov.AsArray.Add(copy(pattern.AsString,crochidx+1,length(pattern.AsString)-crochidx-3));
+        Result.AsArray.Add(prov);
+      end;
+    end;
+  end;
 end;
 
 function TSOConnection.Metadata(provider: String): ISuperObject;
@@ -898,9 +1037,31 @@ end;
 function TSOConnection.LoadData(provider: String; Params: ISuperObject
   ): ISuperObject;
 var
-  args:String;
+  args,res,par:String;
+  response:ISuperObject;
 begin
-  Result := SO(IdHttpClient.Get(''));
+  res := CallServerMethod('GET','api',[provider+'.json'],Params);
+  response := SO(res);
+  if response=Nil then
+  begin
+    if Params<>Nil then
+      par := Params.AsJSon
+    else
+      par := '""';
+    Raise ESONoDataReturned.Create('GET method on server '+ServerURL+'/api/'+provider+'.json with params '+Par+' returned no data')
+  end
+  else
+    if (response.DataType<>stObject) or not response.AsObject.Exists('content') then
+    begin
+      Result := Nil;
+      if Params<>Nil then
+        par := Params.AsJSon
+      else
+        par := '""';
+      Raise ESONoDataReturned.Create('GET method on server '+ServerURL+'/api/'+provider+'.json with params '+Par+' returned bad data : '+copy(res,1,1000))
+    end
+    else
+      Result := response['content'];
 end;
 
 function TSOConnection.Refresh(provider: String; Params: ISuperObject
@@ -910,37 +1071,43 @@ begin
 end;
 
 function TSOConnection.ApplyUpdates(provider: String; Params: ISuperObject;
-  Delta: ISuperObject): ISuperObject;
+  Delta: ISORowChanges): ISORowChanges;
 var
-  change:ISuperObject;
+  change:ISORowChange;
   key:Variant;
   providerparams:String;
+  JSonResult:String;
+  SOResult:ISuperObject;
 begin
   providerparams:='';
-  result := TSuperObject.Create(stArray);
+  result := TSORowChanges.Create(Delta.Datasource);
   for change in Delta do
-  begin
-    if change.S['update_type'] = 'insert' then
-      result.AsArray.Add(CallServerMethod('POST','api',[provider+'.json'],Params,change['new']))
-    else
-    if change.S['update_type'] = 'delete' then
-      result.AsArray.Add(CallServerMethod('DELETE','api',[provider,change.S['key']+'.json'],Params))
-    else
-    if change.S['update_type'] = 'update' then
+  try
+    if change.UpdateType=usInserted then
     begin
-      result.AsArray.Add(CallServerMethod('PUT','api',[provider,change.S['key']+'.json'],Params,change['new']))
+      JSonResult := CallServerMethod('POST','api',[provider+'.json'],Nil,change.Row);
+      //try to reconcile tmpId if returned
+      SOResult := SO(JSonResult);
+      if SOResult.AsObject.Exists('id') then
+        change.Row.AsObject['id'] := SOResult.AsObject['id'];
+
+    end
+    else
+    if change.UpdateType=usDeleted then
+      JSonResult := CallServerMethod('DELETE','api',[provider,VarToStr(change.key)+'.json'],Nil)
+    else
+    if change.UpdateType = usModified then
+    begin
+      JSonResult := CallServerMethod('PUT','api',[provider,VarToStr(change.key)+'.json'],Nil,change.NewValues)
     end;
+  except
+    result.Add(change);
   end;
 end;
 
-{ TSODataChanges }
+{ TSORowChanges }
 
-function TSODataChanges.ChangeCount: Integer;
-begin
-  Result := 0;
-end;
-
-function TSODataChanges.AddChange(UpdateType: TSOUpdateStatus;
+function TSORowChanges.AddChange(UpdateType: TSOUpdateStatus;
   Row: ISuperObject; OldValues: ISuperObject;
   NewValues: ISuperObject): integer;
 var
@@ -968,29 +1135,93 @@ begin
     Result := 1;
 end;
 
-// build an array of all changes
-function TSODataChanges.Delta: ISuperObject;
+// build a JSON array of all changes
+function TSORowChanges.Delta: ISuperObject;
 var
   i,updateIdx:Integer;
-  PropertyName,rowdelta:ISuperObject;
+  rowchange : ISORowChange;
+  rowdelta: ISuperObject;
+  key:Variant;
+  seq: String;
+
+begin
+  result := TSuperObject.Create(stArray);
+  for rowchange in Self do
+  begin
+    rowdelta := TSuperObject.Create;
+    case rowchange.UpdateType of
+      usInserted : rowdelta.S['update_type'] := 'insert';
+      usModified : rowdelta.S['update_type'] := 'update';
+      usDeleted : rowdelta.S['update_type'] := 'delete';
+    end;
+    rowdelta['old'] := rowchange.OldValues;
+    rowdelta['new'] := rowchange.NewValues;
+
+    key := Null;
+    if (rowchange.UpdateType=usModified) and (rowchange.OldValues<>Nil) then
+      key := Fdatasource.GetKey(rowchange.OldValues);
+    if VarIsNull(Key) then
+      key := Fdatasource.GetKey(rowchange.Row);
+    if not VarIsNull(key) then
+      rowdelta.AsObject['key'] := SO(key);
+    Result.AsArray.Add(rowdelta);
+  end;
+end;
+
+function TSORowChanges.Get(i: Integer): ISORowChange;
+begin
+  result := inherited Get(i) as ISORowChange;
+end;
+
+function TSORowChanges.GetDataSource: TSODataSource;
+begin
+  Result := Fdatasource;
+end;
+
+procedure TSORowChanges.Put(i: Integer; item: ISORowChange);
+begin
+  inherited Put(i,item);
+end;
+
+constructor TSORowChanges.Create(adatasource: TSODatasource);
+begin
+  Fdatasource := adatasource;
+  inherited create;
+end;
+
+destructor TSORowChanges.Destroy;
+begin
+  inherited;
+end;
+
+function TSORowChanges.IsFirstChange(AChange: ISORowChange): Boolean;
+var
+  i:integer;
+begin
+  Result := False;
+  for i:=0 to count-1 do
+    if AChange.row = Items[i].Row then
+    begin
+      Result := (AChange = Items[i] as ISORowChange);
+      Break;
+    end;
+end;
+
+function TSORowChanges.Flatten: ISORowChanges;
+var
+  i,updateIdx:Integer;
+  PropertyName:ISuperObject;
   change,rowchange : ISORowChange;
   key:Variant;
   seq: String;
 
-  updates:TInterfaceList;
-  irow : IUnknown;
-
-  // find a concatenated change for the row, or creates a new one by cloning change
-  function GetDeltaForChange(change:ISORowChange):ISORowChange;
-  var
-    i:integer;
+  // find a concatenated change for the row, or creates a new one by cloning first change
+  function GetDeltaForChange(FlatChanges:ISORowChanges;change:ISORowChange):ISORowChange;
   begin
-    i := -1;
     result := Nil;
     //find a previous update for this row
-    for i := 0 to updates.Count-1 do
+    for result in FlatChanges do
     begin
-      result := updates[i] as ISORowChange;
       if result.row = change.Row then
         Break
       else
@@ -1009,7 +1240,7 @@ var
       if Result.NewValues<>Nil then
         Result.NewValues := change.NewValues.Clone;
 
-      updates.Add(result);
+      FlatChanges.Add(result);
     end
   end;
 
@@ -1056,75 +1287,38 @@ var
   end;
 
 begin
-  updates := TInterfaceList.Create;
-  try
-    for i:=0 to count-1 do
-    begin
-      change :=  Items[i] as ISORowChange;
-      rowchange := GetDeltaForChange(change);
-      mergeChange(change,rowchange);
-
-    end;
-
-
-    // build a json object
-    result := TSuperObject.Create(stArray);
-    for irow in updates do
-    begin
-      rowchange := irow as ISORowChange ;
-      rowdelta := TSuperObject.Create;
-      case rowchange.UpdateType of
-        usInserted : rowdelta.S['update_type'] := 'insert';
-        usModified : rowdelta.S['update_type'] := 'update';
-        usDeleted : rowdelta.S['update_type'] := 'delete';
-      end;
-      rowdelta['old'] := rowchange.OldValues;
-      rowdelta['new'] := rowchange.NewValues;
-
-      //add key field to oldvalues
+  Result := TSORowChanges.Create(Fdatasource);
+  for change in self do
+  begin
+    //insert (into result) of get (from result) a change for change.row
+    rowchange := GetDeltaForChange(Result,change);
+    mergeChange(change,rowchange);
+    key := Null;
+    if (rowchange.UpdateType=usModified) and (rowchange.OldValues<>Nil) then
+      key := Fdatasource.GetKey(rowchange.OldValues);
+    if VarIsNull(Key) then
       key := Fdatasource.GetKey(rowchange.Row);
-      if not VarIsNull(key) then
-        rowdelta['key'] := key;
-
-      Result.AsArray.Add(rowdelta);
-    end;
-  finally
-    updates.Free;
-  end
+    if not VarIsNull(key) then
+      rowchange.key := key;
+  end;
 end;
 
-constructor TSODataChanges.Create(adatasource: TSODatasource);
-begin
-  Fdatasource := adatasource;
-  inherited create;
-end;
-
-destructor TSODataChanges.Destroy;
-begin
-  inherited;
-end;
-
-{procedure TSODataChanges.clear;
-var
-  i:Integer;
-begin
-  for i:=0 to Count-1 do
-    TObject(Items[i]).Free;
-  inherited clear;
-end;
-}
-
-function TSODataChanges.IsFirstChange(AChange: ISORowChange): Boolean;
+procedure TSORowChanges.RemoveRowChanges(row: ISuperObject);
 var
   i:integer;
+  change:ISORowChange;
 begin
-  Result := False;
-  for i:=0 to count-1 do
-    if AChange.row = (Items[i] as ISORowChange).Row then
-    begin
-      Result := (AChange = Items[i] as ISORowChange);
-      Break;
-    end;
+  for i:=count-1 downto 0 do
+  begin
+    change := Items[i];
+    if change.Row = row then
+      Delete(i);
+  end;
+end;
+
+function TSORowChanges.GetEnumerator: TSORowChangesEnumerator;
+begin
+  result:=TSORowChangesEnumerator.Create(Self)
 end;
 
 { TSORowChange }
@@ -1133,6 +1327,11 @@ procedure TSORowChange.SetNewValues(AValue: ISuperObject);
 begin
   if FNewValues=AValue then Exit;
   FNewValues:=AValue;
+end;
+
+function TSORowChange.GetKey: Variant;
+begin
+  Result := FKey;
 end;
 
 function TSORowChange.GetNewValues: ISuperObject;
@@ -1153,6 +1352,11 @@ end;
 function TSORowChange.GetUpdateType: TSOUpdateStatus;
 begin
   Result := FUpdateType;
+end;
+
+procedure TSORowChange.SetKey(AValue: Variant);
+begin
+  FKey:=AValue;
 end;
 
 procedure TSORowChange.SetOldValues(AValue: ISuperObject);
@@ -1199,37 +1403,56 @@ begin
   NotifyChange(deDataSetChange,Nil,Nil,Nil);
 end;
 
+procedure TSODataSource.SetDataChanges(AValue: ISORowChanges);
+begin
+  if FChangeLog=AValue then Exit;
+  FChangeLog:=AValue;
+  NotifyChange(deDataSetChange);
+end;
+
 procedure TSODataSource.SetEnabled(Value: Boolean);
 begin
-  if Value = FEnabled then
-      Exit;
-  FEnabled:=Value;
-  NotifyChange(deUpdateState ,Nil,Nil,Nil);
+  if value then
+    EnableControls
+  else
+    DisableControls;
 end;
 
 procedure TSODataSource.SetParams(AValue: ISuperObject);
 begin
   if FParams=AValue then Exit;
   FParams:=AValue;
+  Active := False;
+end;
+
+procedure TSODataSource.SetParamsJSON(AValue: String);
+begin
+  If (lowercase(AValue)='nil') or (AValue='') then
+    Params := Nil
+  else
+    Params := SO(AValue);
 end;
 
 procedure TSODataSource.SetProviderName(AValue: String);
 begin
   if FProviderName=AValue then Exit;
   FProviderName:=AValue;
+  Active := False;
 end;
 
 constructor TSODataSource.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FDataViews := TList.Create;
-  FEnabled:=True;
-  FDataChanges := TSODataChanges.Create(Self);
+  FChangeLog := TSORowChanges.Create(Self);
+  FDisableCount:=0;
 end;
 
 destructor TSODataSource.Destroy;
 begin
-  FreeAndNil(FDataChanges);
+  FreeAndNil(FDataViews);
+  //be sure to free the interface
+  FChangeLog := Nil;
   inherited Destroy;
 end;
 
@@ -1261,7 +1484,10 @@ end;
 
 procedure TSODataSource.LoadDataset;
 begin
-  Data := TSuperObject.Create(stArray);
+  if (ProviderName<>'') and (Connection<>Nil) then
+    Data := Connection.LoadData(ProviderName,Params)
+  else
+    Data := TSuperObject.Create(stArray);
 end;
 
 procedure TSODataSource.Emptydataset;
@@ -1269,31 +1495,76 @@ begin
   Data := TSuperObject.Create(stArray);
 end;
 
+procedure TSODataSource.EnableControls;
+var
+  OldEnabled:Boolean;
+begin
+  OldEnabled:=Enabled;
+  if FDisableCount>0 then
+    dec(FDisableCount);
+  if Enabled<>OldEnabled then
+    NotifyChange(deUpdateState ,Nil,Nil,Nil);
+end;
+
+procedure TSODataSource.DisableControls;
+var
+  OldEnabled:Boolean;
+begin
+  OldEnabled:=Enabled;
+  inc(FDisableCount);
+  if Enabled<>OldEnabled then
+    NotifyChange(deUpdateState ,Nil,Nil,Nil);
+end;
+
 function TSODataSource.AppendRecord(new:ISuperObject=Nil): ISuperObject;
 begin
   if not Assigned(Data) then
-      Emptydataset;
-
+    Emptydataset;
   if new<>Nil then
     Result := new
   else
     result := TSuperObject.Create;
   if Assigned(OnNewRecord) then
-      OnNewRecord(result);
+    OnNewRecord(result);
   data.AsArray.Add(result);
   if Assigned(OnUpdateRecord) then
     OnUpdateRecord(deAddrecord,result,Nil,Nil);
-  DataChanges.AddChange(usInserted,Result);
+  ChangeLog.AddChange(usInserted,Result);
   NotifyChange(deAddrecord,result);
 end;
 
 procedure TSODataSource.RemoveRecordFromData(row: ISuperObject);
 var
-  i:Integer;
+  i,last:Integer;
 begin
+  last:=-1;
   for i:=data.AsArray.Length-1 downto 0 do
     if Data.AsArray[i]=row then
+    begin
       Data.AsArray.Delete(i);
+      last := i;
+      Break;
+    end;
+  if last<0 then
+    ShowMessage('not found');
+end;
+
+function TSODataSource.GetParamsJSON: String;
+begin
+  if Params<>Nil then
+    Result := Params.AsJSon
+  else
+    Result := 'Nil';
+end;
+
+function TSODataSource.GetEnabled: Boolean;
+begin
+  Result := FDisableCount<=0;
+end;
+
+function TSODataSource.GetActive: Boolean;
+begin
+  Result := Data<>Nil;
 end;
 
 procedure TSODataSource.SetConnection(AValue: TSOConnection);
@@ -1308,10 +1579,19 @@ begin
   Data := Nil;
 end;
 
+procedure TSODataSource.SetActive(AValue: Boolean);
+begin
+  if AValue and (Data=Nil) then
+    LoadDataset
+  else
+  if not AValue then
+    Data := Nil;
+end;
+
 procedure TSODataSource.DeleteRecord(row: ISuperObject);
 begin
   RemoveRecordFromData(Row);
-  DataChanges.AddChange(usDeleted,row);
+  ChangeLog.AddChange(usDeleted,row);
   NotifyChange(deDeleteRecord,row);
 end;
 
@@ -1361,7 +1641,7 @@ begin
     end;
   end;
 
-  DataChanges.AddChange(usModified,row,oldvalues,NewValues);
+  ChangeLog.AddChange(usModified,row,oldvalues,NewValues);
   NotifyChange(deUpdateRecord,Row,oldvalues,NewValues);
 end;
 
@@ -1379,12 +1659,12 @@ end;
 
 procedure TSODataSource.MergeChangeLog;
 begin
-  DataChanges.Clear;
+  ChangeLog.Clear;
 end;
 
 function TSODataSource.ChangeCount: Integer;
 begin
-  Result := DataChanges.Count;
+  Result := ChangeLog.Count;
 end;
 
 function TSODataSource.UndoSingle(change:ISORowChange;Notify:Boolean=True):ISuperObject;
@@ -1438,12 +1718,14 @@ var
   PropertyName,OldValue:ISuperObject;
 begin
   Result := Nil;
-  if DataChanges.Count>0 then
-  begin
-    lastchange := DataChanges.Items[DataChanges.Count-1] as ISORowChange;
-    result := UndoSingle(lastchange,True);
-    //lastchange.Free;
-    DataChanges.Delete(DataChanges.Count-1);
+  if ChangeLog.Count>0 then
+  try
+    DisableControls;
+    lastchange := ChangeLog.Items[ChangeLog.Count-1];
+    result := UndoSingle(lastchange,False);
+    ChangeLog.Delete(ChangeLog.Count-1);
+  finally
+    EnableControls;
   end;
 end;
 
@@ -1452,28 +1734,35 @@ var
   i:integer;
   change:ISORowChange;
 begin
-  for i:=DataChanges.count-1 downto 0 do
-  begin
-    change := DataChanges.Items[i] as ISORowChange;
+  for i:=ChangeLog.count-1 downto 0 do
+  try
+    DisableControls;
+    change := ChangeLog.Items[i];
     if change.Row = row then
     begin
-      result := UndoSingle(change,DataChanges.IsFirstChange(change));
-      //change.Free;
-      DataChanges.Delete(i);
+      result := UndoSingle(change,false);
+      ChangeLog.Delete(i);
     end;
+  finally
+    EnableControls;
   end;
 end;
 
-// return count of not applied records.
+// return count of not applied records (remaining changes)
+// datachanges keeps only the remaining (not applied changes)
 function TSODataSource.ApplyUpdates: Integer;
 var
-  remaining:ISuperObject;
+  remaining:ISORowChanges;
 begin
   if Assigned(Connection) then
-    remaining := Connection.ApplyUpdates(ProviderName,Params,DataChanges.Delta)
+    ChangeLog := Connection.ApplyUpdates(ProviderName,Params,ChangeLog.Flatten)
   else
     raise ESOUndefinedConnection.Create('Datasource is not connected to a connection component');
-  ShowMessage(remaining.AsJSon);
+end;
+
+procedure TSODataSource.Refresh;
+begin
+  LoadDataset;
 end;
 
 procedure TSODataSource.PasteFromClipboard;
@@ -1507,10 +1796,26 @@ begin
     FOnGetKey(Row,Result)
   else
   begin
-    if {not Row.Exists('id') or (}ObjectIsNull(Row['id']) then
-      raise ESOUnknownKey.Create('Unable to get key data for row '+row.AsString);
-    result := Row.AsObject['id']
+    if not ObjectIsNull(Row['id']) then
+      result := Row.I['id']
   end;
+end;
+
+function TSODataSource.FindKey(key: Variant): ISuperObject;
+var
+  rk : Variant;
+begin
+  result := Nil;
+  if (Data=Nil) or VarIsNull(key) then
+    Exit;
+
+  for result in Self.Data do
+  begin
+    rk := GetKey(Result);
+    if not VarIsNull(rk) and VarSameValue(rk,Key) then
+      Exit;
+  end;
+  result := Nil;
 end;
 
 { TSOGridColumn }
@@ -1720,6 +2025,8 @@ begin
           col.Text:=propname.AsString;
           col.PropertyName:=propname.AsString;
           col.Width:= 100;
+          if prop.DataType in [stDouble,stCurrency,stInt] then
+            col.Alignment:=taRightJustify;
         end;
         {else
           if col.Width< 3*Length(prop.AsString) then
@@ -1886,6 +2193,34 @@ begin
     // be sure to release interface
     FData := Nil;
     LoadData;
+  end;
+end;
+
+procedure TSOGrid.SetFocusedColumnObject(AValue: TSOGridColumn);
+begin
+  if (AValue<>Nil) and Header.Columns.IsValidColumn(AValue.Index) then
+    FocusedColumn:=AValue.Index;
+end;
+
+procedure TSOGrid.SetFocusedRow(AValue: ISuperObject);
+var
+  nodes:TNodeArray;
+begin
+  If AValue = Nil then
+  begin
+    ClearSelection;
+    FocusedNode:=Nil;
+  end
+  else
+  begin
+    ClearSelection;
+    nodes := NodesForData(AValue);
+    if length(nodes)>0 then
+    begin
+      FocusedNode:=nodes[0];
+      Selected[nodes[0]] := True;
+      ScrollIntoView(FocusedNode,False);
+    end;
   end;
 end;
 
@@ -2254,7 +2589,7 @@ begin
   end;
 end;
 
-function TSOGrid.FocusedColumnObject: TSOGridColumn;
+function TSOGrid.GetFocusedColumnObject: TSOGridColumn;
 begin
   if (FocusedColumn>=0) and Header.Columns.IsValidColumn(FocusedColumn) then
     result := TSOGridColumn(Header.Columns[FocusedColumn])
@@ -2325,10 +2660,13 @@ var
   nodes:TNodeArray;
 
 begin
-  if Dialogs.MessageDlg('Confirmer', 'Confirmez-vous la suppression de ' +
+  if Dialogs.MessageDlg(GSConst_Confirmation, 'Confirmez-vous la suppression de ' +
     IntToStr(SelectedCount) + ' enregistrement(s) ?', mtConfirmation, mbYesNoCancel, 0) =
     mrYes then
-  begin
+  try
+    if Assigned(Datasource) then
+      Datasource.DisableControls;
+
     todelete := SelectedRows;
     newFocusedNode := Nil;
     if todelete.AsArray.Length>0 then
@@ -2359,6 +2697,9 @@ begin
       FocusedNode:= newFocusedNode;
       Selected[FocusedNode] := True;
     end;
+  finally
+    if Assigned(Datasource) then
+      Datasource.EnableControls;
   end;
 end;
 
@@ -2366,22 +2707,24 @@ procedure TSOGrid.DoPaste(Sender: TObject);
 var
   row: ISuperObject;
 begin
+  row := Nil;
   if Data = Nil then
     Data := TSuperObject.Create(stArray);
   if Assigned(Datasource) then
     Datasource.Enabled:=false;
   try
-  for row in ClipboardSOData do
-    if Assigned(Datasource) then
-      Datasource.AppendRecord(row)
-    else
-    begin
-      Data.AsArray.Add(row);
-      LoadData;
-    end;
+    for row in ClipboardSOData do
+      if Assigned(Datasource) then
+        Datasource.AppendRecord(row)
+      else
+      begin
+        Data.AsArray.Add(row);
+        LoadData;
+      end;
   finally
     if Assigned(Datasource) then
       Datasource.Enabled:=true;
+    FocusedRow := row;
   end;
 end;
 
@@ -2415,20 +2758,23 @@ function TSOGrid.DoKeyAction(var CharCode: Word; var Shift: TShiftState
 var
   msg:TLMessage;
 begin
-  if (CharCode = VK_DOWN) and (FocusedNode = GetLast) and (toEditable in TreeOptions.MiscOptions) and (FocusedNode<>FLastAppendedNode) then
+  if (CharCode = VK_DOWN) and (FocusedNode = GetLast) and (toEditable in TreeOptions.MiscOptions) and (FocusedNode<>FPendingAppendNode) then
   begin
     Result := False;
-    if FDatasource<>Nil then
+    {if FDatasource<>Nil then
     begin
       ClearSelection;
       FocusedNode := NodesForData(FDatasource.AppendRecord)[0];
       Selected[FocusedNode] := True;
-    end;
+    end;}
+    RootNodeCount:=RootNodeCount+1;
+    FocusedNode:=GetLast;
+    Selected[FocusedNode] := True;
     //to avoid multiple append without typing something
-    FLastAppendedNode := FocusedNode;
+    FPendingAppendNode := FocusedNode;
   end
   else
-  if (CharCode = VK_INSERT) and (toEditable in TreeOptions.MiscOptions) and (FocusedNode<>FLastAppendedNode) then
+  if (CharCode = VK_INSERT) and (toEditable in TreeOptions.MiscOptions) and (FocusedNode<>FPendingAppendNode) then
   begin
     Result := False;
     if FDatasource<>Nil then
@@ -2437,7 +2783,7 @@ begin
       //to avoid multiple append without typing something
       FocusedNode := NodesForData(FDatasource.AppendRecord)[0];
       Selected[FocusedNode] := True;
-      FLastAppendedNode := FocusedNode;
+      FPendingAppendNode := FocusedNode;
     end;
   end
   else
@@ -2476,7 +2822,38 @@ begin
   FData := nil;
 end;
 
+function SortColumnsPosition(c1,c2:TCollectionItem):integer;
+begin
+  if TSOGridColumn(c1).tag<TSOGridColumn(c2).tag then
+    result := -1
+  else
+  if TSOGridColumn(c1).tag>TSOGridColumn(c2).tag then
+    result := 1
+  else
+    Result := 0;
+end;
+
+procedure TSOGrid.ReorderColumns;
+var
+  i:TColumnIndex;
+  FocColumn:TSOGridColumn;
+begin
+  try
+    FocColumn:=FocusedColumnObject;
+    for i:=0 to Header.Columns.Count-1 do
+      Header.Columns[i].Tag:=Header.Columns[i].Position;
+    Header.Columns.Sort(SortColumnsPosition);
+    for i:=0 to Header.Columns.count-1 do
+      Header.Columns[i].Position :=  TSOGridColumn(Header.Columns[i]).Index ;
+  finally
+    FocusedColumnObject := FocColumn;
+  end;
+end;
+
 procedure TSOGrid.NotifyChange(EventType:TSODataEvent;Row:ISuperObject;OldValues,NewValues:ISuperObject);
+var
+  oldkey:variant;
+  nodes:TNodeArray;
 begin
   //deFieldChange, deDataSetChange,deUpdateRecord, deUpdateState,deFieldListChange
   if not (csDestroying in ComponentState) then
@@ -2484,7 +2861,16 @@ begin
     if (EventType in [deUpdateRecord]) and (Row<>Nil) then
       InvalidateFordata(Row)
     else if EventType in [deUpdateState,deDataSetChange,deAddrecord,deDeleteRecord] then
-      LoadData
+    begin
+      //try to retains focused row...
+      if (focusedrow<>Nil) and (FDatasource <>Nil) then
+        oldkey := FDatasource.GetKey(focusedrow)
+      else
+        oldkey := Null;
+      LoadData;
+      if Not VarIsNull(oldkey) and (FDatasource<>Nil) then
+        focusedrow := FDatasource.FindKey(oldkey);
+    end
     else
       Invalidate;
   end;
@@ -2701,6 +3087,18 @@ begin
     Result := FData;
 end;
 
+function TSOGrid.GetFocusedRow: ISuperObject;
+var
+  N: PVirtualNode;
+  res: ISuperObject;
+begin
+  N := FocusedNode;
+  if N<>Nil then
+    Result := GetNodeSOData(N)
+  else
+    Result := Nil;
+end;
+
 procedure TSOGrid.DoUndoLastUpdate(Sender: TObject);
 var
   refocus:ISuperObject;
@@ -2853,7 +3251,7 @@ begin
     end;
   end;
   //reset to allow append
-  FLastAppendedNode:=Nil;
+  FPendingAppendNode:=Nil;
   inherited DoNewText(Node, Column, AText);
 end;
 
@@ -3227,18 +3625,13 @@ begin
   end;
 end;
 
-
 function TSOStringEditLink.GetBounds: TRect; stdcall;
-
 begin
   Result := FEdit.BoundsRect;
 end;
 
-
 function TSOStringEditLink.PrepareEdit(Tree: TBaseVirtualTree; Node: PVirtualNode; Column: TColumnIndex): Boolean; stdcall;
-
 // Retrieves the true text bounds from the owner tree.
-
 var
   Text: String;
 
@@ -3272,21 +3665,16 @@ begin
   end;
 end;
 
-
 procedure TSOStringEditLink.ProcessMessage(var Message: TLMessage); stdcall;
 begin
   Message.Result := SendMessage(FEdit.Handle,Message.msg,Message.wParam,Message.lParam);
   //FEdit.WindowProc(Message);
 end;
 
-
 procedure TSOStringEditLink.SetBounds(R: TRect); stdcall;
-
 // Sets the outer bounds of the edit control and the actual edit area in the control.
-
 var
   Offset: Integer;
-
 begin
   if not FStopping then
   begin

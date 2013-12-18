@@ -33,6 +33,7 @@ type
         EdColumnTitle: TLabeledEdit;
         EdColumnProperty: TLabeledEdit;
         EdColumnIndex: TLabeledEdit;
+        EdPosition: TEdit;
         EdJSONUrl: TLabeledEdit;
         LstEditorType: TLabel;
         MenuItem1: TMenuItem;
@@ -58,7 +59,12 @@ type
         procedure ActUpdateColumnUpdate(Sender: TObject);
         procedure ASOGridFocusChanged(Sender: TBaseVirtualTree;
             Node: PVirtualNode; Column: TColumnIndex);
+        procedure ASOGridHeaderDragged(Sender: TVTHeader; Column: TColumnIndex;
+          OldPosition: Integer);
+        procedure Button6Click(Sender: TObject);
+        procedure EdColumnPropertyExit(Sender: TObject);
         procedure EdColumnPropertyKeyPress(Sender: TObject; var Key: char);
+        procedure EdColumnTitleExit(Sender: TObject);
         procedure EdColumnTitleKeyPress(Sender: TObject; var Key: char);
         procedure FormCreate(Sender: TObject);
     private
@@ -105,22 +111,25 @@ end;
 procedure TSOGridEditor.ActDelColumnExecute(Sender: TObject);
 var
     newidx : TColumnIndex;
+    delcol : TColumnIndex;
 begin
-    newidx:=ASOGrid.Header.Columns.GetNextVisibleColumn(ASOGrid.FocusedColumn);
-    if not ASOGrid.Header.Columns.IsValidColumn(newidx) then
-        newidx:=ASOGrid.Header.Columns.GetPreviousVisibleColumn(ASOGrid.FocusedColumn);
-
-    ASOGrid.Header.Columns.Delete(ASOGrid.FocusedColumn);
-    if ASOGrid.Header.Columns.IsValidColumn(newidx) then
-        ASOGrid.FocusedColumn:=newidx
-    else
-        ASOGrid.FocusedColumn:=ASOGrid.Header.Columns.GetFirstVisibleColumn;
+  delcol := ASOGrid.FocusedColumn;
+  ASOGrid.Header.Columns.Delete(delcol);
+  if ASOGrid.Header.Columns.IsValidColumn(delcol) then
+    ASOGrid.FocusedColumn:=delcol
+  else
+    ASOGrid.FocusedColumn:=ASOGrid.Header.Columns.GetLastVisibleColumn;
 
 end;
 
 procedure TSOGridEditor.ActLoadDataExecute(Sender: TObject);
+var
+    newdata:ISuperObject;
 begin
-  ASOGrid.Data := SO(httpGetString(EdJSONUrl.Text));
+  newData := SO(httpGetString(EdJSONUrl.Text));
+  if (newdata<>Nil) and (newdata.DataType=stObject) and (newdata.AsObject.Exists('content')) then
+    newdata := newdata.AsObject['content'];
+  ASOGrid.Data := newdata;
 end;
 
 procedure TSOGridEditor.ActPasteJsontemplateExecute(Sender: TObject);
@@ -188,6 +197,7 @@ begin
         EdColumnIndex.Text := IntToStr(col.Index);
         EdColumnTitle.Text := col.Text;
         EdColumnProperty.Text := col.PropertyName;
+        EdPosition.Text:=inttostr(col.Position);
     end
     else
     begin
@@ -195,6 +205,37 @@ begin
         EdColumnTitle.Text := '';
         EdColumnProperty.Text := '';
     end;
+end;
+
+procedure TSOGridEditor.ASOGridHeaderDragged(Sender: TVTHeader;
+  Column: TColumnIndex; OldPosition: Integer);
+begin
+  ASOGrid.ReorderColumns;
+end;
+
+function colsort(c1,c2:TCollectionItem):integer;
+begin
+  if TSOGridColumn(c1).position<TSOGridColumn(c2).position then
+    result := -1
+  else
+  if TSOGridColumn(c1).position>TSOGridColumn(c2).position then
+    result := 1
+  else
+    Result := 0;
+end;
+
+procedure TSOGridEditor.Button6Click(Sender: TObject);
+begin
+  ASOGrid.ReorderColumns;
+end;
+
+procedure TSOGridEditor.EdColumnPropertyExit(Sender: TObject);
+begin
+  if ASOGrid.FocusedColumnObject<>Nil then
+  begin
+    ASOGrid.FocusedColumnObject.PropertyName := EdColumnProperty.Text;
+    ASOGrid.Invalidate;
+  end;
 end;
 
 procedure TSOGridEditor.EdColumnPropertyKeyPress(Sender: TObject; var Key: char
@@ -206,6 +247,15 @@ begin
         ASOGrid.Invalidate;
         Key := #0;
     end;
+end;
+
+procedure TSOGridEditor.EdColumnTitleExit(Sender: TObject);
+begin
+  if ASOGrid.FocusedColumnObject<>Nil then
+  begin
+    ASOGrid.FocusedColumnObject.Text := EdColumnTitle.Text;
+    ASOGrid.Invalidate;
+  end;
 end;
 
 procedure TSOGridEditor.EdColumnTitleKeyPress(Sender: TObject; var Key: char);
