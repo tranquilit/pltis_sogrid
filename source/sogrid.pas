@@ -62,7 +62,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-    function CallServerMethod(httpMethod: String; Action: String;
+    function CallServerMethod(httpMethod: String;
       Args: array of String; KWArgs:ISuperObject=Nil;PostParams: ISuperObject=Nil): String;
 
     // return a list of provider (=table) names available on server
@@ -922,7 +922,7 @@ end;
 //call https://server_url/action/args0/args1/args...?paramkey=paramvalue&paramkey=paramvalue
 //  postcontent for POST or PUT http method.
 
-function TSOConnection.CallServerMethod(httpMethod: String; Action: String;
+function TSOConnection.CallServerMethod(httpMethod: String;
   Args: array of String; KWArgs:ISuperObject=Nil;PostParams: ISuperObject=Nil): String;
 var
   postSt:TMemoryStream;
@@ -932,7 +932,6 @@ var
 
 begin
   try
-    url := ServerURL+'/'+action;
     if length(args)>0 then
     begin
       paramsStr := '';
@@ -1011,7 +1010,7 @@ var
   crochidx:integer;
 begin
   Result := TSuperObject.Create(stArray);
-  content := SO(CallServerMethod('GET','api',['patterns.json']));
+  content := SO(CallServerMethod('GET',['api','patterns.json']));
   if content<>Nil then
   begin
     patterns := content['content'];
@@ -1040,7 +1039,7 @@ var
   args,res,par:String;
   response:ISuperObject;
 begin
-  res := CallServerMethod('GET','api',[provider+'.json'],Params);
+  res := CallServerMethod('GET',[provider+'.json'],Params);
   response := SO(res);
   if response=Nil then
   begin
@@ -1048,7 +1047,7 @@ begin
       par := Params.AsJSon
     else
       par := '""';
-    Raise ESONoDataReturned.Create('GET method on server '+ServerURL+'/api/'+provider+'.json with params '+Par+' returned no data')
+    Raise ESONoDataReturned.Create('GET method on server '+ServerURL+'/'+provider+'.json with params '+Par+' returned no data')
   end
   else
     if (response.DataType<>stObject) or not response.AsObject.Exists('content') then
@@ -1058,7 +1057,7 @@ begin
         par := Params.AsJSon
       else
         par := '""';
-      Raise ESONoDataReturned.Create('GET method on server '+ServerURL+'/api/'+provider+'.json with params '+Par+' returned bad data : '+copy(res,1,1000))
+      Raise ESONoDataReturned.Create('GET method on server '+ServerURL+'/'+provider+'.json with params '+Par+' returned bad data : '+copy(res,1,1000))
     end
     else
       Result := response['content'];
@@ -1085,20 +1084,19 @@ begin
   try
     if change.UpdateType=usInserted then
     begin
-      JSonResult := CallServerMethod('POST','api',[provider+'.json'],Nil,change.Row);
-      //try to reconcile tmpId if returned
+      JSonResult := CallServerMethod('POST',[provider+'.json'],Nil,change.Row);
+      //try to change tmpId to new definitive if returned
       SOResult := SO(JSonResult);
       if SOResult.AsObject.Exists('id') then
         change.Row.AsObject['id'] := SOResult.AsObject['id'];
-
     end
     else
     if change.UpdateType=usDeleted then
-      JSonResult := CallServerMethod('DELETE','api',[provider,VarToStr(change.key)+'.json'],Nil)
+      JSonResult := CallServerMethod('DELETE',[provider,VarToStr(change.key)+'.json'],Nil)
     else
     if change.UpdateType = usModified then
     begin
-      JSonResult := CallServerMethod('PUT','api',[provider,VarToStr(change.key)+'.json'],Nil,change.NewValues)
+      JSonResult := CallServerMethod('PUT',[provider,VarToStr(change.key)+'.json'],Nil,change.NewValues)
     end;
   except
     result.Add(change);
@@ -2811,9 +2809,9 @@ end;
 
 procedure TSOGrid.Notification(AComponent: TComponent; Operation: TOperation);
 begin
+  Inherited Notification(AComponent,Operation);
   if (Operation = opRemove) and (AComponent = FDatasource) then
     FDatasource := nil;
-  Inherited Notification(AComponent,Operation);
 end;
 
 procedure TSOGrid.Clear;
