@@ -896,6 +896,8 @@ end;
 
 procedure TSOConnection.SetServerURL(AValue: String);
 begin
+  if RightStr(AValue,1)='/' then
+    Delete(AValue,length(AValue),1);
   if FServerURL=AValue then Exit;
   FServerURL:=AValue;
 end;
@@ -932,6 +934,8 @@ var
 
 begin
   try
+    url := ServerURL;
+
     if length(args)>0 then
     begin
       paramsStr := '';
@@ -1433,6 +1437,8 @@ end;
 
 procedure TSODataSource.SetProviderName(AValue: String);
 begin
+  if RightStr(AValue,1)='/' then
+    Delete(AValue,length(AValue),1);
   if FProviderName=AValue then Exit;
   FProviderName:=AValue;
   Active := False;
