@@ -103,11 +103,13 @@ type
     function GetNewValues: ISuperObject;
     function GetOldValues: ISuperObject;
     function GetRow: ISuperObject;
+    function GetUpdateError: String;
     function GetUpdateType: TSOUpdateStatus;
     procedure SetKey(AValue: Variant);
     procedure SetNewValues(AValue: ISuperObject);
     procedure SetOldValues(AValue: ISuperObject);
     procedure SetRow(AValue: ISuperObject);
+    procedure SetUpdateError(AValue: String);
     procedure SetUpdateType(AValue: TSOUpdateStatus);
 
     property UpdateType : TSOUpdateStatus read GetUpdateType write SetUpdateType;
@@ -115,6 +117,7 @@ type
     property Row:ISuperObject read GetRow write SetRow;
     property OldValues:ISuperObject read GetOldValues write SetOldValues;
     property NewValues:ISuperObject read GetNewValues write SetNewValues;
+    property UpdateError:String read GetUpdateError write SetUpdateError;
   end;
 
 
@@ -126,23 +129,27 @@ type
     FNewValues: ISuperObject;
     FOldValues: ISuperObject;
     FRow: ISuperObject;
+    FUpdateError: String;
     FUpdateType: TSOUpdateStatus;
     FKey:Variant;
     function GetKey: Variant;
     function GetNewValues: ISuperObject;
     function GetOldValues: ISuperObject;
     function GetRow: ISuperObject;
+    function GetUpdateError: String;
     function GetUpdateType: TSOUpdateStatus;
     procedure SetKey(AValue: Variant);
     procedure SetNewValues(AValue: ISuperObject);
     procedure SetOldValues(AValue: ISuperObject);
     procedure SetRow(AValue: ISuperObject);
+    procedure SetUpdateError(AValue: String);
     procedure SetUpdateType(AValue: TSOUpdateStatus);
   public
     property UpdateType : TSOUpdateStatus read GetUpdateType write SetUpdateType;
     property Row:ISuperObject read GetRow write SetRow;
     property OldValues:ISuperObject read GetOldValues write SetOldValues;
     property NewValues:ISuperObject read GetNewValues write SetNewValues;
+    property UpdateError:String read GetUpdateError write SetUpdateError;
     constructor Create;
     destructor Destroy; override;
   end;
@@ -254,6 +261,9 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
+    procedure open;
+    procedure close;
 
     // List of visual components to be notified of data changes
     property DataViews:TList read FDataViews write FDataViews;
@@ -788,7 +798,7 @@ type
 
 implementation
 
-uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms,IdUriUtils,variants;
+uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms,IdUriUtils,variants,tisstrings;
 
 resourcestring
   GSConst_NoRecordFind = 'Pas d''enregistrement trouvé';
@@ -1041,9 +1051,12 @@ function TSOConnection.LoadData(provider: String; Params: ISuperObject
   ): ISuperObject;
 var
   args,res,par:String;
+  pathargs:TDynStringArray;
   response:ISuperObject;
 begin
-  res := CallServerMethod('GET',[provider+'.json'],Params);
+  pathargs := Split(provider,'/');
+  pathargs[length(pathargs)-1] := pathargs[length(pathargs)-1]+'.json';
+  res := CallServerMethod('GET',pathargs,Params);
   response := SO(res);
   if response=Nil then
   begin
@@ -1103,7 +1116,14 @@ begin
       JSonResult := CallServerMethod('PUT',[provider,VarToStr(change.key)+'.json'],Nil,change.NewValues)
     end;
   except
-    result.Add(change);
+    on E:EIdHTTPProtocolException do
+    begin
+      change.UpdateError := E.ErrorMessage;
+      ShowMessage(E.Message+' : '+E.ErrorMessage);
+      result.Add(change);
+    end
+    else
+      raise;
   end;
 end;
 
@@ -1351,6 +1371,11 @@ begin
   Result := FRow;
 end;
 
+function TSORowChange.GetUpdateError: String;
+begin
+  Result := FUpdateError;
+end;
+
 function TSORowChange.GetUpdateType: TSOUpdateStatus;
 begin
   Result := FUpdateType;
@@ -1371,6 +1396,12 @@ procedure TSORowChange.SetRow(AValue: ISuperObject);
 begin
   if FRow=AValue then Exit;
   FRow:=AValue;
+end;
+
+procedure TSORowChange.SetUpdateError(AValue: String);
+begin
+  if FUpdateError=AValue then Exit;
+  FUpdateError:=AValue;
 end;
 
 procedure TSORowChange.SetUpdateType(AValue: TSOUpdateStatus);
@@ -1458,6 +1489,16 @@ begin
   //be sure to free the interface
   FChangeLog := Nil;
   inherited Destroy;
+end;
+
+procedure TSODataSource.open;
+begin
+  Active:=True;
+end;
+
+procedure TSODataSource.close;
+begin
+  Active:=False;
 end;
 
 procedure TSODataSource.RegisterView(AComponent: TComponent);
@@ -1604,6 +1645,8 @@ procedure TSODataSource.UpdateValue(row: ISuperObject; PropertyName: String;
 var
   Newvalues:ISuperObject;
 begin
+  if (row<>Nil) and row.AsObject.Exists(PropertyName) and (row.AsObject[PropertyName] = NewValue) then
+    Exit;
   NewValues := TSuperObject.Create;
   NewValues.AsObject[PropertyName] := Newvalue;
   UpdateRecord(row,Newvalues);
@@ -2761,20 +2804,25 @@ function TSOGrid.DoKeyAction(var CharCode: Word; var Shift: TShiftState
   ): Boolean;
 var
   msg:TLMessage;
+  newdata:ISuperObject;
 begin
   if (CharCode = VK_DOWN) and (FocusedNode = GetLast) and (toEditable in TreeOptions.MiscOptions) and (FocusedNode<>FPendingAppendNode) then
   begin
     Result := False;
-    {if FDatasource<>Nil then
+    if FDatasource<>Nil then
     begin
       ClearSelection;
-      FocusedNode := NodesForData(FDatasource.AppendRecord)[0];
-      Selected[FocusedNode] := True;
-    end;}
-    RootNodeCount:=RootNodeCount+1;
-    FocusedNode:=GetLast;
+      newdata := FDatasource.AppendRecord;
+      LoadData;
+      FocusedNode:=NodesForData(newdata)[0];
+    end
+    else
+    begin
+      RootNodeCount:=RootNodeCount+1;
+      FocusedNode:=GetLast;
+    end;
+      //to avoid multiple append without typing something
     Selected[FocusedNode] := True;
-    //to avoid multiple append without typing something
     FPendingAppendNode := FocusedNode;
   end
   else

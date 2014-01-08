@@ -21,7 +21,7 @@
     </CompilerOptions>
     <Description Value="Virtual SuperObject Grid Components"/>
     <Version Minor="7"/>
-    <Files Count="4">
+    <Files Count="3">
       <Item1>
         <Filename Value="source\sogrid_register.pas"/>
         <HasRegisterProc Value="True"/>
@@ -35,31 +35,30 @@
         <Filename Value="source\sogrid.pas"/>
         <UnitName Value="sogrid"/>
       </Item3>
-      <Item4>
-        <Filename Value="tishttp.pas"/>
-        <UnitName Value="tishttp"/>
-      </Item4>
     </Files>
     <Type Value="RunAndDesignTime"/>
-    <RequiredPkgs Count="6">
+    <RequiredPkgs Count="7">
       <Item1>
-        <PackageName Value="pl_indycomp"/>
+        <PackageName Value="pltis_utils"/>
       </Item1>
       <Item2>
-        <PackageName Value="LCL"/>
+        <PackageName Value="pl_indycomp"/>
       </Item2>
       <Item3>
-        <PackageName Value="pl_virtualtrees"/>
+        <PackageName Value="LCL"/>
       </Item3>
       <Item4>
-        <PackageName Value="IDEIntf"/>
+        <PackageName Value="pl_virtualtrees"/>
       </Item4>
       <Item5>
-        <PackageName Value="FCL"/>
+        <PackageName Value="IDEIntf"/>
       </Item5>
       <Item6>
-        <PackageName Value="pltis_superobject"/>
+        <PackageName Value="FCL"/>
       </Item6>
+      <Item7>
+        <PackageName Value="pltis_superobject"/>
+      </Item7>
     </RequiredPkgs>
     <UsageOptions>
       <UnitPath Value="$(PkgOutDir)"/>
