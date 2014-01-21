@@ -2146,26 +2146,29 @@ var
 
 begin
   // manage immediate editor
-  with Message do
-  begin
-    Shift := KeyDataToShiftState(KeyData);
-    GetKeyboardState(KeyState);
-    // Avoid conversion to control characters. We have captured the control key state already in Shift.
-    KeyState[VK_CONTROL] := 0;
-    if (ToASCII(Message.CharCode, (Message.KeyData shr 16) and 7, KeyState, @Buffer, 0) > 0)
-        and (Shift * [ssCtrl, ssAlt] = []) and (CharCode >= 32) then
+    if (toEditable in TreeOptions.MiscOptions) then
+    with Message do
     begin
-      //case Buffer[0] of
-      EditColumn := FocusedColumn;
-      DoEdit;
-      amsg.msg:=WM_CHAR;
-      amsg.wParam:=ord(Buffer[0]);
-      amsg.lParam:=0;
-      EditLink.ProcessMessage( amsg);
+      Shift := KeyDataToShiftState(KeyData);
+      GetKeyboardState(KeyState);
+      // Avoid conversion to control characters. We have captured the control key state already in Shift.
+      KeyState[VK_CONTROL] := 0;
+      if (ToASCII(Message.CharCode, (Message.KeyData shr 16) and 7, KeyState, @Buffer, 0) > 0)
+          and (Shift * [ssCtrl, ssAlt] = []) and (CharCode >= 32) then
+      begin
+        //case Buffer[0] of
+        EditColumn := FocusedColumn;
+        DoEdit;
+        amsg.msg:=WM_CHAR;
+        amsg.wParam:=ord(Buffer[0]);
+        amsg.lParam:=0;
+        EditLink.ProcessMessage( amsg);
+      end
+      else
+        inherited;
     end
     else
       inherited;
-  end;
 end;
 
 procedure TSOGrid.LoadData;
@@ -2832,11 +2835,18 @@ begin
     if FDatasource<>Nil then
     begin
       ClearSelection;
-      //to avoid multiple append without typing something
-      FocusedNode := NodesForData(FDatasource.AppendRecord)[0];
-      Selected[FocusedNode] := True;
-      FPendingAppendNode := FocusedNode;
+      newdata := FDatasource.AppendRecord;
+      LoadData;
+      FocusedNode:=NodesForData(newdata)[0];
+    end
+    else
+    begin
+      RootNodeCount:=RootNodeCount+1;
+      FocusedNode:=GetLast;
     end;
+      //to avoid multiple append without typing something
+    Selected[FocusedNode] := True;
+    FPendingAppendNode := FocusedNode;
   end
   else
   {if (Shift * [ssCtrl, ssAlt] = []) and (CharCode >= 32) then
