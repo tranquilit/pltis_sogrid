@@ -77,7 +77,7 @@ type
     function Metadata(provider:String):ISuperObject; virtual;
 
     // read data from server, given providername and params return json packet
-    function LoadData(provider:String;Params:ISuperObject):ISuperObject; virtual;
+    function LoadData(provider:String;Params:ISuperObject; root:String = 'content'):ISuperObject; virtual;
 
     // read data from server, given providername and params return json packet
     function Refresh(provider:String;Params:ISuperObject):ISuperObject; virtual;
@@ -241,6 +241,7 @@ type
     FOnUpdateRecord: TSODataChangeEvent;
     FParams: ISuperObject;
     FProviderName: String;
+    FRoot: String;
 
     function GetActive: Boolean;
     function GetEnabled: Boolean;
@@ -331,6 +332,7 @@ type
     property Params:ISuperObject read FParams write SetParams;
     //Set the Params SuperObject and load data
     property ParamsJSON:String read GetParamsJSON write SetParamsJSON;
+    property Root:String read FRoot write FRoot;
 
     //True if Data contains rows else False : data is empty
     property Active:Boolean read GetActive write SetActive;
@@ -967,13 +969,20 @@ begin
       begin
         if paramsStr<>'' then
           paramsStr := paramsStr+'&';
-        paramsStr := key.AsString+'='+EncodeURIComponent(KWArgs[key.AsString].AsJSon(False));
+        paramsStr := key.AsString+'='+EncodeURIComponent(KWArgs.S[key.AsString]);
       end;
       url := url+'?'+paramsStr;
     end;
 
     IdHttpClient.Request.ContentType:='application/json';
     IdHttpClient.Response.ContentType:='application/json';
+
+    if Username<>'' then
+    begin
+      IdHttpClient.Request.BasicAuthentication:=True;
+      IdHttpClient.Request.Username:=Username;
+      IdHttpClient.Request.Password:=Password;
+    end;
 
     if httpMethod='GET' then
       result := IdHttpClient.Get(url)
@@ -1047,15 +1056,14 @@ begin
   Result := TSuperObject.Create;
 end;
 
-function TSOConnection.LoadData(provider: String; Params: ISuperObject
-  ): ISuperObject;
+function TSOConnection.LoadData(provider: String; Params: ISuperObject; root:String = 'content'): ISuperObject;
 var
   args,res,par:String;
   pathargs:TDynStringArray;
   response:ISuperObject;
 begin
   pathargs := Split(provider,'/');
-  pathargs[length(pathargs)-1] := pathargs[length(pathargs)-1]+'.json';
+  //pathargs[length(pathargs)-1] := pathargs[length(pathargs)-1]+'.json';
   res := CallServerMethod('GET',pathargs,Params);
   response := SO(res);
   if response=Nil then
@@ -1064,20 +1072,24 @@ begin
       par := Params.AsJSon
     else
       par := '""';
-    Raise ESONoDataReturned.Create('GET method on server '+ServerURL+'/'+provider+'.json with params '+Par+' returned no data')
+    Raise ESONoDataReturned.Create('GET method on server '+ServerURL+'/'+provider+' with params '+Par+' returned no data')
   end
   else
-    if (response.DataType<>stObject) or not response.AsObject.Exists('content') then
-    begin
+  try
+    case response.DataType of
+      stObject : Result := response[Root];
+      stArray : Result := response;
+    else
+      raise Exception.Create('returned data is neither a json Array nor an Object');
+    end;
+  except
       Result := Nil;
       if Params<>Nil then
         par := Params.AsJSon
       else
         par := '""';
-      Raise ESONoDataReturned.Create('GET method on server '+ServerURL+'/'+provider+'.json with params '+Par+' returned bad data : '+copy(res,1,1000))
-    end
-    else
-      Result := response['content'];
+      Raise ESONoDataReturned.Create('GET method on server '+ServerURL+'/'+provider+' with params '+Par+' returned bad data : '+copy(res,1,1000))
+  end
 end;
 
 function TSOConnection.Refresh(provider: String; Params: ISuperObject
@@ -1101,7 +1113,7 @@ begin
   try
     if change.UpdateType=usInserted then
     begin
-      JSonResult := CallServerMethod('POST',[provider+'.json'],Nil,change.Row);
+      JSonResult := CallServerMethod('POST',[provider],Nil,change.Row);
       //try to change tmpId to new definitive if returned
       SOResult := SO(JSonResult);
       if SOResult.AsObject.Exists('id') then
@@ -1109,11 +1121,11 @@ begin
     end
     else
     if change.UpdateType=usDeleted then
-      JSonResult := CallServerMethod('DELETE',[provider,VarToStr(change.key)+'.json'],Nil)
+      JSonResult := CallServerMethod('DELETE',[provider,VarToStr(change.key)],Nil)
     else
     if change.UpdateType = usModified then
     begin
-      JSonResult := CallServerMethod('PUT',[provider,VarToStr(change.key)+'.json'],Nil,change.NewValues)
+      JSonResult := CallServerMethod('PUT',[provider,VarToStr(change.key)],Nil,change.NewValues)
     end;
   except
     on E:EIdHTTPProtocolException do
@@ -1481,6 +1493,7 @@ begin
   FDataViews := TList.Create;
   FChangeLog := TSORowChanges.Create(Self);
   FDisableCount:=0;
+  FRoot := 'content';
 end;
 
 destructor TSODataSource.Destroy;
@@ -1530,7 +1543,7 @@ end;
 procedure TSODataSource.LoadDataset;
 begin
   if (ProviderName<>'') and (Connection<>Nil) then
-    Data := Connection.LoadData(ProviderName,Params)
+    Data := Connection.LoadData(ProviderName,Params,Root)
   else
     Data := TSuperObject.Create(stArray);
 end;
