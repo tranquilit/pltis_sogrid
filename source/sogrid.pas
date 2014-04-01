@@ -2172,10 +2172,14 @@ begin
         //case Buffer[0] of
         EditColumn := FocusedColumn;
         DoEdit;
-        amsg.msg:=WM_CHAR;
-        amsg.wParam:=ord(Buffer[0]);
-        amsg.lParam:=0;
-        EditLink.ProcessMessage( amsg);
+        //send first key which triggered the editor to newly created editor
+        If CanEdit(FocusedNode,EditColumn) then
+        begin
+          amsg.msg:=WM_CHAR;
+          amsg.wParam:=ord(Buffer[0]);
+          amsg.lParam:=0;
+          EditLink.ProcessMessage( amsg);
+        end;
       end
       else
         inherited;
@@ -3711,6 +3715,7 @@ function TSOStringEditLink.PrepareEdit(Tree: TBaseVirtualTree; Node: PVirtualNod
 // Retrieves the true text bounds from the owner tree.
 var
   Text: String;
+  Allowed:Boolean;
 
 begin
   Result := Tree is TCustomVirtualStringTree;
@@ -3725,6 +3730,14 @@ begin
     FEdit.Parent := Tree;
     FEdit.HandleNeeded;
     FEdit.Text := Text;
+    if Assigned(TSOGrid(Tree).OnEditing) then
+    begin
+      Allowed:=(toEditable in TSOGrid(Tree).TreeOptions.MiscOptions);
+      TSOGrid(Tree).OnEditing(Tree,Node,Column,Allowed);
+      FEdit.ReadOnly:=not Allowed;
+    end
+    else
+      FEdit.ReadOnly:= (toEditable in TSOGrid(Tree).TreeOptions.MiscOptions);
 
     if Column <= NoColumn then
     begin
