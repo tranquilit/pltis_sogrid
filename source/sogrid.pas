@@ -489,7 +489,7 @@ type
     FMenuFilled: boolean;
     HMUndo, HMRevert: HMENU;
     HMFind, HMFindNext, HMReplace: HMENU;
-    HMCut, HMCopy, HMPast, HMFindReplace: HMENU;
+    HMCut, HMCopy, HMCopyCell, HMPast, HMFindReplace: HMENU;
     HMInsert, HMDelete, HMSelAll: HMENU;
     HMExcel, HMPrint: HMENU;
     HMCollAll, HMExpAll: HMENU;
@@ -517,7 +517,6 @@ type
 
     property RootNodeCount stored False;
     property NodeDataSize;
-
 
     procedure WndProc(var Message: TLMessage); override;
 
@@ -566,6 +565,7 @@ type
     procedure DoRevertRecord(Sender: TObject); virtual;
     procedure DoExportExcel(Sender: TObject); virtual;
     procedure DoCopyToClipBoard(Sender: TObject); virtual;
+    procedure DoCopyCellToClipBoard(Sender: TObject); virtual;
     procedure DoCutToClipBoard(Sender: TObject); virtual;
     procedure DoDeleteRows(Sender: TObject); virtual;
     procedure DoPaste(Sender: TObject); virtual;
@@ -2450,6 +2450,7 @@ begin
       if (toEditable in TreeOptions.MiscOptions) then
         HMCut := AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), DoCutToClipBoard);
       HMCopy := AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), DoCopyToClipBoard);
+      HMCopyCell := AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl,ssShift]), DoCopyCellToClipBoard);
       if (toEditable in TreeOptions.MiscOptions) then
         HMPast := AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), DoPaste);
       AddItem('-', 0, nil);
@@ -2716,9 +2717,32 @@ begin
 
 end;
 
+procedure TSOGrid.DoCopyCellToClipBoard(Sender: TObject);
+var
+  focusedField,st: ansistring;
+  row,cells : ISuperObject;
+begin
+  Clipboard.Open;
+  try
+    Clipboard.Clear;
+    focusedField:=FocusedColumnObject.PropertyName;
+    cells := TSuperObject.Create(stArray);
+    for row in SelectedRows do
+      cells.AsArray.Add(row.S[focusedField]);
+    st := Join(#13#10,cells);
+    Clipboard.AddFormat(CF_Text, st[1], Length(st)+1);
+
+    st := cells.AsJSon(True);
+    Clipboard.AddFormat(ClipbrdJson, st[1], Length(st));
+
+  finally
+    Clipboard.Close;
+  end;
+end;
+
 procedure TSOGrid.DoCutToClipBoard(Sender: TObject);
 begin
-
+  raise ENotImplemented.Create('');
 end;
 
 procedure TSOGrid.DoDeleteRows(Sender: TObject);
@@ -2837,15 +2861,18 @@ begin
       newdata := FDatasource.AppendRecord;
       LoadData;
       FocusedNode:=NodesForData(newdata)[0];
-    end
-    else
+      //to avoid multiple append without typing something
+      Selected[FocusedNode] := True;
+      FPendingAppendNode := FocusedNode;
+    end;
+    {else
     begin
       RootNodeCount:=RootNodeCount+1;
       FocusedNode:=GetLast;
-    end;
       //to avoid multiple append without typing something
-    Selected[FocusedNode] := True;
-    FPendingAppendNode := FocusedNode;
+      Selected[FocusedNode] := True;
+      FPendingAppendNode := FocusedNode;
+    end;}
   end
   else
   if (CharCode = VK_INSERT) and (toEditable in TreeOptions.MiscOptions) and (FocusedNode<>FPendingAppendNode) then
@@ -2857,15 +2884,15 @@ begin
       newdata := FDatasource.AppendRecord;
       LoadData;
       FocusedNode:=NodesForData(newdata)[0];
+      //to avoid multiple append without typing something
+      Selected[FocusedNode] := True;
+      FPendingAppendNode := FocusedNode;
     end
-    else
+    {else
     begin
       RootNodeCount:=RootNodeCount+1;
       FocusedNode:=GetLast;
-    end;
-      //to avoid multiple append without typing something
-    Selected[FocusedNode] := True;
-    FPendingAppendNode := FocusedNode;
+    end;}
   end
   else
   {if (Shift * [ssCtrl, ssAlt] = []) and (CharCode >= 32) then
