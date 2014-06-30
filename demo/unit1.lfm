@@ -13,7 +13,7 @@ object Form1: TForm1
     Top = 50
     Width = 113
     Align = alLeft
-    TabOrder = 0
+    TabOrder = 6
   end
   object Panel1: TPanel
     Left = 0
@@ -81,7 +81,6 @@ object Form1: TForm1
     Height = 309
     Top = 50
     Width = 596
-    Datasource = SODataSource1
     Align = alClient
     Color = clWhite
     EditDelay = 100
@@ -89,113 +88,59 @@ object Form1: TForm1
     Header.Columns = <    
       item
         Position = 0
-        Text = 'uuid'
-        Width = 100
-        PropertyName = 'uuid'
-      end    
-      item
-        Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coAllowFocus]
-        Position = 1
-        Text = 'wapt_client'
-        Width = 100
-        PropertyName = 'wapt_client'
-      end    
-      item
-        Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coAllowFocus]
-        Position = 2
-        Text = 'waptclient_status'
-        Width = 258
-        PropertyName = 'waptclient_status'
-      end    
-      item
-        Position = 3
-        Text = 'price_subtotal'
-        Width = 100
-        PropertyName = 'price_subtotal'
-      end    
-      item
-        Position = 4
-        Text = 'zip'
-        Width = 100
-        PropertyName = 'zip'
-      end    
-      item
-        Position = 5
-        Text = 'street'
-        Width = 100
-        PropertyName = 'street'
-      end    
-      item
-        Position = 6
-        Text = 'amount_tax'
-        Width = 100
-        PropertyName = 'amount_tax'
-      end    
-      item
-        Position = 7
-        Text = 'amount_untaxed'
-        Width = 100
-        PropertyName = 'amount_untaxed'
-      end    
-      item
-        Position = 8
-        Text = 'number'
-        Width = 100
-        PropertyName = 'number'
-      end    
-      item
-        Position = 9
         Text = 'name'
         Width = 100
         PropertyName = 'name'
       end    
       item
-        Position = 10
-        Text = 'city'
+        Position = 1
+        Tag = 1
+        Text = 'key'
         Width = 100
-        PropertyName = 'city'
+        PropertyName = 'key'
       end    
       item
-        Position = 11
-        Text = 'dmi'
+        Position = 2
+        Tag = 2
+        Text = 'uninstall_string'
         Width = 100
-        PropertyName = 'dmi'
+        PropertyName = 'uninstall_string'
       end    
       item
-        Position = 12
-        Text = 'last_query_date'
+        Position = 3
+        Tag = 3
+        Text = 'version'
         Width = 100
-        PropertyName = 'last_query_date'
+        PropertyName = 'version'
       end    
       item
-        Position = 13
-        Text = 'packages'
+        Position = 4
+        Tag = 4
+        Text = 'publisher'
         Width = 100
-        PropertyName = 'packages'
+        PropertyName = 'publisher'
       end    
       item
-        Position = 14
-        Text = 'update_status'
+        Position = 5
+        Tag = 5
+        Text = 'install_date'
         Width = 100
-        PropertyName = 'update_status'
+        PropertyName = 'install_date'
       end    
       item
-        Position = 15
-        Text = 'softwares'
+        Position = 6
+        Tag = 6
+        Text = 'install_location'
         Width = 100
-        PropertyName = 'softwares'
+        PropertyName = 'install_location'
       end    
       item
-        Position = 16
-        Text = 'wapt'
-        Width = 100
-        PropertyName = 'wapt'
-      end    
-      item
-        Position = 17
-        Text = 'host'
-        Width = 100
-        PropertyName = 'host'
+        Alignment = taRightJustify
+        Position = 7
+        Tag = 7
+        Text = 'system_component'
+        Width = 19
+        PropertyName = 'system_component'
       end>
     Header.DefaultHeight = 17
     Header.Options = [hoColumnResize, hoDblClickResize, hoDrag, hoShowSortGlyphs, hoVisible]
@@ -305,12 +250,101 @@ object Form1: TForm1
     OnClick = Button5Click
     TabOrder = 5
   end
+  object GridHostSoftwares: TSOGrid
+    Left = 276
+    Height = 340
+    Top = 112
+    Width = 564
+    Color = clWhite
+    Header.AutoSizeIndex = -1
+    Header.Columns = <    
+      item
+        Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible, coAllowFocus, coWrapCaption]
+        Position = 0
+        Text = 'Editeur'
+        Width = 159
+        PropertyName = 'publisher'
+      end    
+      item
+        Position = 1
+        Tag = 1
+        Text = 'Logiciel'
+        Width = 100
+        PropertyName = 'name'
+      end    
+      item
+        Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible, coAllowFocus, coWrapCaption]
+        Position = 2
+        Tag = 2
+        Text = 'Version'
+        Width = 80
+        PropertyName = 'version'
+      end    
+      item
+        Position = 3
+        Tag = 3
+        Text = 'Date d''install'
+        Width = 80
+        PropertyName = 'install_date'
+      end    
+      item
+        Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coAllowFocus, coWrapCaption]
+        Position = 4
+        Tag = 4
+        Text = 'Numéro de licence'
+        PropertyName = 'serial_nr'
+      end    
+      item
+        Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coAllowFocus, coWrapCaption]
+        Position = 5
+        Tag = 5
+        Text = 'Répertoire d''installation'
+        Width = 200
+        PropertyName = 'install_location'
+      end    
+      item
+        Position = 6
+        Tag = 6
+        Text = 'Clé désinstallation'
+        Width = 100
+        PropertyName = 'key'
+      end    
+      item
+        Position = 7
+        Tag = 7
+        Text = 'Commande uninstall'
+        Width = 98
+        PropertyName = 'uninstall_string'
+      end    
+      item
+        Alignment = taRightJustify
+        Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coAllowFocus]
+        Position = 8
+        Tag = 8
+        Text = 'Composant système'
+        Width = 77
+        PropertyName = 'system_component'
+      end>
+    Header.DefaultHeight = 17
+    Header.Options = [hoColumnResize, hoDblClickResize, hoDrag, hoShowSortGlyphs, hoVisible]
+    Header.SortColumn = 6
+    Header.Style = hsFlatButtons
+    TabOrder = 0
+    TreeOptions.AutoOptions = [toAutoDropExpand, toAutoScrollOnExpand, toAutoSort, toAutoTristateTracking, toAutoDeleteMovedNodes]
+    TreeOptions.MiscOptions = [toAcceptOLEDrop, toEditable, toFullRepaintOnResize, toGridExtensions, toInitOnSave, toToggleOnDblClick, toEditOnClick]
+    TreeOptions.PaintOptions = [toHideFocusRect, toPopupMode, toShowButtons, toShowDropmark, toShowHorzGridLines, toShowRoot, toShowTreeLines, toShowVertGridLines, toThemeAware, toUseBlendedImages, toAlwaysHideSelection]
+    TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toMultiSelect]
+    WantTabs = True
+  end
   object OpenDialog1: TOpenDialog
     Filter = 'All|*.*|JSon files|*.json'
     left = 412
     top = 164
   end
   object SODataSource1: TSODataSource
+    ParamsJSON = 'Nil'
+    Root = 'content'
+    Active = True
     left = 404
     top = 94
   end

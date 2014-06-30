@@ -325,6 +325,7 @@ type
     //returns the row associated with a key
     function FindKey(key:Variant):ISuperObject; virtual;
 
+
   published
     property Connection: TSOConnection read FConnection write SetConnection;
     //name of REST Provider on connection
@@ -494,6 +495,7 @@ type
     HMExcel, HMPrint: HMENU;
     HMCollAll, HMExpAll: HMENU;
     HMCustomize: HMENU;
+    HMAdvancedCustomize: HMENU;
 
     function FocusedPropertyName: String;
     function GetData: ISuperObject;
@@ -572,6 +574,8 @@ type
     procedure DoSelectAllRows(Sender: TObject); virtual;
     procedure DoPrint(Sender: TObject); virtual;
     procedure DoCustomizeColumns(Sender: TObject); virtual;
+    procedure DoAdvancedCustomizeColumns(Sender: TObject); virtual;
+
     procedure DoExpandAll(Sender: TObject); virtual;
     procedure DoCollapseAll(Sender: TObject); virtual;
 
@@ -601,6 +605,8 @@ type
 
     // sort columns headers collection based on manual positioning
     procedure ReorderColumns;
+
+    procedure Customize;
 
     // SODatasource events handling
     procedure NotifyChange(EventType:TSODataEvent;Row:ISuperObject;OldValues,NewValues:ISuperObject);
@@ -800,7 +806,8 @@ type
 
 implementation
 
-uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms,IdUriUtils,variants,tisstrings;
+uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms,
+    IdUriUtils,variants,tisstrings,sogrideditor;
 
 resourcestring
   GSConst_NoRecordFind = 'Pas d''enregistrement trouvé';
@@ -827,6 +834,7 @@ resourcestring
   GSConst_ExpandAll = 'Tout déplier';
   GSConst_CollapseAll = 'Tour replier';
   GSConst_CustomizeColumns = 'Personnaliser les colonnes affichées...';
+  GSConst_AdvancedCustomizeColumns = 'Personnalisation avancée du tableau...';
 
 type
   TSOItemData = record
@@ -1878,6 +1886,7 @@ begin
   result := Nil;
 end;
 
+
 { TSOGridColumn }
 procedure TSOGridColumn.SetPropertyName(const Value: string);
 begin
@@ -2111,6 +2120,7 @@ var
   i: integer;
   gridcol: TSOGridColumn;
   prop, column, columns: ISuperObject;
+  propname : String;
 
 begin
   if AValue <> nil then
@@ -2119,7 +2129,16 @@ begin
     begin
       for column in Columns do
       begin
-        gridcol := FindColumnByPropertyName(column.S['propertyname']);
+        propname := column.S['propertyname'] ;
+        gridcol := FindColumnByPropertyName(propname);
+        if gridcol = nil then
+        begin
+          gridcol := Header.Columns.Add as TSOGridColumn;
+          gridcol.Text:=propname;
+          gridcol.PropertyName:=propname;
+          gridcol.Width:= 100;
+        end;
+
         if gridcol <> nil then
         begin
           if column.AsObject.Find('position', prop) then
@@ -2472,6 +2491,7 @@ begin
         @DoCollapseAll);}
       AddItem('-', 0, nil);
       HMCustomize := AddItem(GSConst_CustomizeColumns, 0, DoCustomizeColumns);
+      HMAdvancedCustomize := AddItem(GSConst_AdvancedCustomizeColumns, 0, DoAdvancedCustomizeColumns);
     finally
       FMenuFilled := True;
     end;
@@ -2836,6 +2856,11 @@ begin
   Header.PopupMenu.PopUp;
 end;
 
+procedure TSOGrid.DoAdvancedCustomizeColumns(Sender: TObject);
+begin
+  Customize;
+end;
+
 procedure TSOGrid.DoExpandAll(Sender: TObject);
 begin
   FullExpand;
@@ -2955,6 +2980,44 @@ begin
       Header.Columns[i].Position :=  TSOGridColumn(Header.Columns[i]).Index ;
   finally
     FocusedColumnObject := FocColumn;
+  end;
+end;
+
+procedure TSOGrid.Customize;
+var
+  i:Integer;
+  col : TSOGridColumn;
+  target : TSOGrid;
+begin
+  With TSOGridEditor.Create(Application) do
+  try
+      target := self;
+      for i:=0 to target.Header.Columns.count-1 do
+      begin
+         col := ASOGrid.Header.Columns.Add as TSOGridColumn;
+         col.Assign(target.Header.Columns[i]);
+      end;
+      asogrid.Settings := target.Settings;
+      ASOGrid.Datasource := target.Datasource;
+      if ASOGrid.data = Nil then
+        ASOGrid.Data := TSuperObject.Create(stArray);
+      if ASOGrid.Data.AsArray.Length=0 then
+      begin
+        ASOGrid.Data.AsArray.Add(TSuperObject.Create);
+        ASOGrid.LoadData;
+      end;
+      if ShowModal = mrOK then
+      begin
+        target.Header.Columns.Clear;
+        for i:=0 to asogrid.Header.Columns.count-1 do
+        begin
+           col := target.Header.Columns.Add as TSOGridColumn;
+           col.Assign(asogrid.Header.Columns[i]);
+        end;
+        target.Settings := asogrid.Settings;
+      end;
+  finally
+    Free;
   end;
 end;
 
