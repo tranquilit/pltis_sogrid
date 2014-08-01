@@ -1070,7 +1070,7 @@ var
   pathargs:TDynStringArray;
   response:ISuperObject;
 begin
-  pathargs := Split(provider,'/');
+  pathargs := StrSplit(provider,'/');
   //pathargs[length(pathargs)-1] := pathargs[length(pathargs)-1]+'.json';
   res := CallServerMethod('GET',pathargs,Params);
   response := SO(res);

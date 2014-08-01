@@ -12,3 +12,5 @@ bin/*
 lib/*
 /demo/lib/*
 lib
+
+/demo/*.dbg

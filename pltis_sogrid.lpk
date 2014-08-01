@@ -37,28 +37,16 @@
       </Item3>
     </Files>
     <Type Value="RunAndDesignTime"/>
-    <RequiredPkgs Count="7">
+    <RequiredPkgs Count="3">
       <Item1>
         <PackageName Value="pltis_utils"/>
       </Item1>
       <Item2>
-        <PackageName Value="pl_indycomp"/>
+        <PackageName Value="pl_virtualtrees"/>
       </Item2>
       <Item3>
-        <PackageName Value="LCL"/>
-      </Item3>
-      <Item4>
-        <PackageName Value="pl_virtualtrees"/>
-      </Item4>
-      <Item5>
-        <PackageName Value="IDEIntf"/>
-      </Item5>
-      <Item6>
-        <PackageName Value="FCL"/>
-      </Item6>
-      <Item7>
         <PackageName Value="pltis_superobject"/>
-      </Item7>
+      </Item3>
     </RequiredPkgs>
     <UsageOptions>
       <UnitPath Value="$(PkgOutDir)"/>
