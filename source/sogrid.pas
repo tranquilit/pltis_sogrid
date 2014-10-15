@@ -1266,8 +1266,6 @@ var
     begin
       if result.row = change.Row then
         Break
-      else
-        result := Nil;
     end;
 
     if Result = Nil then
