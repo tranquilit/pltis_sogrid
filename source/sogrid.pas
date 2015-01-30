@@ -16,7 +16,7 @@ interface
 
 uses
   Classes, SysUtils, VirtualTrees, Controls,
-  Windows,SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages,StdCtrls,Types,IdHttp;
+  Windows,SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages,StdCtrls,Types,IdHttp,DefaultTranslator;
 
 type
 
@@ -932,6 +932,7 @@ end;
 constructor TSOConnection.Create(AOwner: TComponent);
 begin
   FIdHttpClient := TIdHTTP.Create(Self);
+  FIdHttpClient.HandleRedirects:=True;
   inherited;
 end;
 
