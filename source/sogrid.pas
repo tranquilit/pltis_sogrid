@@ -2376,7 +2376,7 @@ begin
   end
   else
     CellText := '';
-  if Assigned(FOnGetText) then
+  if Assigned(FOnGetText) and (Column >= 0) and Header.Columns.IsValidColumn(Column) then
     FOnGetText(Self, Node, RowData, CellData, Column, TextType, CellText);
 end;
 
@@ -2988,35 +2988,43 @@ var
   col : TSOGridColumn;
   target : TSOGrid;
 begin
-  With TSOGridEditor.Create(Application) do
+  BeginUpdate;
+  BeginOperation;
   try
-      target := self;
-      for i:=0 to target.Header.Columns.count-1 do
-      begin
-         col := ASOGrid.Header.Columns.Add as TSOGridColumn;
-         col.Assign(target.Header.Columns[i]);
-      end;
-      asogrid.Settings := target.Settings;
-      ASOGrid.Datasource := target.Datasource;
-      if ASOGrid.data = Nil then
-        ASOGrid.Data := TSuperObject.Create(stArray);
-      if ASOGrid.Data.AsArray.Length=0 then
-      begin
-        ASOGrid.Data.AsArray.Add(TSuperObject.Create);
-        ASOGrid.LoadData;
-      end;
-      if ShowModal = mrOK then
-      begin
-        target.Header.Columns.Clear;
-        for i:=0 to asogrid.Header.Columns.count-1 do
+    With TSOGridEditor.Create(Application) do
+    try
+        target := self;
+        for i:=0 to target.Header.Columns.count-1 do
         begin
-           col := target.Header.Columns.Add as TSOGridColumn;
-           col.Assign(asogrid.Header.Columns[i]);
+           col := ASOGrid.Header.Columns.Add as TSOGridColumn;
+           col.Assign(target.Header.Columns[i]);
         end;
-        target.Settings := asogrid.Settings;
-      end;
+        asogrid.Settings := target.Settings;
+        ASOGrid.Datasource := target.Datasource;
+        if ASOGrid.data = Nil then
+          ASOGrid.Data := TSuperObject.Create(stArray);
+        if ASOGrid.Data.AsArray.Length=0 then
+        begin
+          ASOGrid.Data.AsArray.Add(TSuperObject.Create);
+          ASOGrid.LoadData;
+        end;
+        if ShowModal = mrOK then
+        begin
+
+          target.Header.Columns.Clear;
+          for i:=0 to asogrid.Header.Columns.count-1 do
+          begin
+             col := target.Header.Columns.Add as TSOGridColumn;
+             col.Assign(asogrid.Header.Columns[i]);
+          end;
+          target.Settings := asogrid.Settings;
+        end;
+    finally
+      Free;
+    end;
+
   finally
-    Free;
+    EndUpdate;
   end;
 end;
 
