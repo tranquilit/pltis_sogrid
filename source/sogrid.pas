@@ -807,7 +807,7 @@ type
 implementation
 
 uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms,
-    IdUriUtils,variants,tisstrings,sogrideditor;
+    variants,tisstrings,sogrideditor;
 
 resourcestring
   GSConst_NoRecordFind = 'Pas d''enregistrement trouvé';
@@ -2391,8 +2391,6 @@ begin
 end;
 
 constructor TSOGrid.Create(AOwner: TComponent);
-var
-  mi: TMenuItem;
 begin
   inherited Create(AOwner);
   DefaultText := '';
@@ -2562,7 +2560,6 @@ end;
 function TSOGrid.SelectedRows: ISuperObject;
 var
   N: PVirtualNode;
-  res: ISuperObject;
 begin
   N := GetFirstSelected;
   Result := TSuperObject.Create(stArray);
@@ -2766,7 +2763,7 @@ end;
 
 procedure TSOGrid.DoDeleteRows(Sender: TObject);
 var
-  row, sel, todelete: ISuperObject;
+  sel, todelete: ISuperObject;
   i: integer;
   newFocusedNode:PVirtualNode;
   nodes:TNodeArray;
@@ -2873,7 +2870,6 @@ end;
 function TSOGrid.DoKeyAction(var CharCode: Word; var Shift: TShiftState
   ): Boolean;
 var
-  msg:TLMessage;
   newdata:ISuperObject;
 begin
   if (CharCode = VK_DOWN) and (FocusedNode = GetLast) and (toEditable in TreeOptions.MiscOptions) and (FocusedNode<>FPendingAppendNode) then
@@ -3031,7 +3027,6 @@ end;
 procedure TSOGrid.NotifyChange(EventType:TSODataEvent;Row:ISuperObject;OldValues,NewValues:ISuperObject);
 var
   oldkey:variant;
-  nodes:TNodeArray;
 begin
   //deFieldChange, deDataSetChange,deUpdateRecord, deUpdateState,deFieldListChange
   if not (csDestroying in ComponentState) then
@@ -3268,7 +3263,6 @@ end;
 function TSOGrid.GetFocusedRow: ISuperObject;
 var
   N: PVirtualNode;
-  res: ISuperObject;
 begin
   N := FocusedNode;
   if N<>Nil then
@@ -3324,7 +3318,7 @@ end;
 
 function TSOGrid.ContentAsCSV(Source: TVSTTextSourceType; const Separator: String):Utf8String;
 var
-  values,prop,Row,Rows,value:ISuperObject;
+  values,Row,Rows,value:ISuperObject;
   i:Integer;
 begin
   if Source in [tstAll,tstInitialized,tstVisible] then

@@ -75,7 +75,7 @@ type
 
 implementation
 
-uses Clipbrd,superobject,soutils,soclipbrd, tishttp;
+uses Clipbrd,superobject,soutils,soclipbrd, tiswinhttp;
 
 {$R *.lfm}
 
