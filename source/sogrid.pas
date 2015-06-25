@@ -599,6 +599,7 @@ type
     function GetCellStrValue(N: PVirtualNode; FieldName: string;
       Default: string = ''): string;
     function SelectedRows: ISuperObject;
+    function CheckedRows: ISuperObject;
     function NodesForData(sodata: ISuperObject): TNodeArray;
     procedure InvalidateFordata(sodata: ISuperObject);
     procedure Clear; override;
@@ -2210,19 +2211,28 @@ procedure TSOGrid.LoadData;
 var
   row: ISuperObject;
   Node: PVirtualNode;
-  ItemData: PSOItemData;
+  Focused: ISuperObject;
+  nodes:TNodeArray;
 begin
   if (Data = nil) or (Data.AsArray = nil) then
     inherited Clear
   else
   begin
     //todo handle object
+    Focused := FocusedRow;
     BeginUpdate;
     try
       inherited Clear;
       RootNodeCount := Data.AsArray.Length;
     finally
       EndUpdate;
+      if Focused <> Nil then
+      begin
+         FocusedRow := Focused;
+         nodes := NodesForData(FocusedRow);
+         if Length(nodes)>0 then
+          ScrollIntoView(Nodes[0],False,false);
+      end;
     end;
   end;
 end;
@@ -2570,6 +2580,18 @@ begin
   end;
 end;
 
+function TSOGrid.CheckedRows: ISuperObject;
+var
+  N: PVirtualNode;
+begin
+  N := GetFirstChecked;
+  Result := TSuperObject.Create(stArray);
+  while (N <> nil) do
+  begin
+    Result.AsArray.Add(GetNodeSOData(N));
+    N := GetNextChecked(N);
+  end;
+end;
 
 function TSOGrid.DoCreateEditor(Node: PVirtualNode; Column: TColumnIndex): IVTEditLink;
 
