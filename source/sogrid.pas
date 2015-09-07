@@ -2752,7 +2752,6 @@ begin
   finally
     Clipboard.Close;
   end;
-
 end;
 
 procedure TSOGrid.DoCopyCellToClipBoard(Sender: TObject);
@@ -2760,21 +2759,24 @@ var
   focusedField,st: ansistring;
   row,cells : ISuperObject;
 begin
-  Clipboard.Open;
-  try
-    Clipboard.Clear;
-    focusedField:=FocusedColumnObject.PropertyName;
-    cells := TSuperObject.Create(stArray);
-    for row in SelectedRows do
-      cells.AsArray.Add(row.S[focusedField]);
-    st := Join(#13#10,cells);
-    Clipboard.AddFormat(CF_Text, st[1], Length(st)+1);
+  if (FocusedColumnObject<>Nil) and (FocusedRow<>Nil) then
+  begin
+    Clipboard.Open;
+    try
+      Clipboard.Clear;
+      focusedField:=FocusedColumnObject.PropertyName;
+      cells := TSuperObject.Create(stArray);
+      for row in SelectedRows do
+        cells.AsArray.Add(row.S[focusedField]);
+      st := Join(#13#10,cells);
+      Clipboard.AddFormat(CF_Text, st[1], Length(st)+1);
 
-    st := cells.AsJSon(True);
-    Clipboard.AddFormat(ClipbrdJson, st[1], Length(st));
+      st := cells.AsJSon(True);
+      Clipboard.AddFormat(ClipbrdJson, st[1], Length(st));
 
-  finally
-    Clipboard.Close;
+    finally
+      Clipboard.Close;
+    end;
   end;
 end;
 
