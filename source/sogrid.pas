@@ -822,6 +822,7 @@ resourcestring
   GSConst_FindNext = 'Rechercher le suivant';
   GSConst_FindReplace = 'Remplacer...';
   GSConst_Copy = 'Copier';
+  GSConst_CopyCell = 'Copier la cellule';
   GSConst_Cut = 'Couper';
   GSConst_Paste = 'Coller';
   GSConst_Insert = 'Insérer';
@@ -2185,8 +2186,11 @@ begin
       GetKeyboardState(KeyState);
       // Avoid conversion to control characters. We have captured the control key state already in Shift.
       KeyState[VK_CONTROL] := 0;
-      if (ToASCII(Message.CharCode, (Message.KeyData shr 16) and 7, KeyState, @Buffer, 0) > 0)
-          and (Shift * [ssCtrl, ssAlt] = []) and (CharCode >= 32) then
+      if (
+        (ToASCII(Message.CharCode, (Message.KeyData shr 16) and 7, KeyState, @Buffer, 0) > 0) or
+        (Message.CharCode = VK_F2)
+        )
+        and (Shift * [ssCtrl, ssAlt] = []) and (CharCode >= 32) then
       begin
         //case Buffer[0] of
         EditColumn := FocusedColumn;
@@ -2476,7 +2480,7 @@ begin
       if (toEditable in TreeOptions.MiscOptions) then
         HMCut := AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), DoCutToClipBoard);
       HMCopy := AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), DoCopyToClipBoard);
-      HMCopyCell := AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl,ssShift]), DoCopyCellToClipBoard);
+      HMCopyCell := AddItem(GSConst_CopyCell, ShortCut(Ord('C'), [ssCtrl,ssShift]), DoCopyCellToClipBoard);
       if (toEditable in TreeOptions.MiscOptions) then
         HMPast := AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), DoPaste);
       AddItem('-', 0, nil);
