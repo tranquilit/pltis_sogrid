@@ -472,6 +472,7 @@ type
   private
     FTextFound: boolean;
     FindDlg: TFindDialog;
+    FZebraPaint: Boolean;
     ReplaceDialog: TReplaceDialog;
 
     FColumnToFind: integer;
@@ -555,6 +556,9 @@ type
     procedure DoTextDrawing(var PaintInfo: TVTPaintInfo; const AText: string;
       CellRect: TRect; DrawFormat: cardinal); override;
 
+    procedure DoBeforeItemErase(Canvas: TCanvas; Node: PVirtualNode;
+      const ItemRect: TRect; var Color: TColor;
+      var EraseAction: TItemEraseAction); override;
 
     function FindText(Txt: string): PVirtualNode;
     procedure FindDlgFind(Sender: TObject);
@@ -801,6 +805,8 @@ type
     property OnStateChange;
     property OnStructureChange;
     property OnUpdating;
+
+    property ZebraPaint:Boolean read FZebraPaint write FZebraPaint stored True default False ;
   end;
 
   function EncodeURIComponent(const ASrc: string): UTF8String;
@@ -3090,6 +3096,7 @@ begin
   //Pour affichage lignes multiselect en gris clair avec cellule focused en bleu
   if (CellPaintMode = cpmPaint) and (toMultiSelect in TreeOptions.SelectionOptions) and
     (vsSelected in Node^.States) then
+  begin
     if (not Focused or (column <> FocusedColumn) or (Node <> FocusedNode)) then
     begin
       ACanvas.Brush.Color := clLtGray;
@@ -3101,6 +3108,7 @@ begin
       ACanvas.Brush.Color := Colors.SelectionRectangleBlendColor;
       ACanvas.FillRect(CellRect);
     end;
+  end;
   inherited;
 end;
 
@@ -3113,6 +3121,17 @@ begin
     (PaintInfo.column = FocusedColumn) then
     PaintInfo.Canvas.Font.Color := clWhite;
   inherited;
+end;
+
+procedure TSOGrid.DoBeforeItemErase(Canvas: TCanvas; Node: PVirtualNode;
+  const ItemRect: TRect; var Color: TColor; var EraseAction: TItemEraseAction);
+begin
+  inherited DoBeforeItemErase(Canvas, Node, ItemRect, Color, EraseAction);
+  if FZebraPaint and (Node<>Nil) and Odd(Node^.Index) then
+  begin
+      Color := clInfoBk;
+      EraseAction := eaColor;
+  end;
 end;
 
 function TSOGrid.FindText(Txt: string): PVirtualNode;
