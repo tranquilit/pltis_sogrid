@@ -2202,7 +2202,7 @@ begin
         EditColumn := FocusedColumn;
         DoEdit;
         //send first key which triggered the editor to newly created editor
-        If CanEdit(FocusedNode,EditColumn) then
+        If CanEdit(FocusedNode,EditColumn) and (Message.CharCode<>VK_F2) then
         begin
           amsg.msg:=WM_CHAR;
           amsg.wParam:=ord(Buffer[0]);
