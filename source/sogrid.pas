@@ -809,7 +809,7 @@ type
     property ZebraPaint:Boolean read FZebraPaint write FZebraPaint stored True default False ;
   end;
 
-  function EncodeURIComponent(const ASrc: string): UTF8String;
+  function EncodeURIComponent(const ASrc: AnsiString): AnsiString;
 
 implementation
 
@@ -851,9 +851,9 @@ type
   PSOItemData = ^TSOItemData;
 
 
-  function EncodeURIComponent(const ASrc: string): UTF8String;
+  function EncodeURIComponent(const ASrc: Ansistring): AnsiString;
   const
-    HexMap: UTF8String = '0123456789ABCDEF';
+    HexMap: AnsiString = '0123456789ABCDEF';
 
         function IsSafeChar(ch: Integer): Boolean;
         begin
@@ -869,24 +869,19 @@ type
         end;
   var
     I, J: Integer;
-    ASrcUTF8: UTF8String;
   begin
     Result := '';    {Do not Localize}
 
-    ASrcUTF8 := UTF8Encode(ASrc);
-      // UTF8Encode call not strictly necessary but
-      // prevents implicit conversion warning
-
     I := 1; J := 1;
-    SetLength(Result, Length(ASrcUTF8) * 3); // space to %xx encode every byte
-    while I <= Length(ASrcUTF8) do
+    SetLength(Result, Length(ASrc) * 3); // space to %xx encode every byte
+    while I <= Length(ASrc) do
     begin
-      if IsSafeChar(Ord(ASrcUTF8[I])) then
+      if IsSafeChar(Ord(ASrc[I])) then
       begin
-        Result[J] := ASrcUTF8[I];
+        Result[J] := ASrc[I];
         Inc(J);
       end
-      else if ASrcUTF8[I] = ' ' then
+      else if ASrc[I] = ' ' then
       begin
         Result[J] := '+';
         Inc(J);
@@ -894,8 +889,8 @@ type
       else
       begin
         Result[J] := '%';
-        Result[J+1] := HexMap[(Ord(ASrcUTF8[I]) shr 4) + 1];
-        Result[J+2] := HexMap[(Ord(ASrcUTF8[I]) and 15) + 1];
+        Result[J+1] := HexMap[(Ord(ASrc[I]) shr 4) + 1];
+        Result[J+2] := HexMap[(Ord(ASrc[I]) and 15) + 1];
         Inc(J,3);
       end;
       Inc(I);
