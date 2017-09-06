@@ -485,7 +485,7 @@ type
 
     FDatasource: TSODataSource;
 
-    FPendingAppendNode:PVirtualNode;
+    FPendingAppendObject:ISuperObject;
 
     FDefaultPopupMenu: TPopupMenu;
     FMenuFilled: boolean;
@@ -2615,35 +2615,57 @@ var
   compresult : TSuperCompareResult;
 begin
   Result := 0;
-  if Assigned(OnCompareNodes) then
-    OnCompareNodes(Self, Node1, Node2, Column, Result)
-  else
+  n1 := Nil;
+  n2 := Nil;
+
+  // pending appended node appears at the end
+  if FPendingAppendObject<>Nil then
   begin
     n1 := GetNodeSOData(Node1);
-    n2 := GetNodeSOData(Node2);
-
-    if (Column >= 0) and (n1 <> nil) and (n2 <> nil) then
+    if (n1<>Nil) and (n1 = FPendingAppendObject) then
+      result := 1
+    else
     begin
-      propname := TSOGridColumn(Header.Columns[column]).PropertyName;
-      d1 := n1[propname];
-      d2 := n2[propname];
-      if d1=nil then d1:=SO('""');
-      if d2=nil then d2:=SO('""');
-      if (d1 <> nil) and (d2 <> nil) then
+      n2 := GetNodeSOData(Node2);
+      if (n2<>Nil) and (n2 = FPendingAppendObject) then
+        result := -1;
+    end;
+  end;
+
+  if result = 0 then
+  begin
+    if Assigned(OnCompareNodes) then
+      OnCompareNodes(Self, Node1, Node2, Column, Result)
+    else
+    begin
+      if n1 = Nil then
+        n1 := GetNodeSOData(Node1);
+      if n2 = Nil then
+        n2 := GetNodeSOData(Node2);
+
+      if (Column >= 0) and (n1 <> nil) and (n2 <> nil) then
       begin
-        CompResult := d1.Compare(d2);
-        case compresult of
-          cpLess : Result := -1;
-          cpEqu  : Result := 0;
-          cpGreat : Result := 1;
-          cpError :  Result := strcompare(n1.S[propname],n2.S[propname]);
-        end;
+        propname := TSOGridColumn(Header.Columns[column]).PropertyName;
+        d1 := n1[propname];
+        d2 := n2[propname];
+        if d1=nil then d1:=SO('""');
+        if d2=nil then d2:=SO('""');
+        if (d1 <> nil) and (d2 <> nil) then
+        begin
+          CompResult := d1.Compare(d2);
+          case compresult of
+            cpLess : Result := -1;
+            cpEqu  : Result := 0;
+            cpGreat : Result := 1;
+            cpError :  Result := strcompare(n1.S[propname],n2.S[propname]);
+          end;
+        end
+        else
+          Result := -1;
       end
       else
-        Result := -1;
-    end
-    else
-      Result := 0;
+        Result := 0;
+    end;
   end;
 end;
 
@@ -2673,16 +2695,23 @@ end;
 
 function TSOGrid.NodesForData(sodata: ISuperObject): TNodeArray;
 var
+  ASO: ISuperObject;
   p: PVirtualNode;
 begin
   SetLength(Result, 0);
+  if sodata= Nil then
+    Exit;
+  if sodata.AsObject = Nil then
+    exit;
   p := TopNode;
   while (p <> nil) do
   begin
-    if GetNodeSOData(p) = sodata then
+    ASO := GetNodeSOData(p);
+    if (ASO <> nil) and (ASO = sodata) then
     begin
       SetLength(Result, length(Result) + 1);
       Result[length(Result) - 1] := p;
+      //OutputDebugString('kkk');
     end;
     p := GetNext(p);
 
@@ -2901,47 +2930,31 @@ function TSOGrid.DoKeyAction(var CharCode: Word; var Shift: TShiftState
 var
   newdata:ISuperObject;
 begin
-  if (CharCode = VK_DOWN) and (FocusedNode = GetLast) and (toEditable in TreeOptions.MiscOptions) and (FocusedNode<>FPendingAppendNode) then
+  if (CharCode = VK_DOWN) and (FocusedNode = GetLast) and (toEditable in TreeOptions.MiscOptions) and (FocusedRow<>FPendingAppendObject) then
   begin
-    Result := False;
     if FDatasource<>Nil then
     begin
+      newdata := TSUperObject.Create;
+      FPendingAppendObject := newdata;
+      FDatasource.AppendRecord(newdata);
       ClearSelection;
-      newdata := FDatasource.AppendRecord;
-      LoadData;
-      FocusedNode:=NodesForData(newdata)[0];
-      //to avoid multiple append without typing something
-      Selected[FocusedNode] := True;
-      FPendingAppendNode := FocusedNode;
+      SetFocusedRow(NewData);
+      Result := True;
     end;
-    {else
-    begin
-      RootNodeCount:=RootNodeCount+1;
-      FocusedNode:=GetLast;
-      //to avoid multiple append without typing something
-      Selected[FocusedNode] := True;
-      FPendingAppendNode := FocusedNode;
-    end;}
   end
   else
-  if (CharCode = VK_INSERT) and (toEditable in TreeOptions.MiscOptions) and (FocusedNode<>FPendingAppendNode) then
+  if (CharCode = VK_INSERT) and (toEditable in TreeOptions.MiscOptions) and (FocusedRow<>FPendingAppendObject) then
   begin
     Result := False;
     if FDatasource<>Nil then
     begin
+      newdata := TSUperObject.Create;
+      FPendingAppendObject := newdata;
+      FDatasource.AppendRecord(newdata);
+      //OutputDebugString(pchar('newdata:'+IntToHex(qword(pointer(FPendingAppendObject.AsObject)),32)));
       ClearSelection;
-      newdata := FDatasource.AppendRecord;
-      LoadData;
-      FocusedNode:=NodesForData(newdata)[0];
-      //to avoid multiple append without typing something
-      Selected[FocusedNode] := True;
-      FPendingAppendNode := FocusedNode;
+      SetFocusedRow(NewData);
     end
-    {else
-    begin
-      RootNodeCount:=RootNodeCount+1;
-      FocusedNode:=GetLast;
-    end;}
   end
   else
   {if (Shift * [ssCtrl, ssAlt] = []) and (CharCode >= 32) then
@@ -3103,6 +3116,21 @@ begin
       ACanvas.Brush.Color := Colors.SelectionRectangleBlendColor;
       ACanvas.FillRect(CellRect);
     end;
+  end
+  else
+  if (CellPaintMode = cpmPaint) and not (toMultiSelect in TreeOptions.SelectionOptions) and
+     (Node = FocusedNode) then
+  begin
+    if (column <> FocusedColumn) then
+    begin
+      ACanvas.Brush.Color := clLtGray;
+      ACanvas.FillRect(CellRect);
+    end
+    else
+    begin
+      ACanvas.Brush.Color := Colors.SelectionRectangleBlendColor;
+      ACanvas.FillRect(CellRect);
+    end;
   end;
   inherited;
 end;
@@ -3111,7 +3139,7 @@ procedure TSOGrid.DoTextDrawing(var PaintInfo: TVTPaintInfo;
   const AText: string; CellRect: TRect; DrawFormat: cardinal);
 begin
   //Pour affichage lignes multiselect en gris clair avec cellule focused en bleu
-  if (toMultiSelect in TreeOptions.SelectionOptions) and Focused and
+  if Focused and
     (vsSelected in PaintInfo.Node^.States) and (PaintInfo.Node = FocusedNode) and
     (PaintInfo.column = FocusedColumn) then
     PaintInfo.Canvas.Font.Color := clWhite;
@@ -3465,7 +3493,7 @@ begin
     end;
   end;
   //reset to allow append
-  FPendingAppendNode:=Nil;
+  FPendingAppendObject:=Nil;
   inherited DoNewText(Node, Column, AText);
 end;
 
