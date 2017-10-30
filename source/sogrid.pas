@@ -470,6 +470,7 @@ type
 
   TSOGrid = class(TCustomVirtualStringTree,ISODataView)
   private
+    FOnCutToClipBoard: TNotifyEvent;
     FTextFound: boolean;
     FindDlg: TFindDialog;
     FZebraPaint: Boolean;
@@ -509,6 +510,7 @@ type
     procedure SetDatasource(AValue: TSODataSource);
     procedure SetFocusedColumnObject(AValue: TSOGridColumn);
     procedure SetFocusedRow(AValue: ISuperObject);
+    procedure SetOnCutToClipBoard(AValue: TNotifyEvent);
     procedure SetOptions(const Value: TStringTreeOptions);
     function GetOptions: TStringTreeOptions;
     procedure SetSettings(AValue: ISuperObject);
@@ -635,6 +637,8 @@ type
   published
     property OnGetText: TSOGridGetText read FOnGetText write FOnGetText;
     property Datasource: TSODataSource read FDataSource write SetDatasource;
+
+    property OnCutToClipBoard: TNotifyEvent read FOnCutToClipBoard write SetOnCutToClipBoard;
 
     //inherited properties
     property Action;
@@ -1133,11 +1137,12 @@ begin
     end
     else
     if change.UpdateType=usDeleted then
-      JSonResult := CallServerMethod('DELETE',[provider,VarToStr(change.key)],Nil)
+      JSonResult := CallServerMethod('DELETE',[provider],Nil)
     else
     if change.UpdateType = usModified then
     begin
-      JSonResult := CallServerMethod('PUT',[provider,VarToStr(change.key)],Nil,change.NewValues)
+      //JSonResult := CallServerMethod('PUT',[provider,VarToStr(change.key)],Nil,change.NewValues)
+      JSonResult := CallServerMethod('PUT',[provider],Nil,change.NewValues)
     end;
   except
     on E:EIdHTTPProtocolException do
@@ -1210,6 +1215,7 @@ begin
       key := Fdatasource.GetKey(rowchange.Row);
     if not VarIsNull(key) then
       rowdelta.AsObject['key'] := SO(key);
+    showmessage(key);
     Result.AsArray.Add(rowdelta);
   end;
 end;
@@ -1246,7 +1252,7 @@ var
 begin
   Result := False;
   for i:=0 to count-1 do
-    if AChange.row = Items[i].Row then
+    if AChange.row.AsObject = Items[i].Row.AsObject then
     begin
       Result := (AChange = Items[i] as ISORowChange);
       Break;
@@ -1268,7 +1274,7 @@ var
     //find a previous update for this row
     for result in FlatChanges do
     begin
-      if result.row = change.Row then
+      if result.row.AsObject = change.Row.AsObject then
         Break
     end;
 
@@ -1355,7 +1361,7 @@ begin
   for i:=count-1 downto 0 do
   begin
     change := Items[i];
-    if change.Row = row then
+    if change.Row.AsObject = row.AsObject then
       Delete(i);
   end;
 end;
@@ -1808,7 +1814,7 @@ begin
   try
     DisableControls;
     change := ChangeLog.Items[i];
-    if change.Row = row then
+    if change.Row.AsObject = row.AsObject then
     begin
       result := UndoSingle(change,false);
       ChangeLog.Delete(i);
@@ -2324,6 +2330,11 @@ begin
   end;
 end;
 
+procedure TSOGrid.SetOnCutToClipBoard(AValue: TNotifyEvent);
+begin
+  FOnCutToClipBoard:=AValue;
+end;
+
 function TSOGrid.GetSettings: ISuperObject;
 var
   i: integer;
@@ -2478,7 +2489,7 @@ begin
       {HMFindReplace := AddItem(GSConst_FindReplace, ShortCut(Ord('H'), [ssCtrl]),
         @DoFindReplace);}
       AddItem('-', 0, nil);
-      if (toEditable in TreeOptions.MiscOptions) then
+      if (toEditable in TreeOptions.MiscOptions) and Assigned(FOnCutToClipBoard) then
         HMCut := AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), DoCutToClipBoard);
       HMCopy := AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), DoCopyToClipBoard);
       HMCopyCell := AddItem(GSConst_CopyCell, ShortCut(Ord('C'), [ssCtrl,ssShift]), DoCopyCellToClipBoard);
@@ -2816,7 +2827,8 @@ end;
 
 procedure TSOGrid.DoCutToClipBoard(Sender: TObject);
 begin
-  raise ENotImplemented.Create('');
+  if Assigned(FOnCutToClipBoard) then
+    FOnCutToClipBoard(Sender);
 end;
 
 procedure TSOGrid.DoDeleteRows(Sender: TObject);
@@ -3152,7 +3164,7 @@ begin
   inherited DoBeforeItemErase(Canvas, Node, ItemRect, Color, EraseAction);
   if FZebraPaint and (Node<>Nil) and Odd(Node^.Index) then
   begin
-      Color := clInfoBk;
+      Color := $00EDF0F1;
       EraseAction := eaColor;
   end;
 end;
