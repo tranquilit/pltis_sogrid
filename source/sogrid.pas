@@ -2439,6 +2439,8 @@ begin
   Header.Options := [hoColumnResize, hoDblClickResize, hoDrag,
     hoShowSortGlyphs, hoVisible];
   Header.Style := hsFlatButtons;
+  Header.DefaultHeight:=18;
+  Header.Height:=18;
 
   // Initialisation de la boite de dialogue de recherche
   FindDlg := TFindDialog.Create(nil);
