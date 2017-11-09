@@ -471,6 +471,8 @@ type
   TSOGrid = class(TCustomVirtualStringTree,ISODataView)
   private
     FOnCutToClipBoard: TNotifyEvent;
+    FShowAdavancedColumnsCustomize: Boolean;
+    FShowAdvancedColumnsCustomize: Boolean;
     FTextFound: boolean;
     FindDlg: TFindDialog;
     FZebraPaint: Boolean;
@@ -514,6 +516,7 @@ type
     procedure SetOptions(const Value: TStringTreeOptions);
     function GetOptions: TStringTreeOptions;
     procedure SetSettings(AValue: ISuperObject);
+    procedure SetShowAdvancedColumnsCustomize(AValue: Boolean);
 
     procedure WMKeyDown(var Message: TLMKeyDown); message LM_KEYDOWN;
 
@@ -640,6 +643,7 @@ type
 
     property OnCutToClipBoard: TNotifyEvent read FOnCutToClipBoard write SetOnCutToClipBoard;
 
+    property ShowAdvancedColumnsCustomize: Boolean read FShowAdvancedColumnsCustomize write SetShowAdvancedColumnsCustomize;
     //inherited properties
     property Action;
     property Align;
@@ -2176,6 +2180,12 @@ begin
   end;
 end;
 
+procedure TSOGrid.SetShowAdvancedColumnsCustomize(AValue: Boolean);
+begin
+  if FShowAdvancedColumnsCustomize=AValue then Exit;
+  FShowAdvancedColumnsCustomize:=AValue;
+end;
+
 procedure TSOGrid.WMKeyDown(var Message: TLMKeyDown);
 
 var
@@ -2516,7 +2526,8 @@ begin
         @DoCollapseAll);}
       AddItem('-', 0, nil);
       HMCustomize := AddItem(GSConst_CustomizeColumns, 0, DoCustomizeColumns);
-      HMAdvancedCustomize := AddItem(GSConst_AdvancedCustomizeColumns, 0, DoAdvancedCustomizeColumns);
+      if ShowAdvancedColumnsCustomize then
+        HMAdvancedCustomize := AddItem(GSConst_AdvancedCustomizeColumns, 0, DoAdvancedCustomizeColumns);
     finally
       FMenuFilled := True;
     end;
