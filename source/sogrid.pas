@@ -2526,7 +2526,7 @@ begin
         @DoCollapseAll);}
       AddItem('-', 0, nil);
       HMCustomize := AddItem(GSConst_CustomizeColumns, 0, DoCustomizeColumns);
-      if ShowAdvancedColumnsCustomize then
+      if (csDesigning in ComponentState) or ShowAdvancedColumnsCustomize then
         HMAdvancedCustomize := AddItem(GSConst_AdvancedCustomizeColumns, 0, DoAdvancedCustomizeColumns);
     finally
       FMenuFilled := True;
