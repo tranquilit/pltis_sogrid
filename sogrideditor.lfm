@@ -1,7 +1,7 @@
 object SOGridEditor: TSOGridEditor
-  Left = 693
+  Left = 473
   Height = 293
-  Top = 192
+  Top = 147
   Width = 682
   Caption = 'SOGridEditor'
   ClientHeight = 293
@@ -268,8 +268,8 @@ object SOGridEditor: TSOGridEditor
     end
   end
   object PopupMenu1: TPopupMenu
-    left = 176
-    top = 95
+    left = 168
+    top = 96
     object MenuItem1: TMenuItem
       Action = ActAddColumn
     end

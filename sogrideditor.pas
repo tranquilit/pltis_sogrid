@@ -134,16 +134,25 @@ end;
 
 procedure TSOGridEditor.ActPasteJsontemplateExecute(Sender: TObject);
 var
-  newData:ISuperObject;
+  newData,row,samplerows:ISuperObject;
+  s:String;
 begin
     try
       if Clipboard.HasFormat(ClipbrdJson) then
         newData :=ClipboardSOData
       else
         newData := SO(Clipboard.AsText);
-      if (newData.DataType = stArray) and (newData.AsArray.Length>0) and (newData.AsArray[0].DataType=stObject) then
+      if (newData.DataType = stArray) and (newData.AsArray.Length>0) then
       begin
-        ASOGrid.Data := newData;
+        if (newData.AsArray[0].DataType=stObject) then
+          ASOGrid.Data := newData
+        else
+        begin
+          sampleRows := TSuperObject.Create(stArray);
+          for row in newData do
+            sampleRows.AsArray.Add(SO(['unknowncolumn',row]));
+          ASOGrid.Data := samplerows;
+        end;
         ASOGrid.LoadData;
         ASOGrid.CreateColumnsFromData(True);
       end
