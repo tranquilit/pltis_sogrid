@@ -3052,7 +3052,7 @@ var
   target : TSOGrid;
 begin
   BeginUpdate;
-  BeginOperation;
+  //BeginOperation;
   try
     With TSOGridEditor.Create(Application) do
     try
@@ -3950,7 +3950,7 @@ end;
 procedure TSOStringEditLink.SetBounds(R: TRect); stdcall;
 // Sets the outer bounds of the edit control and the actual edit area in the control.
 var
-  Offset: Integer;
+  AOffset: Integer;
 begin
   if not FStopping then
   begin
@@ -3975,10 +3975,10 @@ begin
       // We have to take out the two pixel border of the edit control as well as a one pixel "edit border" the
       // control leaves around the (selected) text.
       R := FEdit.ClientRect;
-      Offset := 2;
+      AOffset := 2;
       {if tsUseThemes in FTree.FStates then
         Inc(Offset);}
-      InflateRect(R, -FTree.TextMargin + Offset, Offset);
+      InflateRect(R, -FTree.TextMargin + AOffset, AOffset);
       if not (vsMultiline in FNode^.States) then
         OffsetRect(R, 0, FTextBounds.Top - FEdit.Top);
 
