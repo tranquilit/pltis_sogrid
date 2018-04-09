@@ -5,11 +5,9 @@
 
 unit sogrid;
 
-{$mode delphi}{$H+}
-
 //{$packset 1}
 
-//{$mode objfpc}{$H+}
+{$mode objfpc}{$H+}
 //{$mode delphi}
 
 interface
@@ -561,8 +559,8 @@ type
     procedure DoTextDrawing(var PaintInfo: TVTPaintInfo; const AText: string;
       CellRect: TRect; DrawFormat: cardinal); override;
 
-    procedure DoBeforeItemErase(Canvas: TCanvas; Node: PVirtualNode;
-      const ItemRect: TRect; var Color: TColor;
+    procedure DoBeforeItemErase(ACanvas: TCanvas; Node: PVirtualNode;
+      const ItemRect: TRect; var AColor: TColor;
       var EraseAction: TItemEraseAction); override;
 
     function FindText(Txt: string): PVirtualNode;
@@ -2017,7 +2015,7 @@ begin
             NewMenuItem.Hint := Hint;
             NewMenuItem.ImageIndex := ImageIndex;
             NewMenuItem.Checked := coVisible in Options;
-            NewMenuItem.OnClick := OnMenuItemClick;
+            NewMenuItem.OnClick := @OnMenuItemClick;
             if Cmd = apDisabled then
               NewMenuItem.Enabled := False
             else
@@ -2222,37 +2220,37 @@ begin
         end;
       end
       else
-        inherited;
+        inherited WMKeyDown(Message);
     end
     else
-      inherited;
+      inherited WMKeyDown(Message);
 end;
 
 procedure TSOGrid.LoadData;
 var
   row: ISuperObject;
   Node: PVirtualNode;
-  Focused: ISuperObject;
-  nodes:TNodeArray;
+  AFocused: ISuperObject;
+  ANodes:TNodeArray;
 begin
   if (Data = nil) or (Data.AsArray = nil) then
     inherited Clear
   else
   begin
     //todo handle object
-    Focused := FocusedRow;
+    AFocused := FocusedRow;
     BeginUpdate;
     try
       inherited Clear;
       RootNodeCount := Data.AsArray.Length;
     finally
       EndUpdate;
-      if Focused <> Nil then
+      if AFocused <> Nil then
       begin
-         FocusedRow := Focused;
-         nodes := NodesForData(FocusedRow);
-         if Length(nodes)>0 then
-          ScrollIntoView(Nodes[0],False,false);
+         FocusedRow := AFocused;
+         ANodes := NodesForData(FocusedRow);
+         if Length(ANodes)>0 then
+          ScrollIntoView(ANodes[0],False,false);
       end;
     end;
   end;
@@ -2320,7 +2318,7 @@ end;
 
 procedure TSOGrid.SetFocusedRow(AValue: ISuperObject);
 var
-  nodes:TNodeArray;
+  ANodes:TNodeArray;
 begin
   If AValue = Nil then
   begin
@@ -2330,11 +2328,11 @@ begin
   else
   begin
     ClearSelection;
-    nodes := NodesForData(AValue);
-    if length(nodes)>0 then
+    ANodes := NodesForData(AValue);
+    if length(ANodes)>0 then
     begin
-      FocusedNode:=nodes[0];
-      Selected[nodes[0]] := True;
+      FocusedNode:=ANodes[0];
+      Selected[ANodes[0]] := True;
       ScrollIntoView(FocusedNode,False);
     end;
   end;
@@ -2454,7 +2452,7 @@ begin
 
   // Initialisation de la boite de dialogue de recherche
   FindDlg := TFindDialog.Create(nil);
-  FindDlg.OnFind := FindDlgFind;
+  FindDlg.OnFind := @FindDlgFind;
   FindDlg.Options := FindDlg.Options + [frHideMatchCase,frHideEntireScope,frEntireScope];
 
   Header.PopupMenu :=  TSOHeaderPopupMenu.Create(Self);
@@ -2491,32 +2489,32 @@ begin
       begin
         if (HMUndo = 0) then
           HMUndo := AddItem(GSConst_UndoLastUpdate, ShortCut(Ord('Z'), [ssCtrl]),
-            DoUndoLastUpdate);
+            @DoUndoLastUpdate);
         if (HMRevert = 0) then
-          HMRevert := AddItem(GSConst_RevertRecord, 0, DoRevertRecord);
+          HMRevert := AddItem(GSConst_RevertRecord, 0, @DoRevertRecord);
         AddItem('-', 0, nil);
       end;
-      HMFind := AddItem(GSConst_Find, ShortCut(Ord('F'), [ssCtrl]), DoFindText);
-      HMFindNext := AddItem(GSConst_FindNext, VK_F3, DoFindNext);
+      HMFind := AddItem(GSConst_Find, ShortCut(Ord('F'), [ssCtrl]), @DoFindText);
+      HMFindNext := AddItem(GSConst_FindNext, VK_F3, @DoFindNext);
       {HMFindReplace := AddItem(GSConst_FindReplace, ShortCut(Ord('H'), [ssCtrl]),
         @DoFindReplace);}
       AddItem('-', 0, nil);
       if (toEditable in TreeOptions.MiscOptions) and Assigned(FOnCutToClipBoard) then
-        HMCut := AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), DoCutToClipBoard);
-      HMCopy := AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), DoCopyToClipBoard);
-      HMCopyCell := AddItem(GSConst_CopyCell, ShortCut(Ord('C'), [ssCtrl,ssShift]), DoCopyCellToClipBoard);
+        HMCut := AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), @DoCutToClipBoard);
+      HMCopy := AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), @DoCopyToClipBoard);
+      HMCopyCell := AddItem(GSConst_CopyCell, ShortCut(Ord('C'), [ssCtrl,ssShift]), @DoCopyCellToClipBoard);
       if (toEditable in TreeOptions.MiscOptions) then
-        HMPast := AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), DoPaste);
+        HMPast := AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), @DoPaste);
       AddItem('-', 0, nil);
       if (toEditable in TreeOptions.MiscOptions) then
-        HMDelete := AddItem(GSConst_Delete, ShortCut(VK_DELETE, [ssCtrl]), DoDeleteRows);
+        HMDelete := AddItem(GSConst_Delete, ShortCut(VK_DELETE, [ssCtrl]), @DoDeleteRows);
       if toMultiSelect in TreeOptions.SelectionOptions then
-        HMSelAll := AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), DoSelectAllRows);
+        HMSelAll := AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), @DoSelectAllRows);
       AddItem('-', 0, nil);
       if (toMultiSelect in TreeOptions.SelectionOptions) then
-        HMExcel := AddItem(GSConst_ExportSelectedExcel, 0, DoExportExcel)
+        HMExcel := AddItem(GSConst_ExportSelectedExcel, 0, @DoExportExcel)
       else
-        HMExcel := AddItem(GSConst_ExportAllExcel, 0, DoExportExcel);
+        HMExcel := AddItem(GSConst_ExportAllExcel, 0, @DoExportExcel);
       {if (HMPrint = 0) then
         HMPrint := AddItem(GSConst_Print, ShortCut(Ord('P'), [ssCtrl]), @DoPrint);
       AddItem('-', 0, nil);
@@ -2525,9 +2523,9 @@ begin
       HMCollAll := AddItem(GSConst_CollapseAll, Shortcut(Ord('R'), [ssCtrl, ssShift]),
         @DoCollapseAll);}
       AddItem('-', 0, nil);
-      HMCustomize := AddItem(GSConst_CustomizeColumns, 0, DoCustomizeColumns);
+      HMCustomize := AddItem(GSConst_CustomizeColumns, 0, @DoCustomizeColumns);
       if (csDesigning in ComponentState) or ShowAdvancedColumnsCustomize then
-        HMAdvancedCustomize := AddItem(GSConst_AdvancedCustomizeColumns, 0, DoAdvancedCustomizeColumns);
+        HMAdvancedCustomize := AddItem(GSConst_AdvancedCustomizeColumns, 0, @DoAdvancedCustomizeColumns);
     finally
       FMenuFilled := True;
     end;
@@ -2849,7 +2847,7 @@ var
   sel, todelete: ISuperObject;
   i: integer;
   newFocusedNode:PVirtualNode;
-  nodes:TNodeArray;
+  ANodes:TNodeArray;
 
 begin
   if Dialogs.MessageDlg(GSConst_Confirmation, 'Confirmez-vous la suppression de ' +
@@ -2863,9 +2861,9 @@ begin
     newFocusedNode := Nil;
     if todelete.AsArray.Length>0 then
     begin
-      nodes := NodesForData(todelete.AsArray[0]);
-      if length(nodes)>0 then
-        newFocusedNode := nodes[0];
+      ANodes := NodesForData(todelete.AsArray[0]);
+      if length(ANodes)>0 then
+        newFocusedNode := ANodes[0];
       if newFocusedNode <> Nil then
         newFocusedNode:=GetPrevious(newFocusedNode);
       for sel in todelete do
@@ -3037,7 +3035,7 @@ begin
     FocColumn:=FocusedColumnObject;
     for i:=0 to Header.Columns.Count-1 do
       Header.Columns[i].Tag:=Header.Columns[i].Position;
-    Header.Columns.Sort(SortColumnsPosition);
+    Header.Columns.Sort(@SortColumnsPosition);
     for i:=0 to Header.Columns.count-1 do
       Header.Columns[i].Position :=  TSOGridColumn(Header.Columns[i]).Index ;
   finally
@@ -3171,13 +3169,13 @@ begin
   inherited;
 end;
 
-procedure TSOGrid.DoBeforeItemErase(Canvas: TCanvas; Node: PVirtualNode;
-  const ItemRect: TRect; var Color: TColor; var EraseAction: TItemEraseAction);
+procedure TSOGrid.DoBeforeItemErase(ACanvas: TCanvas; Node: PVirtualNode;
+  const ItemRect: TRect; var AColor: TColor; var EraseAction: TItemEraseAction);
 begin
-  inherited DoBeforeItemErase(Canvas, Node, ItemRect, Color, EraseAction);
+  inherited DoBeforeItemErase(Canvas, Node, ItemRect, AColor, EraseAction);
   if FZebraPaint and (Node<>Nil) and Odd(Node^.Index) then
   begin
-      Color := $00EDF0F1;
+      AColor := $00EDF0F1;
       EraseAction := eaColor;
   end;
 end;

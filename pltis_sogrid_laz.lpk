@@ -41,10 +41,10 @@
     </Files>
     <RequiredPkgs Count="5">
       <Item1>
-        <PackageName Value="indylaz"/>
+        <PackageName Value="pltis_virtualtrees"/>
       </Item1>
       <Item2>
-        <PackageName Value="virtualtreeview_package"/>
+        <PackageName Value="indylaz"/>
       </Item2>
       <Item3>
         <PackageName Value="IDEIntf"/>
