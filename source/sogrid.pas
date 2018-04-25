@@ -5,16 +5,13 @@
 
 unit sogrid;
 
-//{$packset 1}
-
 {$mode objfpc}{$H+}
-//{$mode delphi}
 
 interface
 
 uses
   {$IFDEF windows}
-  superdate,
+  Windows,
   {$ENDIF}
 
   Classes, SysUtils, VirtualTrees, Controls,
@@ -2188,8 +2185,8 @@ begin
   FShowAdvancedColumnsCustomize:=AValue;
 end;
 
-// --> FMOR
-procedure GetKeyboardState( ks : TKeyBoardState );
+{$IFNDEF windows}
+procedure GetKeyboardState2( ks : TKeyBoardState );
 var
   i : integer;
 begin
@@ -2223,7 +2220,7 @@ begin
 
      result := 0;
 end;
-// <- FMOR
+{$ENDIF}
 
 procedure TSOGrid.WMKeyDown(var Message: TLMKeyDown);
 
