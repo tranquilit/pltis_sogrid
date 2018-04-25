@@ -78,7 +78,7 @@ implementation
 uses
 
 {$ifdef windows}
- tiswinhttp
+ tiswinhttp,
 {$endif}
  IdHTTP,
  Clipbrd,
