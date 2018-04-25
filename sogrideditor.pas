@@ -149,24 +149,18 @@ begin
   http.ReadTimeout := HTTP_TIMEOUT_SECONDS * 1000;
   try
     s := http.Get( EdJSONUrl.Text );
-  except
+    if http.Connected then
+      http.DisconnectNotifyPeer;
+    if http.ResponseCode <> 200 then
+       raise Exception.CreateFmt('Bad HTTP Status: %s for URL %s',[http.ResponseCode,EdJSONUrl.Text]);
+    newData := SO( s );
+    if (newdata<>Nil) and (newdata.DataType=stObject) and (newdata.AsObject.Exists('content')) then
+      newdata := newdata.AsObject['content'];
+    ASOGrid.Data := newdata;
+  finally
+    http.free;
+    http := nil;
   end;
-  if http.Connected then
-    http.DisconnectNotifyPeer;
-  if http.ResponseCode <> 200 then
-     goto LBL_FAIL;
-  http.free;
-  http := nil;
-
-  newData := SO( s );
-  if (newdata<>Nil) and (newdata.DataType=stObject) and (newdata.AsObject.Exists('content')) then
-    newdata := newdata.AsObject['content'];
-  ASOGrid.Data := newdata;
-  exit;
-
-LBL_FAIL:
-  if http <> nil then
-     http.free;
 end;
 
 procedure TSOGridEditor.ActPasteJsontemplateExecute(Sender: TObject);

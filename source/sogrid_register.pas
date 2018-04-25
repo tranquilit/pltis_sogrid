@@ -52,9 +52,6 @@ procedure Register;
 implementation
 
 uses sogrideditor,forms,
-  {$IFDEF windows}
-  windows,
-  {$ENDIF}
   controls,Dialogs,soutils,clipbrd,superobject;
 
 procedure Register;
