@@ -13,8 +13,12 @@ unit sogrid;
 interface
 
 uses
+  {$IFDEF windows}
+  superdate,
+  {$ENDIF}
+
   Classes, SysUtils, VirtualTrees, Controls,
-  Windows,SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages,StdCtrls,Types,IdHttp,DefaultTranslator;
+  SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages,StdCtrls,Types,IdHTTP,DefaultTranslator;
 
 type
 
@@ -2184,6 +2188,43 @@ begin
   FShowAdvancedColumnsCustomize:=AValue;
 end;
 
+// --> FMOR
+procedure GetKeyboardState( ks : TKeyBoardState );
+var
+  i : integer;
+begin
+  for i := 0 to 255 do
+      ks[i] := GetKeyState(i);
+end;
+
+function ToASCII( vk :  integer; san_code :  integer; const key_state : TKeyboardState; output_buffer : PChar; flags : integer ) : integer;
+begin
+
+    if( (vk >= VK_NUMPAD0) and (vk <= VK_NUMPAD9) ) then
+    begin
+         output_buffer^ := char(vk - 48) ;
+         result := 1;
+         exit;
+    end;
+
+     if (vk >= VK_0) and (vk <= VK_9 ) then
+     begin
+       output_buffer^ := char(vk);
+       result := 1;
+       exit;
+     end;
+
+     if( (vk >= VK_A) and (vk <= VK_Z) ) then
+     begin
+       output_buffer^ := char(vk + 32);
+       result := 1;
+       exit;
+     end;
+
+     result := 0;
+end;
+// <- FMOR
+
 procedure TSOGrid.WMKeyDown(var Message: TLMKeyDown);
 
 var
@@ -2225,6 +2266,12 @@ begin
     else
       inherited WMKeyDown(Message);
 end;
+
+
+
+
+
+
 
 procedure TSOGrid.LoadData;
 var

@@ -75,7 +75,16 @@ type
 
 implementation
 
-uses Clipbrd,superobject,soutils,soclipbrd, tiswinhttp;
+uses
+
+{$ifdef windows}
+ tiswinhttp
+{$endif}
+ IdHTTP,
+ Clipbrd,
+ superobject,
+ soutils,
+ soclipbrd;
 
 {$R *.lfm}
 
@@ -123,13 +132,41 @@ begin
 end;
 
 procedure TSOGridEditor.ActLoadDataExecute(Sender: TObject);
+label
+  LBL_FAIL;
+const
+    HTTP_TIMEOUT_SECONDS : integer = 3;
 var
     newdata:ISuperObject;
+    http : TIdHTTP;
+    s : String;
 begin
-  newData := SO(httpGetString(EdJSONUrl.Text));
+  http := nil;
+
+  http := TIdHTTP.Create;
+  http.HandleRedirects := true;
+  http.ConnectTimeout := HTTP_TIMEOUT_SECONDS * 1000;
+  http.ReadTimeout := HTTP_TIMEOUT_SECONDS * 1000;
+  try
+    s := http.Get( EdJSONUrl.Text );
+  except
+  end;
+  if http.Connected then
+    http.DisconnectNotifyPeer;
+  if http.ResponseCode <> 200 then
+     goto LBL_FAIL;
+  http.free;
+  http := nil;
+
+  newData := SO( s );
   if (newdata<>Nil) and (newdata.DataType=stObject) and (newdata.AsObject.Exists('content')) then
     newdata := newdata.AsObject['content'];
   ASOGrid.Data := newdata;
+  exit;
+
+LBL_FAIL:
+  if http <> nil then
+     http.free;
 end;
 
 procedure TSOGridEditor.ActPasteJsontemplateExecute(Sender: TObject);
