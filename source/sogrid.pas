@@ -2186,7 +2186,7 @@ begin
 end;
 
 {$IFNDEF windows}
-procedure GetKeyboardState2( ks : TKeyBoardState );
+procedure GetKeyboardState( ks : TKeyBoardState );
 var
   i : integer;
 begin
