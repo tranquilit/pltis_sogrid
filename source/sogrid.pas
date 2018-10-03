@@ -469,6 +469,7 @@ type
 
   TSOGrid = class(TCustomVirtualStringTree,ISODataView)
   private
+    FKeyFieldsList: Array of String;
     FOnCutToClipBoard: TNotifyEvent;
     FShowAdavancedColumnsCustomize: Boolean;
     FShowAdvancedColumnsCustomize: Boolean;
@@ -504,6 +505,7 @@ type
     function GetData: ISuperObject;
     function GetFocusedColumnObject: TSOGridColumn;
     function GetFocusedRow: ISuperObject;
+    function GetKeyFieldsNames: String;
     function GetSettings: ISuperObject;
 
     procedure SetColumnToFind(AValue: integer);
@@ -511,9 +513,11 @@ type
     procedure SetDatasource(AValue: TSODataSource);
     procedure SetFocusedColumnObject(AValue: TSOGridColumn);
     procedure SetFocusedRow(AValue: ISuperObject);
+    procedure SetKeyFieldsNames(AValue: String);
     procedure SetOnCutToClipBoard(AValue: TNotifyEvent);
     procedure SetOptions(const Value: TStringTreeOptions);
     function GetOptions: TStringTreeOptions;
+    procedure SetSelectedRows(AValue: ISuperObject);
     procedure SetSettings(AValue: ISuperObject);
     procedure SetShowAdvancedColumnsCustomize(AValue: Boolean);
 
@@ -596,19 +600,31 @@ type
 
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
 
+    function GetSelectedRows: ISuperObject;
+
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function GetNodeSOData(Node: PVirtualNode): ISuperObject;
     procedure LoadData;
     property Data: ISuperObject read GetData write SetData;
+    property SelectedRows: ISuperObject read GetSelectedRows write SetSelectedRows;
+    property FocusedRow:ISuperObject read GetFocusedRow write SetFocusedRow;
+    function CheckedRows: ISuperObject;
+
+    procedure SetFocusedRowNoClearSelection(AValue: ISuperObject);
+
     function GetCellData(N: PVirtualNode; FieldName: string;
       Default: ISuperObject = nil): ISuperObject;
     function GetCellStrValue(N: PVirtualNode; FieldName: string;
       Default: string = ''): string;
-    function SelectedRows: ISuperObject;
-    function CheckedRows: ISuperObject;
+
+    // returns list of nodes matching exactly this record pointer
     function NodesForData(sodata: ISuperObject): TNodeArray;
+    // returns list of nodes matching the key fields (from grid's KeyFieldsNames property) of sodata
+    function NodesForKey(sodata: ISuperObject): TNodeArray;
+
+    // redraw the rows matching this record
     procedure InvalidateFordata(sodata: ISuperObject);
     procedure Clear; override;
 
@@ -634,7 +650,6 @@ type
     function ContentAsCSV(Source: TVSTTextSourceType; const Separator: String
       ): Utf8String;
 
-    property FocusedRow:ISuperObject read GetFocusedRow write SetFocusedRow;
 
   published
     property OnGetText: TSOGridGetText read FOnGetText write FOnGetText;
@@ -643,6 +658,7 @@ type
     property OnCutToClipBoard: TNotifyEvent read FOnCutToClipBoard write SetOnCutToClipBoard;
 
     property ShowAdvancedColumnsCustomize: Boolean read FShowAdvancedColumnsCustomize write SetShowAdvancedColumnsCustomize;
+    property KeyFieldsNames: String read GetKeyFieldsNames write SetKeyFieldsNames;
     //inherited properties
     property Action;
     property Align;
@@ -1175,7 +1191,7 @@ begin
   result := Add(newChange);
 end;
 
-function SOCompare(so1,so2:Pointer):integer;
+function SOCompareSeq(so1,so2:Pointer):integer;
 var
    seq1,seq2:Integer;
 begin
@@ -2064,6 +2080,36 @@ begin
   Result := TStringTreeOptions(inherited TreeOptions);
 end;
 
+procedure TSOGrid.SetSelectedRows(AValue: ISuperObject);
+var
+  ANodes:TNodeArray;
+  ANode: PVirtualNode;
+  ARec: ISuperObject;
+begin
+  If AValue = Nil then
+  begin
+    ClearSelection;
+    FocusedNode:=Nil;
+  end
+  else
+  begin
+    ClearSelection;
+    ANode := Nil;
+    for ARec in AValue do
+    begin
+      ANodes := NodesForKey(ARec);
+      for ANode in ANodes do
+        Selected[ANode] := True;
+    end;
+
+    if (ANode <> Nil) then
+    begin
+      FocusedNode:=ANode;
+      ScrollIntoView(ANode,False);
+    end;
+  end;
+end;
+
 function TSOGrid.FindColumnByPropertyName(propertyname: string): TSOGridColumn;
 var
   i: integer;
@@ -2265,23 +2311,19 @@ begin
 end;
 
 
-
-
-
-
-
 procedure TSOGrid.LoadData;
 var
-  row: ISuperObject;
-  Node: PVirtualNode;
-  AFocused: ISuperObject;
-  ANodes:TNodeArray;
+  AFocused,ASelected: ISuperObject;
 begin
   if (Data = nil) or (Data.AsArray = nil) then
     inherited Clear
   else
   begin
-    //todo handle object
+    //Stores previous focused and selected rows
+    if Length(FKeyFieldsList) > 0 then
+      ASelected := SelectedRows
+    else
+      ASelected := Nil;
     AFocused := FocusedRow;
     BeginUpdate;
     try
@@ -2289,13 +2331,9 @@ begin
       RootNodeCount := Data.AsArray.Length;
     finally
       EndUpdate;
-      if AFocused <> Nil then
-      begin
-         FocusedRow := AFocused;
-         ANodes := NodesForData(FocusedRow);
-         if Length(ANodes)>0 then
-          ScrollIntoView(ANodes[0],False,false);
-      end;
+      if (ASelected <>Nil) and (ASelected.AsArray.Length>0) then
+        SelectedRows := ASelected;
+      SetFocusedRowNoClearSelection(AFocused);
     end;
   end;
 end;
@@ -2364,15 +2402,19 @@ procedure TSOGrid.SetFocusedRow(AValue: ISuperObject);
 var
   ANodes:TNodeArray;
 begin
+  ClearSelection;
+  SetFocusedRowNoClearSelection(AValue);
+end;
+
+procedure TSOGrid.SetFocusedRowNoClearSelection(AValue: ISuperObject);
+var
+  ANodes:TNodeArray;
+begin
   If AValue = Nil then
-  begin
-    ClearSelection;
-    FocusedNode:=Nil;
-  end
+    FocusedNode:=Nil
   else
   begin
-    ClearSelection;
-    ANodes := NodesForData(AValue);
+    ANodes := NodesForKey(AValue);
     if length(ANodes)>0 then
     begin
       FocusedNode:=ANodes[0];
@@ -2380,6 +2422,11 @@ begin
       ScrollIntoView(FocusedNode,False);
     end;
   end;
+end;
+
+procedure TSOGrid.SetKeyFieldsNames(AValue: String);
+begin
+  FKeyFieldsList := StrSplit(AValue,';',True);
 end;
 
 procedure TSOGrid.SetOnCutToClipBoard(AValue: TNotifyEvent);
@@ -2472,10 +2519,13 @@ constructor TSOGrid.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   DefaultText := '';
+  SetLength(FKeyFieldsList,0);
+
   FItemDataOffset := AllocateInternalDataArea(SizeOf(TSOItemData));
 
   WantTabs:=True;
   TabStop:=True;
+
 
   with TreeOptions do
   begin
@@ -2638,7 +2688,7 @@ begin
     Result := UTF8Encode(idata.AsString);
 end;
 
-function TSOGrid.SelectedRows: ISuperObject;
+function TSOGrid.GetSelectedRows: ISuperObject;
 var
   N: PVirtualNode;
 begin
@@ -2756,6 +2806,34 @@ begin
 
     Header.SortColumn := HitInfo.Column;
     Header.SortDirection := Direction;
+  end;
+end;
+
+// Return list of nodes which match the sodata key (multiple fields)
+// If FKeyFieldsList is not empty, only fields from FKeyFieldsList are taken n account from sodata
+function TSOGrid.NodesForKey(sodata: ISuperObject): TNodeArray;
+var
+  ASO: ISuperObject;
+  p: PVirtualNode;
+  key: ISuperObject;
+begin
+  SetLength(Result, 0);
+  if sodata= Nil then
+    Exit;
+  if sodata.AsObject = Nil then
+    exit;
+  key := SOExtractFields(sodata,FKeyFieldsList);
+  p := TopNode;
+  while (p <> nil) do
+  begin
+    ASO := GetNodeSOData(p);
+    if (ASO <> nil) and ((ASO = key) or (SOCompareByKeys(ASO,key,FKeyFieldsList)=cpEqu)) then
+    begin
+      SetLength(Result, length(Result) + 1);
+      Result[length(Result) - 1] := p;
+    end;
+    p := GetNext(p);
+
   end;
 end;
 
@@ -3406,6 +3484,11 @@ begin
     Result := GetNodeSOData(N)
   else
     Result := Nil;
+end;
+
+function TSOGrid.GetKeyFieldsNames: String;
+begin
+  result := StrJoin(';',FKeyFieldsList);
 end;
 
 procedure TSOGrid.DoUndoLastUpdate(Sender: TObject);
