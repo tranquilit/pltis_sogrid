@@ -645,7 +645,7 @@ type
     function FindColumnByPropertyName(propertyname: string): TSOGridColumn;
 
     //Ajouter les colonnes en s'inspirant du contenu Data
-    procedure CreateColumnsFromData(FitWidth:Boolean);
+    procedure CreateColumnsFromData(FitWidth,AppendMissingAsHidden: Boolean);
 
     function ContentAsCSV(Source: TVSTTextSourceType; const Separator: String
       ): Utf8String;
@@ -2125,7 +2125,7 @@ begin
   end;
 end;
 
-procedure TSOGrid.CreateColumnsFromData(FitWidth: Boolean);
+procedure TSOGrid.CreateColumnsFromData(FitWidth,AppendMissingAsHidden: Boolean);
 var
   values,prop,properties,Row,propname:ISuperObject;
   col : TSOGridColumn;
@@ -2151,6 +2151,8 @@ begin
           col.Text:=propname.AsString;
           col.PropertyName:=propname.AsString;
           col.Width:= 100;
+          if AppendMissingAsHidden then
+            col.Options:=col.Options - [coVisible];
           if prop.DataType in [stDouble,stCurrency,stInt] then
             col.Alignment:=taRightJustify;
         end;

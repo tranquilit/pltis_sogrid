@@ -184,7 +184,7 @@ begin
   case Index of
     0: DoShowEditor;
     1: DoShowColumnsEditor;
-    2: (Component as TSOGrid).CreateColumnsFromData(False);
+    2: (Component as TSOGrid).CreateColumnsFromData(False,False);
   end;
 end;
 

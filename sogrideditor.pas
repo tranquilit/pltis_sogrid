@@ -114,7 +114,7 @@ end;
 
 procedure TSOGridEditor.ActAddColumnsExecute(Sender: TObject);
 begin
-  ASOGrid.CreateColumnsFromData(false);
+  ASOGrid.CreateColumnsFromData(False,False);
 end;
 
 procedure TSOGridEditor.ActDelColumnExecute(Sender: TObject);
@@ -185,7 +185,7 @@ begin
           ASOGrid.Data := samplerows;
         end;
         ASOGrid.LoadData;
-        ASOGrid.CreateColumnsFromData(True);
+        ASOGrid.CreateColumnsFromData(True,False);
       end
       else
       if (newData.DataType = stObject) then
@@ -193,7 +193,7 @@ begin
         ASOGrid.Data := TSuperObject.Create(stArray);
         ASOGrid.Data.AsArray.Add(SO(Clipboard.AsText));
         ASOGrid.LoadData;
-        ASOGrid.CreateColumnsFromData(True);
+        ASOGrid.CreateColumnsFromData(True,False);
       end
       else
         ShowMessage('Clipboard content is not a valid json Array of records');
