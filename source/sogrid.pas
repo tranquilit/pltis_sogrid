@@ -40,6 +40,9 @@ type
 
   TSOGetKeyEvent = procedure (ARow:ISuperObject;var key:Variant) of object;
 
+  TSOCompareNodesEvent = procedure(Sender: TSOGrid; Node1, Node2: ISuperObject; const Columns: Array of String;
+    var Result: Integer) of object;
+
   ISODataView = interface
     ['{2DF865FF-684D-453E-A9F0-7D7307DD0BDD}']
     procedure NotifyChange(EventType:TSODataEvent;Row:ISuperObject;OldValues,NewValues:ISuperObject);
@@ -471,6 +474,7 @@ type
   private
     FKeyFieldsList: Array of String;
     FOnCutToClipBoard: TNotifyEvent;
+    FOnSOCompareNodes: TSOCompareNodesEvent;
     FShowAdavancedColumnsCustomize: Boolean;
     FShowAdvancedColumnsCustomize: Boolean;
     FTextFound: boolean;
@@ -545,10 +549,6 @@ type
     procedure DoFreeNode(Node: PVirtualNode); override;
     function DoCompare(Node1, Node2: PVirtualNode; Column: TColumnIndex): integer;
       override;
-    procedure DoHeaderClick(HitInfo: TVTHeaderHitInfo); override;
-
-    function DoCreateEditor(Node: PVirtualNode; Column: TColumnIndex
-      ): IVTEditLink; override;
 
     //Gestion menu standard
     procedure FillMenu(LocalMenu: TPopupMenu);
@@ -624,6 +624,11 @@ type
     // returns list of nodes matching the key fields (from grid's KeyFieldsNames property) of sodata
     function NodesForKey(sodata: ISuperObject): TNodeArray;
 
+    procedure DoHeaderClick(HitInfo: TVTHeaderHitInfo); override;
+
+    function DoCreateEditor(Node: PVirtualNode; Column: TColumnIndex
+      ): IVTEditLink; override;
+
     // redraw the rows matching this record
     procedure InvalidateFordata(sodata: ISuperObject);
     procedure Clear; override;
@@ -659,6 +664,9 @@ type
 
     property ShowAdvancedColumnsCustomize: Boolean read FShowAdvancedColumnsCustomize write SetShowAdvancedColumnsCustomize;
     property KeyFieldsNames: String read GetKeyFieldsNames write SetKeyFieldsNames;
+
+    property OnSOCompareNodes: TSOCompareNodesEvent read FOnSOCompareNodes write FOnSOCompareNodes;
+
     //inherited properties
     property Action;
     property Align;
@@ -2145,16 +2153,18 @@ begin
         col := FindColumnByPropertyName(propname.AsString);
         if col = Nil then
         begin
-          prop := row[propname.AsString];
-          col :=Header.Columns.Add as TSOGridColumn;
-          NewColStartIdx:=col.Index;
-          col.Text:=propname.AsString;
-          col.PropertyName:=propname.AsString;
-          col.Width:= 100;
-          if AppendMissingAsHidden then
-            col.Options:=col.Options - [coVisible];
-          if prop.DataType in [stDouble,stCurrency,stInt] then
-            col.Alignment:=taRightJustify;
+          begin
+            col :=Header.Columns.Add as TSOGridColumn;
+            NewColStartIdx:=col.Index;
+            col.Text:=propname.AsString;
+            col.PropertyName:=propname.AsString;
+            col.Width:= 100;
+            if AppendMissingAsHidden then
+              col.Options:=col.Options - [coVisible];
+            prop := row[propname.AsString];
+            if (prop <> Nil) and (prop.DataType in [stDouble,stCurrency,stInt]) then
+              col.Alignment:=taRightJustify;
+          end;
         end;
         {else
           if col.Width< 3*Length(prop.AsString) then
@@ -2182,7 +2192,7 @@ var
   propname : String;
 
 begin
-  if AValue <> nil then
+  if (AValue <> nil) and (AValue.AsObject <> Nil)  then
   begin
     if AValue.AsObject.Find('columns', columns) then
     begin
@@ -2725,7 +2735,6 @@ begin
   Result := TSOStringEditLink.Create;
 end;
 
-
 function TSOGrid.DoCompare(Node1, Node2: PVirtualNode; Column: TColumnIndex): integer;
 var
   n1, n2, d1, d2: ISuperObject;
@@ -2752,18 +2761,27 @@ begin
 
   if result = 0 then
   begin
-    if Assigned(OnCompareNodes) then
-      OnCompareNodes(Self, Node1, Node2, Column, Result)
+    if (Column >= 0) then
+      propname := TSOGridColumn(Header.Columns[column]).PropertyName
+    else
+      propname :='';
+
+    if n1 = Nil then
+      n1 := GetNodeSOData(Node1);
+    if n2 = Nil then
+      n2 := GetNodeSOData(Node2);
+
+    if Assigned(OnSOCompareNodes) then
+    begin
+      if propname <> '' then
+        OnSOCompareNodes(Self, n1, n2,[propname], Result)
+      else
+        OnSOCompareNodes(Self, n1, n2, FKeyFieldsList, Result)
+    end
     else
     begin
-      if n1 = Nil then
-        n1 := GetNodeSOData(Node1);
-      if n2 = Nil then
-        n2 := GetNodeSOData(Node2);
-
-      if (Column >= 0) and (n1 <> nil) and (n2 <> nil) then
+      if (propname<>'') and (n1 <> nil) and (n2 <> nil) then
       begin
-        propname := TSOGridColumn(Header.Columns[column]).PropertyName;
         d1 := n1[propname];
         d2 := n2[propname];
         if d1=nil then d1:=SO('""');
@@ -3141,6 +3159,16 @@ end;
 
 function SortColumnsPosition(c1,c2:TCollectionItem):integer;
 begin
+  if (c1=Nil) or (c2=Nil) then
+  begin
+    if c1 = Nil then
+      Result := -1;
+    if c2 = Nil then
+      Result := 1;
+    if (c1=Nil) and (c2=Nil) then
+      Result := 0;
+  end
+  else
   if TSOGridColumn(c1).tag<TSOGridColumn(c2).tag then
     result := -1
   else
@@ -3195,7 +3223,6 @@ begin
         end;
         if ShowModal = mrOK then
         begin
-
           target.Header.Columns.Clear;
           for i:=0 to asogrid.Header.Columns.count-1 do
           begin
