@@ -293,14 +293,14 @@ type
     //Delete a row from the collection
     procedure DeleteRecord(row:ISuperObject); Virtual;
 
-    //update a filed of a record log changes and notify views
+    //update a field of a record log changes and notify views
     procedure UpdateValue(row:ISuperObject;PropertyName:String;NewValue:ISuperObject);Virtual;
     //Update multiple values of a record, log changes and notify views
     procedure UpdateRecord(row:ISuperObject;NewValues:ISuperObject);Virtual;
 
-    //save data as json in a file
-    procedure LoadFromFile(Filename:String); Virtual;
     //load data as json in a file
+    procedure LoadFromFile(Filename:String); Virtual;
+    //save data as json in a file
     procedure SaveToFile(Filename:String); Virtual;
 
     // empty the log of changes : applyupdates is no more possible
@@ -624,7 +624,7 @@ type
     // returns list of nodes matching the key fields (from grid's KeyFieldsNames property) of sodata
     function NodesForKey(sodata: ISuperObject): TNodeArray;
 
-    procedure DoHeaderClick(HitInfo: TVTHeaderHitInfo); override;
+    procedure DoHeaderClickSort(HitInfo: TVTHeaderHitInfo);
 
     function DoCreateEditor(Node: PVirtualNode; Column: TColumnIndex
       ): IVTEditLink; override;
@@ -1820,7 +1820,6 @@ end;
 function TSODataSource.UndolastChange: ISuperObject;
 var
   lastchange:ISORowChange;
-  PropertyName,OldValue:ISuperObject;
 begin
   Result := Nil;
   if ChangeLog.Count>0 then
@@ -2545,7 +2544,7 @@ begin
   begin
     PaintOptions := PaintOptions - [toShowRoot] +
       [toAlwaysHideSelection, toShowHorzGridLines, toShowVertGridLines, toHideFocusRect];
-    SelectionOptions := SelectionOptions + [toExtendedFocus, toSimpleDrawSelection{,toRightClickSelect}];
+    SelectionOptions := SelectionOptions + [toExtendedFocus, toSimpleDrawSelection,toRightClickSelect];
     MiscOptions := MiscOptions + [toEditable, toGridExtensions, toFullRowDrag] -
       [toWheelPanning];
 
@@ -2553,7 +2552,7 @@ begin
   end;
 
   Header.Options := [hoColumnResize, hoDblClickResize, hoDrag,
-    hoShowSortGlyphs, hoVisible];
+    hoShowSortGlyphs, hoVisible,hoHeaderClickAutoSort];
   Header.Style := hsFlatButtons;
   Header.DefaultHeight:=18;
   Header.Height:=18;
@@ -2761,13 +2760,9 @@ begin
     end;
   end;
 
-  if result = 0 then
+  if (result = 0) and (Column >= 0) then
   begin
-    if (Column >= 0) then
-      propname := TSOGridColumn(Header.Columns[column]).PropertyName
-    else
-      propname :='';
-
+    propname := TSOGridColumn(Header.Columns[column]).PropertyName;
     if n1 = Nil then
       n1 := GetNodeSOData(Node1);
     if n2 = Nil then
@@ -2807,27 +2802,25 @@ begin
   end;
 end;
 
-procedure TSOGrid.DoHeaderClick(HitInfo: TVTHeaderHitInfo);
-var
-  Direction: TSortDirection;
+procedure TSOGrid.DoHeaderClickSort(HitInfo: TVTHeaderHitInfo);
 begin
-  if Assigned(OnHeaderClick) then
-    OnHeaderClick(Header, HitInfo)
-  else
   if (HitInfo.Shift=[]) and (HitInfo.Button = mbLeft) then
   begin
     if Header.SortColumn = HitInfo.Column then
     begin
       if Header.SortDirection = sdAscending then
-        Direction := sdDescending
-      else
-        Direction := sdAscending;
+        Header.SortDirection := sdDescending
+      else if Header.SortDirection = sdDescending then
+      begin
+        Header.SortColumn := -1;
+        Header.SortDirection := sdAscending;
+      end;
     end
     else
-      Direction := sdAscending;
-
-    Header.SortColumn := HitInfo.Column;
-    Header.SortDirection := Direction;
+    begin
+      Header.SortColumn := HitInfo.Column;
+      Header.SortDirection := sdAscending;
+    end;
   end;
 end;
 
