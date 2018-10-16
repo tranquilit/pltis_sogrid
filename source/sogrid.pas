@@ -655,6 +655,8 @@ type
     function ContentAsCSV(Source: TVSTTextSourceType; const Separator: String
       ): Utf8String;
 
+    // Creates a temporary CSV file and open it in the default app
+    procedure ExportExcel(Prefix:String='';Selection: TVSTTextSourceType=tstAll; Separator:Char=#9);
 
   published
     property OnGetText: TSOGridGetText read FOnGetText write FOnGetText;
@@ -3550,17 +3552,20 @@ begin
       FDatasource.RevertRecord(row);
 end;
 
-Function GetTempFileName(Const ext : String) : String;
+Function GetTempFileName(Const Prefix,ext : String) : String;
 
 Var
   I : Integer;
   Start : String;
+  Disc  : String;
 
 begin
   Start:=GetTempDir;
   I:=0;
+  Disc := '';
   Repeat
-    Result:=Format('%s%.5d%s',[Start,I,ext]);
+    Result:=Format('%s%s%s%s',[Start,Prefix,Disc,ext]);
+    Disc := Format('%.5d',[i]);
     Inc(I);
   Until not FileExists(Result);
 end;
@@ -3593,8 +3598,13 @@ begin
       if coVisible in Header.Columns[i].Options then
       begin
         value := Row[TSOGridColumn(Header.Columns[i]).PropertyName];
-        if value<>Nil then
-          values.AsArray.Add(value.AsString)
+        if (value<>Nil) and not ObjectIsNull((value)) then
+        begin
+          if values.DataType in [stInt,stDouble] then
+            values.AsArray.Add(value.AsString)
+          else
+            values.AsArray.Add(UTF8Encode(AnsiQuotedStr(value.AsString,'"')))
+        end
         else
           values.AsArray.Add('""');
       end;
@@ -3603,7 +3613,7 @@ begin
   end;
 end;
 
-procedure TSOGrid.DoExportExcel(Sender: TObject);
+procedure TSOGrid.ExportExcel(Prefix:String='';Selection:TVSTTextSourceType=tstAll;Separator:Char=#9);
 var
   tempfn:Utf8String;
   txt:Utf8String;
@@ -3611,14 +3621,11 @@ var
   l:LongInt;
   st:File;
 begin
-  tempfn:=GetTempFileName('.csv');
+  tempfn:=GetTempFileName(Prefix,'.csv');
   AssignFile(st,tempfn);
   Rewrite(st,1);
   try
-    if (toMultiSelect in TreeOptions.SelectionOptions) then
-      txt := ContentAsCSV(tstSelected,#9)+#0
-    else
-      txt := ContentAsCSV(tstAll,#9)+#0;
+    txt := ContentAsCSV(Selection,Separator)+#0;
     txtbuf := pchar(txt);
     l := strlen(txtbuf);
     BlockWrite(st,txtbuf^,l);
@@ -3626,6 +3633,14 @@ begin
     CloseFile(st);
     OpenDocument(tempfn);
   end;
+end;
+
+procedure TSOGrid.DoExportExcel(Sender: TObject);
+begin
+  if (toMultiSelect in TreeOptions.SelectionOptions) then
+    ExportExcel(Name,tstSelected,#9)
+  else
+    ExportExcel(Name,tstAll,#9);
 end;
 
 
