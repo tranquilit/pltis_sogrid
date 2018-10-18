@@ -40,6 +40,8 @@ type
 
   TSOGetKeyEvent = procedure (ARow:ISuperObject;var key:Variant) of object;
 
+  TSONodesEvent = procedure(Sender: TSOGrid; Nodes: ISuperObject) of object;
+
   TSOCompareNodesEvent = procedure(Sender: TSOGrid; Node1, Node2: ISuperObject; const Columns: Array of String;
     var Result: Integer) of object;
 
@@ -474,6 +476,7 @@ type
   private
     FKeyFieldsList: Array of String;
     FOnCutToClipBoard: TNotifyEvent;
+    FOnNodesDelete: TSONodesEvent;
     FOnSOCompareNodes: TSOCompareNodesEvent;
     FShowAdavancedColumnsCustomize: Boolean;
     FShowAdvancedColumnsCustomize: Boolean;
@@ -663,6 +666,7 @@ type
     property Datasource: TSODataSource read FDataSource write SetDatasource;
 
     property OnCutToClipBoard: TNotifyEvent read FOnCutToClipBoard write SetOnCutToClipBoard;
+    property OnNodesDelete: TSONodesEvent read FOnNodesDelete write FOnNodesDelete;
 
     property ShowAdvancedColumnsCustomize: Boolean read FShowAdvancedColumnsCustomize write SetShowAdvancedColumnsCustomize;
     property KeyFieldsNames: String read GetKeyFieldsNames write SetKeyFieldsNames;
@@ -2613,7 +2617,7 @@ begin
       if (toEditable in TreeOptions.MiscOptions) then
         HMPast := AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), @DoPaste);
       AddItem('-', 0, nil);
-      if (toEditable in TreeOptions.MiscOptions) then
+      if (toEditable in TreeOptions.MiscOptions) or Assigned(FOnNodesDelete) then
         HMDelete := AddItem(GSConst_Delete, ShortCut(VK_DELETE, [ssCtrl]), @DoDeleteRows);
       if toMultiSelect in TreeOptions.SelectionOptions then
         HMSelAll := AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), @DoSelectAllRows);
@@ -2987,47 +2991,58 @@ var
   ANodes:TNodeArray;
 
 begin
-  if Dialogs.MessageDlg(GSConst_Confirmation, 'Confirmez-vous la suppression de ' +
-    IntToStr(SelectedCount) + ' enregistrement(s) ?', mtConfirmation, mbYesNoCancel, 0) =
-    mrYes then
+  if Assigned(FOnNodesDelete) then
   try
     if Assigned(Datasource) then
       Datasource.DisableControls;
-
     todelete := SelectedRows;
-    newFocusedNode := Nil;
-    if todelete.AsArray.Length>0 then
-    begin
-      ANodes := NodesForData(todelete.AsArray[0]);
-      if length(ANodes)>0 then
-        newFocusedNode := ANodes[0];
-      if newFocusedNode <> Nil then
-        newFocusedNode:=GetPrevious(newFocusedNode);
-      for sel in todelete do
-      begin
-        //grid connected to datasource
-        if Assigned(Datasource) then
-          Datasource.DeleteRecord(sel)
-        else
-        //standalone grid
-          for i := 0 to Data.AsArray.Length - 1 do
-            if Data.AsArray[i] = sel then
-            begin
-              Data.AsArray.Delete(i);
-              break;
-            end;
-      end;
-      DeleteSelectedNodes;
-    end;
-    if newFocusedNode<>Nil then
-    begin
-      FocusedNode:= newFocusedNode;
-      Selected[FocusedNode] := True;
-    end;
+    FOnNodesDelete(self,todelete);
   finally
     if Assigned(Datasource) then
       Datasource.EnableControls;
-  end;
+  end
+  else
+    if Dialogs.MessageDlg(GSConst_Confirmation, 'Confirmez-vous la suppression de ' +
+      IntToStr(SelectedCount) + ' enregistrement(s) ?', mtConfirmation, mbYesNoCancel, 0) =
+      mrYes then
+    try
+      if Assigned(Datasource) then
+        Datasource.DisableControls;
+
+      todelete := SelectedRows;
+      newFocusedNode := Nil;
+      if todelete.AsArray.Length>0 then
+      begin
+        ANodes := NodesForData(todelete.AsArray[0]);
+        if length(ANodes)>0 then
+          newFocusedNode := ANodes[0];
+        if newFocusedNode <> Nil then
+          newFocusedNode:=GetPrevious(newFocusedNode);
+        for sel in todelete do
+        begin
+          //grid connected to datasource
+          if Assigned(Datasource) then
+            Datasource.DeleteRecord(sel)
+          else
+            //standalone grid
+            for i := 0 to Data.AsArray.Length - 1 do
+              if Data.AsArray[i] = sel then
+              begin
+                Data.AsArray.Delete(i);
+                break;
+              end;
+        end;
+        DeleteSelectedNodes;
+      end;
+      if newFocusedNode<>Nil then
+      begin
+        FocusedNode:= newFocusedNode;
+        Selected[FocusedNode] := True;
+      end;
+    finally
+      if Assigned(Datasource) then
+        Datasource.EnableControls;
+    end;
 end;
 
 procedure TSOGrid.DoPaste(Sender: TObject);

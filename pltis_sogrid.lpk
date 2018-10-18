@@ -15,7 +15,7 @@
       </SearchPaths>
     </CompilerOptions>
     <Description Value="Virtual SuperObject Grid Components"/>
-    <Version Minor="12"/>
+    <Version Minor="13"/>
     <Files Count="5">
       <Item1>
         <Filename Value="source\sogrid_register.pas"/>
