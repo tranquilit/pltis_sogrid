@@ -2619,7 +2619,7 @@ begin
         HMCut := AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), @DoCutToClipBoard);
       HMCopy := AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), @DoCopyToClipBoard);
       HMCopyCell := AddItem(GSConst_CopyCell, ShortCut(Ord('C'), [ssCtrl,ssShift]), @DoCopyCellToClipBoard);
-      if (toEditable in TreeOptions.MiscOptions) then
+      if (toEditable in TreeOptions.MiscOptions) or Assigned(FOnBeforePaste)  then
         HMPast := AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), @DoPaste);
       AddItem('-', 0, nil);
       if (toEditable in TreeOptions.MiscOptions) or Assigned(FOnNodesDelete) then
