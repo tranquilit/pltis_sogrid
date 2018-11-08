@@ -45,6 +45,8 @@ type
   TSOCompareNodesEvent = procedure(Sender: TSOGrid; Node1, Node2: ISuperObject; const Columns: Array of String;
     var Result: Integer) of object;
 
+  TSOCanPasteEvent = function(Sender: TSOGrid;Row:ISuperObject):boolean of object;
+
   ISODataView = interface
     ['{2DF865FF-684D-453E-A9F0-7D7307DD0BDD}']
     procedure NotifyChange(EventType:TSODataEvent;Row:ISuperObject;OldValues,NewValues:ISuperObject);
@@ -475,6 +477,7 @@ type
   TSOGrid = class(TCustomVirtualStringTree,ISODataView)
   private
     FKeyFieldsList: Array of String;
+    FOnBeforePaste: TSOCanPasteEvent;
     FOnCutToClipBoard: TNotifyEvent;
     FOnNodesDelete: TSONodesEvent;
     FOnSOCompareNodes: TSOCompareNodesEvent;
@@ -666,6 +669,7 @@ type
     property Datasource: TSODataSource read FDataSource write SetDatasource;
 
     property OnCutToClipBoard: TNotifyEvent read FOnCutToClipBoard write SetOnCutToClipBoard;
+    property OnBeforePaste: TSOCanPasteEvent read FOnBeforePaste write FOnBeforePaste;
     property OnNodesDelete: TSONodesEvent read FOnNodesDelete write FOnNodesDelete;
 
     property ShowAdvancedColumnsCustomize: Boolean read FShowAdvancedColumnsCustomize write SetShowAdvancedColumnsCustomize;
@@ -2118,7 +2122,8 @@ begin
     if (ANode <> Nil) then
     begin
       FocusedNode:=ANode;
-      ScrollIntoView(ANode,False);
+      if not (tsScrolling in TreeStates) then
+        ScrollIntoView(ANode,False);
     end;
   end;
 end;
@@ -3048,6 +3053,7 @@ end;
 procedure TSOGrid.DoPaste(Sender: TObject);
 var
   row: ISuperObject;
+  canpaste: Boolean;
 begin
   row := Nil;
   if Data = Nil then
@@ -3056,13 +3062,22 @@ begin
     Datasource.Enabled:=false;
   try
     for row in ClipboardSOData do
-      if Assigned(Datasource) then
-        Datasource.AppendRecord(row)
+    begin
+      if Assigned(FOnBeforePaste) then
+        canpaste := FOnBeforePaste(Self,row)
       else
+        canpaste := True;
+      if canpaste then
       begin
-        Data.AsArray.Add(row);
-        LoadData;
+        if Assigned(Datasource) then
+          Datasource.AppendRecord(row)
+        else
+        begin
+          Data.AsArray.Add(row);
+        end;
       end;
+    end;
+    LoadData;
   finally
     if Assigned(Datasource) then
       Datasource.Enabled:=true;
