@@ -2352,10 +2352,10 @@ begin
       inherited Clear;
       RootNodeCount := Data.AsArray.Length;
     finally
-      EndUpdate;
       if (ASelected <>Nil) and (ASelected.AsArray.Length>0) then
         SelectedRows := ASelected;
       SetFocusedRowNoClearSelection(AFocused);
+      EndUpdate;
     end;
   end;
 end;
