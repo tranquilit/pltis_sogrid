@@ -673,6 +673,7 @@ type
     property OnNodesDelete: TSONodesEvent read FOnNodesDelete write FOnNodesDelete;
 
     property ShowAdvancedColumnsCustomize: Boolean read FShowAdvancedColumnsCustomize write SetShowAdvancedColumnsCustomize;
+    property KeyFieldsList: TStringDynArray read FKeyFieldsList;
     property KeyFieldsNames: String read GetKeyFieldsNames write SetKeyFieldsNames;
 
     property OnSOCompareNodes: TSOCompareNodesEvent read FOnSOCompareNodes write FOnSOCompareNodes;
@@ -1252,7 +1253,6 @@ begin
       key := Fdatasource.GetKey(rowchange.Row);
     if not VarIsNull(key) then
       rowdelta.AsObject['key'] := SO(key);
-    showmessage(key);
     Result.AsArray.Add(rowdelta);
   end;
 end;
@@ -1657,7 +1657,7 @@ begin
       Break;
     end;
   if last<0 then
-    ShowMessage('not found');
+    ShowMessageFmt('Internal error. Record to remove not found in current datasource %s',[Name]);
 end;
 
 function TSODataSource.GetParamsJSON: String;
@@ -2097,11 +2097,13 @@ begin
   Result := TStringTreeOptions(inherited TreeOptions);
 end;
 
+// select all the nodes matching the AValue Array list of ISuperObject
+// if
 procedure TSOGrid.SetSelectedRows(AValue: ISuperObject);
 var
   ANodes:TNodeArray;
-  ANode: PVirtualNode;
-  ARec: ISuperObject;
+  ANode,NewFocusedNode: PVirtualNode;
+  OldFocused,ARec: ISuperObject;
 begin
   If AValue = Nil then
   begin
@@ -2110,21 +2112,32 @@ begin
   end
   else
   begin
+    OldFocused := FocusedRow;
+
     ClearSelection;
     ANode := Nil;
+
+    NewFocusedNode:=Nil;
+
     for ARec in AValue do
     begin
-      ANodes := NodesForKey(ARec);
-      for ANode in ANodes do
+      if Length(KeyFieldsList)>0 then
+        ANodes := NodesForKey(ARec)
+      else
+        ANodes := NodesForData(ARec);
+
+      for ANode in ANodes do begin
+        if ARec = OldFocused then
+          NewFocusedNode := ANode;
         Selected[ANode] := True;
+      end;
     end;
 
-    if (ANode <> Nil) then
-    begin
-      FocusedNode:=ANode;
-      if not (tsScrolling in TreeStates) then
-        ScrollIntoView(ANode,False);
-    end;
+    // Focused the last selected node.
+    if NewFocusedNode <> Nil then
+      FocusedNode := NewFocusedNode
+    else if (ANode <> Nil) then
+      FocusedNode := ANode;
   end;
 end;
 
@@ -2336,6 +2349,9 @@ end;
 procedure TSOGrid.LoadData;
 var
   AFocused,ASelected: ISuperObject;
+  ANodes:TNodeArray;
+  ANode: PVirtualNode;
+  TopRec: ISuperObject;
 begin
   if (Data = nil) or (Data.AsArray = nil) then
     inherited Clear
@@ -2347,14 +2363,34 @@ begin
     else
       ASelected := Nil;
     AFocused := FocusedRow;
+    TopRec := GetNodeSOData(TopNode);
+
     BeginUpdate;
     try
       inherited Clear;
       RootNodeCount := Data.AsArray.Length;
     finally
-      if (ASelected <>Nil) and (ASelected.AsArray.Length>0) then
+      // restore selected nodes
+      if (ASelected <>Nil) and (ASelected.AsArray.Length>0) then begin
         SelectedRows := ASelected;
-      SetFocusedRowNoClearSelection(AFocused);
+      end;
+
+      // Restore focused node
+      if AFocused <> Nil then
+        SetFocusedRowNoClearSelection(AFocused);
+
+      // Restore top visible node
+      if (TopRec <> Nil) and not (tsScrolling in TreeStates) then
+      begin
+        if KeyFieldsNames<>'' then
+          ANodes := NodesForKey(TopRec)
+        else
+          ANodes := NodesForData(TopRec);
+        for ANode in ANodes do begin
+          TopNode := ANode;
+          break;
+        end;
+      end;
       EndUpdate;
     end;
   end;
@@ -2719,7 +2755,7 @@ begin
   while (N <> nil) do
   begin
     Result.AsArray.Add(GetNodeSOData(N));
-    N := GetNextSelected(N);
+    N := GetNextSelected(N,True);
   end;
 end;
 
@@ -2732,7 +2768,7 @@ begin
   while (N <> nil) do
   begin
     Result.AsArray.Add(GetNodeSOData(N));
-    N := GetNextChecked(N);
+    N := GetNextChecked(N,csCheckedNormal,True);
   end;
 end;
 
@@ -2847,7 +2883,7 @@ begin
   if sodata.AsObject = Nil then
     exit;
   key := SOExtractFields(sodata,FKeyFieldsList);
-  p := TopNode;
+  p := GetFirst(True);
   while (p <> nil) do
   begin
     ASO := GetNodeSOData(p);
@@ -2856,8 +2892,7 @@ begin
       SetLength(Result, length(Result) + 1);
       Result[length(Result) - 1] := p;
     end;
-    p := GetNext(p);
-
+    p := GetNext(p,True);
   end;
 end;
 
@@ -2871,7 +2906,7 @@ begin
     Exit;
   if sodata.AsObject = Nil then
     exit;
-  p := TopNode;
+  p := GetFirst(True);
   while (p <> nil) do
   begin
     ASO := GetNodeSOData(p);
@@ -2881,7 +2916,7 @@ begin
       Result[length(Result) - 1] := p;
       //OutputDebugString('kkk');
     end;
-    p := GetNext(p);
+    p := GetNext(p,True);
 
   end;
 end;
@@ -2890,12 +2925,12 @@ procedure TSOGrid.InvalidateFordata(sodata: ISuperObject);
 var
   p: PVirtualNode;
 begin
-  p := TopNode;
+  p := GetFirst(True);
   while (p <> nil) do
   begin
     if GetNodeSOData(p) = sodata then
       InvalidateNode(p);
-    p := GetNext(p);
+    p := GetNext(p,True);
   end;
 end;
 
