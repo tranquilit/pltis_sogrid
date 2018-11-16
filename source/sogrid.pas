@@ -630,6 +630,8 @@ type
     // returns list of nodes matching the key fields (from grid's KeyFieldsNames property) of sodata
     function NodesForKey(sodata: ISuperObject): TNodeArray;
 
+    procedure DeleteRows(SOArray: ISuperObject);
+
     procedure DoHeaderClickSort(HitInfo: TVTHeaderHitInfo);
 
     function DoCreateEditor(Node: PVirtualNode; Column: TColumnIndex
@@ -2358,40 +2360,43 @@ begin
   else
   begin
     //Stores previous focused and selected rows
-    if Length(FKeyFieldsList) > 0 then
-      ASelected := SelectedRows
-    else
-      ASelected := Nil;
-    AFocused := FocusedRow;
-    TopRec := GetNodeSOData(TopNode);
-
     BeginUpdate;
     try
+      if Length(FKeyFieldsList) > 0 then
+        ASelected := SelectedRows
+      else
+        ASelected := Nil;
+      AFocused := FocusedRow;
+      TopRec := GetNodeSOData(TopNode);
+
       inherited Clear;
       RootNodeCount := Data.AsArray.Length;
     finally
-      // restore selected nodes
-      if (ASelected <>Nil) and (ASelected.AsArray.Length>0) then begin
-        SelectedRows := ASelected;
-      end;
-
-      // Restore focused node
-      if AFocused <> Nil then
-        SetFocusedRowNoClearSelection(AFocused);
-
-      // Restore top visible node
-      if (TopRec <> Nil) and not (tsScrolling in TreeStates) then
-      begin
-        if KeyFieldsNames<>'' then
-          ANodes := NodesForKey(TopRec)
-        else
-          ANodes := NodesForData(TopRec);
-        for ANode in ANodes do begin
-          TopNode := ANode;
-          break;
+      try
+        // restore selected nodes
+        if (ASelected <>Nil) and (ASelected.AsArray<>Nil) and (ASelected.AsArray.Length>0) then begin
+          SelectedRows := ASelected;
         end;
+
+        // Restore focused node
+        if AFocused <> Nil then
+          SetFocusedRowNoClearSelection(AFocused);
+
+        // Restore top visible node
+        if (TopRec <> Nil) and not (tsScrolling in TreeStates) then
+        begin
+          if KeyFieldsNames<>'' then
+            ANodes := NodesForKey(TopRec)
+          else
+            ANodes := NodesForData(TopRec);
+          for ANode in ANodes do begin
+            TopNode := ANode;
+            break;
+          end;
+        end;
+      finally
+        EndUpdate;
       end;
-      EndUpdate;
     end;
   end;
 end;
@@ -2894,6 +2899,30 @@ begin
     end;
     p := GetNext(p,True);
   end;
+end;
+
+procedure TSOGrid.DeleteRows(SOArray: ISuperObject);
+var
+  res       : ISuperObject;
+  ToDelete  : ISuperObject;
+  i: integer;
+  ANode: PVirtualNode;
+  ANodesArray: TNodeArray;
+
+begin
+  for ToDelete in SOArray do
+  begin
+    //Remove from SO backend
+    for i := 0 to data.AsArray.Length-1 do
+      if data.AsArray[i] = ToDelete then
+        Data.AsArray.Delete(i);
+
+    //Remove from node array
+    ANodesArray := NodesForData(ToDelete);
+    for ANode in ANodesArray do
+      DeleteNode(ANode,ANode=ANodesArray[Length(ANodesArray)-1]);
+  end;
+
 end;
 
 function TSOGrid.NodesForData(sodata: ISuperObject): TNodeArray;
