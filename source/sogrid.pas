@@ -2368,7 +2368,7 @@ begin
         ASelected := Nil;
       AFocused := FocusedRow;
       TopRec := GetNodeSOData(TopNode);
-
+      SetLength(ANodes,0);
       inherited Clear;
       RootNodeCount := Data.AsArray.Length;
     finally
@@ -2389,13 +2389,13 @@ begin
             ANodes := NodesForKey(TopRec)
           else
             ANodes := NodesForData(TopRec);
-          for ANode in ANodes do begin
-            TopNode := ANode;
-            break;
-          end;
         end;
       finally
         EndUpdate;
+        for ANode in ANodes do begin
+          TopNode := ANode;
+          break;
+        end;
       end;
     end;
   end;
