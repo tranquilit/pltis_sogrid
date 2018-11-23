@@ -2792,7 +2792,8 @@ var
   propname: string;
   compresult : TSuperCompareResult;
 begin
-  Result := 0;
+  Result := inherited DoCompare(Node1, Node2,Column);
+
   n1 := Nil;
   n2 := Nil;
 
