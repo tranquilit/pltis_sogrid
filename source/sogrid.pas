@@ -630,8 +630,13 @@ type
     // returns list of nodes matching the key fields (from grid's KeyFieldsNames property) of sodata
     function NodesForKey(sodata: ISuperObject): TNodeArray;
 
+    // Append a list of rows to the Grid
+    procedure AddRows(SOArray: ISuperObject);
+
+    // Delete a list of rows from the Grid
     procedure DeleteRows(SOArray: ISuperObject);
 
+    // Handle the default sort behavious
     procedure DoHeaderClickSort(HitInfo: TVTHeaderHitInfo);
 
     function DoCreateEditor(Node: PVirtualNode; Column: TColumnIndex
@@ -2902,28 +2907,54 @@ begin
   end;
 end;
 
+procedure TSOGrid.AddRows(SOArray: ISuperObject);
+var
+  ToAdd    : ISuperObject;
+  i: integer;
+  ANode: PVirtualNode;
+  ANodesArray: TNodeArray;
+begin
+  if Assigned(Datasource) then
+    for ToAdd in SOArray do
+      Datasource.AppendRecord()
+  else
+  begin
+    BeginUpdate;
+    try
+      for ToAdd in SOArray do
+        Data.AsArray.Add(ToAdd);
+    finally
+      EndUpdate;
+      // Load all nodes
+      LoadData;
+    end;
+  end;
+end;
+
 procedure TSOGrid.DeleteRows(SOArray: ISuperObject);
 var
-  res       : ISuperObject;
   ToDelete  : ISuperObject;
   i: integer;
   ANode: PVirtualNode;
   ANodesArray: TNodeArray;
 
 begin
-  for ToDelete in SOArray do
-  begin
-    //Remove from SO backend
-    for i := 0 to data.AsArray.Length-1 do
-      if data.AsArray[i] = ToDelete then
-        Data.AsArray.Delete(i);
+  if Assigned(Datasource) then
+    for ToDelete in SOArray do
+      Datasource.DeleteRecord(ToDelete)
+  else
+    for ToDelete in SOArray do
+    begin
+      //Remove from SO backend
+      for i := 0 to data.AsArray.Length-1 do
+        if data.AsArray[i] = ToDelete then
+          Data.AsArray.Delete(i);
 
-    //Remove from node array
-    ANodesArray := NodesForData(ToDelete);
-    for ANode in ANodesArray do
-      DeleteNode(ANode,ANode=ANodesArray[Length(ANodesArray)-1]);
-  end;
-
+      //Remove from node array
+      ANodesArray := NodesForData(ToDelete);
+      for ANode in ANodesArray do
+        DeleteNode(ANode,ANode=ANodesArray[Length(ANodesArray)-1]);
+    end;
 end;
 
 function TSOGrid.NodesForData(sodata: ISuperObject): TNodeArray;
