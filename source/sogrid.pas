@@ -559,6 +559,7 @@ type
     //Gestion menu standard
     procedure FillMenu(LocalMenu: TPopupMenu);
     procedure DoEnter; override;
+    procedure DoExit; override;
 
     procedure PrepareCell(var PaintInfo: TVTPaintInfo;
       WindowOrgX, MaxWidth: integer); override;
@@ -2635,6 +2636,8 @@ procedure TSOGrid.FillMenu(LocalMenu: TPopupMenu);
       Caption := ACaption;
       ShortCut := AShortcut;
       OnClick := AEvent;
+      // to delete them
+      Tag := 250;
     end;
     LocalMenu.Items.Add(AMI);
     Result := AMI.Handle;
@@ -2656,6 +2659,7 @@ begin
           HMRevert := AddItem(GSConst_RevertRecord, 0, @DoRevertRecord);
         AddItem('-', 0, nil);
       end;
+
       HMFind := AddItem(GSConst_Find, ShortCut(Ord('F'), [ssCtrl]), @DoFindText);
       HMFindNext := AddItem(GSConst_FindNext, VK_F3, @DoFindNext);
       {HMFindReplace := AddItem(GSConst_FindReplace, ShortCut(Ord('H'), [ssCtrl]),
@@ -2699,6 +2703,22 @@ begin
     PopupMenu := TPopupMenu.Create(Self);
   FillMenu(PopupMenu);
   inherited DoEnter;
+end;
+
+procedure TSOGrid.DoExit;
+var
+  ami: TMenuItem;
+  i: Integer;
+begin
+  // Remove auto items.
+  if (PopupMenu <> nil) then
+  begin
+    for i:=PopupMenu.Items.Count-1 downto 0 do
+      if PopupMenu.Items[i].Tag=250 then
+        PopupMenu.Items.Delete(i);
+    FMenuFilled := False;
+  end;
+  inherited DoExit;
 end;
 
 
@@ -2910,9 +2930,6 @@ end;
 procedure TSOGrid.AddRows(SOArray: ISuperObject);
 var
   ToAdd    : ISuperObject;
-  i: integer;
-  ANode: PVirtualNode;
-  ANodesArray: TNodeArray;
 begin
   if Assigned(Datasource) then
     for ToAdd in SOArray do
@@ -2920,6 +2937,8 @@ begin
   else
   begin
     BeginUpdate;
+    if not Assigned(Data) then
+      Data := TSuperObject.Create(stArray);
     try
       for ToAdd in SOArray do
         Data.AsArray.Add(ToAdd);
@@ -2943,18 +2962,20 @@ begin
     for ToDelete in SOArray do
       Datasource.DeleteRecord(ToDelete)
   else
-    for ToDelete in SOArray do
-    begin
-      //Remove from SO backend
-      for i := 0 to data.AsArray.Length-1 do
-        if data.AsArray[i] = ToDelete then
-          Data.AsArray.Delete(i);
+  begin
+    if Data <> Nil then
+      for ToDelete in SOArray do begin
+        //Remove from SO backend
+        for i := 0 to data.AsArray.Length-1 do
+          if data.AsArray[i] = ToDelete then
+            Data.AsArray.Delete(i);
 
-      //Remove from node array
-      ANodesArray := NodesForData(ToDelete);
-      for ANode in ANodesArray do
-        DeleteNode(ANode,ANode=ANodesArray[Length(ANodesArray)-1]);
-    end;
+        //Remove from node array
+        ANodesArray := NodesForData(ToDelete);
+        for ANode in ANodesArray do
+          DeleteNode(ANode,ANode=ANodesArray[Length(ANodesArray)-1]);
+      end;
+  end;
 end;
 
 function TSOGrid.NodesForData(sodata: ISuperObject): TNodeArray;
