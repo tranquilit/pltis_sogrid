@@ -250,6 +250,7 @@ type
     FRoot: String;
 
     function GetActive: Boolean;
+    function GetData: ISuperObject;
     function GetEnabled: Boolean;
     function GetParamsJSON: String;
     procedure RemoveRecordFromData(row: ISuperObject);
@@ -276,7 +277,7 @@ type
     property DataViews:TList read FDataViews write FDataViews;
 
     // Data store : current state of records
-    property Data:ISuperObject read FData write SetData;
+    property Data:ISuperObject read GetData write SetData;
 
     // log of all changes for Applyupdates, UndoLastChange etc...:
     property ChangeLog:ISORowChanges read FChangeLog write SetDataChanges;
@@ -294,8 +295,11 @@ type
 
     //Append a new row to the collection. update views after initialisation
     function  AppendRecord(new:ISuperObject=Nil):ISuperObject;Virtual;
+    procedure AppendRecords(records:ISuperObject);Virtual;
+
     //Delete a row from the collection
     procedure DeleteRecord(row:ISuperObject); Virtual;
+    procedure DeleteRecords(rows:ISuperObject); Virtual;
 
     //update a field of a record log changes and notify views
     procedure UpdateValue(row:ISuperObject;PropertyName:String;NewValue:ISuperObject);Virtual;
@@ -1637,19 +1641,25 @@ end;
 
 function TSODataSource.AppendRecord(new:ISuperObject=Nil): ISuperObject;
 begin
-  if not Assigned(Data) then
-    Emptydataset;
   if new<>Nil then
     Result := new
   else
     result := TSuperObject.Create;
   if Assigned(OnNewRecord) then
     OnNewRecord(result);
-  data.AsArray.Add(result);
+  Data.AsArray.Add(Result);
   if Assigned(OnUpdateRecord) then
-    OnUpdateRecord(deAddrecord,result,Nil,Nil);
+    OnUpdateRecord(deAddrecord,Result,Nil,Nil);
   ChangeLog.AddChange(usInserted,Result);
-  NotifyChange(deAddrecord,result);
+  NotifyChange(deAddrecord,Result);
+end;
+
+procedure TSODataSource.AppendRecords(records: ISuperObject);
+var
+  ARecord:ISuperObject;
+begin
+  for ARecord in records do
+    AppendRecord(ARecord);
 end;
 
 procedure TSODataSource.RemoveRecordFromData(row: ISuperObject);
@@ -1686,6 +1696,13 @@ begin
   Result := Data<>Nil;
 end;
 
+function TSODataSource.GetData: ISuperObject;
+begin
+  if not Assigned(FData) then
+    FData := TSuperObject.Create(stArray);
+  Result := FData;
+end;
+
 procedure TSODataSource.SetConnection(AValue: TSOConnection);
 begin
   if FConnection=AValue then Exit;
@@ -1712,6 +1729,11 @@ begin
   RemoveRecordFromData(Row);
   ChangeLog.AddChange(usDeleted,row);
   NotifyChange(deDeleteRecord,row);
+end;
+
+procedure TSODataSource.DeleteRecords(rows: ISuperObject);
+begin
+
 end;
 
 procedure TSODataSource.UpdateValue(row: ISuperObject; PropertyName: String;
@@ -1768,14 +1790,13 @@ end;
 
 procedure TSODataSource.LoadFromFile(Filename: String);
 begin
-  data := TSuperObject.ParseFile(Filename,False);
+  Data := TSuperObject.ParseFile(Filename,False);
   NotifyChange(deDataSetChange);
 end;
 
 procedure TSODataSource.SaveToFile(Filename: String);
 begin
-  if Assigned(Data) then
-      Data.SaveTo(Filename);
+  Data.SaveTo(Filename);
 end;
 
 procedure TSODataSource.MergeChangeLog;
@@ -2933,7 +2954,7 @@ var
 begin
   if Assigned(Datasource) then
     for ToAdd in SOArray do
-      Datasource.AppendRecord()
+      Datasource.AppendRecord(ToAdd)
   else
   begin
     BeginUpdate;
@@ -3643,7 +3664,12 @@ begin
   if Assigned(FDatasource) then
     Result := FDatasource.Data
   else
+  begin
+    // Side effect if we use Data = Nil as an indicator of lazy loading.
+    //if not Assigned(FData) then
+    //  FData := TSuperObject.Create(stArray);
     Result := FData;
+  end;
 end;
 
 function TSOGrid.GetFocusedRow: ISuperObject;
