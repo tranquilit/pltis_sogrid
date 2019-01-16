@@ -613,6 +613,11 @@ type
 
     function GetSelectedRows: ISuperObject;
 
+    procedure DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy;
+      const AXProportion, AYProportion: Double); override;
+
+    procedure ChangeScale(M, D: Integer); override;
+
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -629,6 +634,9 @@ type
       Default: ISuperObject = nil): ISuperObject;
     function GetCellStrValue(N: PVirtualNode; FieldName: string;
       Default: string = ''): string;
+
+    procedure FixDesignFontsPPI(const ADesignTimePPI: Integer); override;
+    procedure ScaleFontsPPI(const AToPPI: Integer; const AProportion: Double); override;
 
     // returns list of nodes matching exactly this record pointer
     function NodesForData(sodata: ISuperObject): TNodeArray;
@@ -2280,11 +2288,11 @@ begin
     if AValue.AsObject.Find('sortdirection', prop) then
       Header.SortDirection := TSortDirection(prop.AsInteger);
 
-    if AValue.AsObject.Find('headerheight', prop) then
-      Header.Height := prop.AsInteger;
+    //if AValue.AsObject.Find('headerheight', prop) then
+    //  Header.Height := prop.AsInteger;
 
-    if AValue.AsObject.Find('defaultnodeheight', prop) then
-      DefaultNodeHeight := prop.AsInteger;
+    //if AValue.AsObject.Find('defaultnodeheight', prop) then
+    //  DefaultNodeHeight := prop.AsInteger;
 
   end;
 end;
@@ -2532,8 +2540,8 @@ begin
   Result := TSuperObject.Create;
   Result.I['sortcolumn'] := Header.SortColumn;
   Result.I['sortdirection'] := integer(Header.SortDirection);
-  Result.I['headerheight'] := integer(Header.Height);
-  Result.I['defaultnodeheight'] := integer(DefaultNodeHeight);
+  //Result.I['headerheight'] := integer(Header.Height);
+  //Result.I['defaultnodeheight'] := integer(DefaultNodeHeight);
   Result['columns'] := TSuperObject.Create(stArray);
   for i := 0 to Header.Columns.Count - 1 do
   begin
@@ -2625,7 +2633,7 @@ begin
     MiscOptions := MiscOptions + [toEditable, toGridExtensions, toFullRowDrag] -
       [toWheelPanning];
 
-    AutoOptions := AutoOptions + [toAutoSort];
+    AutoOptions := AutoOptions + [toAutoSort,toAutoChangeScale];
   end;
 
   Header.Options := [hoColumnResize, hoDblClickResize, hoDrag,
@@ -2634,6 +2642,8 @@ begin
   Header.DefaultHeight:=18;
   Header.Height:=18;
 
+  DefaultNodeHeight:=18;
+
   // Initialisation de la boite de dialogue de recherche
   FindDlg := TFindDialog.Create(nil);
   FindDlg.OnFind := @FindDlgFind;
@@ -2641,6 +2651,7 @@ begin
 
   Header.PopupMenu :=  TSOHeaderPopupMenu.Create(Self);
   Header.PopupMenu.PopupComponent := Self;
+
 
 end;
 
@@ -2808,6 +2819,71 @@ begin
     Result.AsArray.Add(GetNodeSOData(N));
     N := GetNextSelected(N,True);
   end;
+end;
+
+procedure TSOGrid.DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy;
+  const AXProportion, AYProportion: Double);
+var
+  i: Integer;
+begin
+  if AMode in [lapAutoAdjustForDPI] then
+  begin
+    Header.MaxHeight:=  round(Header.MaxHeight * AYProportion);
+    Header.DefaultHeight:=round(Header.DefaultHeight * AYProportion);
+    Header.Height:=round(Header.Height * AYProportion);
+    Header.MinHeight:=round(Header.MinHeight * AYProportion);
+
+    for i := 0 to header.Columns.Count-1 do
+    begin
+      header.Columns[i].MaxWidth:=round(header.Columns[i].MaxWidth * AXProportion);
+      header.Columns[i].Width:=round(header.Columns[i].Width * AXProportion);
+      header.Columns[i].MinWidth:=round(header.Columns[i].MinWidth * AXProportion);
+    end;
+  end;
+end;
+
+procedure TSOGrid.ChangeScale(M, D: Integer);
+var
+  DoScale: Boolean;
+  i: integer;
+begin
+  inherited ChangeScale(M, D);
+  if (M <> D) and (toAutoChangeScale in TreeOptions.AutoOptions) then
+  begin
+    if (csLoading in ComponentState) then
+      DoScale := tsNeedScale in TreeStates
+    else
+      DoScale := True;
+
+    if DoScale then
+    begin
+      Header.MaxHeight:=  MulDiv(Header.MaxHeight, M, D);
+      Header.DefaultHeight:=MulDiv(Header.DefaultHeight, M, D);
+      Header.Height:=MulDiv(Header.Height, M, D);
+      Header.MinHeight:=MulDiv(Header.MinHeight, M, D);
+
+      for i := 0 to header.Columns.Count-1 do
+      begin
+        header.Columns[i].MaxWidth:=MulDiv(header.Columns[i].MaxWidth, M, D);
+        header.Columns[i].Width:=MulDiv(header.Columns[i].Width, M, D);
+        header.Columns[i].MinWidth:=MulDiv(header.Columns[i].MinWidth, M, D);
+      end;
+    end;
+  end;
+
+end;
+
+procedure TSOGrid.FixDesignFontsPPI(const ADesignTimePPI: Integer);
+begin
+  inherited FixDesignFontsPPI(ADesignTimePPI);
+  DoFixDesignFontPPI(Header.Font, ADesignTimePPI);
+end;
+
+procedure TSOGrid.ScaleFontsPPI(const AToPPI: Integer; const AProportion: Double
+  );
+begin
+  inherited ScaleFontsPPI(AToPPI, AProportion);
+  DoScaleFontPPI(Header.Font, AToPPI, AProportion);
 end;
 
 function TSOGrid.CheckedRows: ISuperObject;
