@@ -879,32 +879,32 @@ uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms,
     variants,tisstrings,sogrideditor;
 
 resourcestring
-  GSConst_NoRecordFind = 'Pas d''enregistrement trouvé';
-  GSConst_PrintOn = 'Imprimé le';
+  GSConst_NoRecordFind = 'No record found';
+  GSConst_PrintOn = 'Printed on';
   GSConst_Page = 'Page';
 
-  GSConst_Confirmation = 'Confirmation';
-  GSConst_UndoLastUpdate = 'Défaire la dernière modification';
-  GSConst_RevertRecord = 'Revenir à la version initiale de la ligne';
-  GSConst_Find = 'Rechercher...';
-  GSConst_FindNext = 'Rechercher le suivant';
-  GSConst_FindReplace = 'Remplacer...';
-  GSConst_Copy = 'Copier';
-  GSConst_CopyCell = 'Copier la cellule';
-  GSConst_Cut = 'Couper';
-  GSConst_Paste = 'Coller';
-  GSConst_Insert = 'Insérer';
-  GSConst_Delete = 'Effacer';
-  GSConst_DeleteRows = 'Effacer les lignes sélectionnées';
-  GSConst_ConfDeleteRow = 'Confirmer la suppression des lignes ?';
-  GSConst_SelectAll = 'Selectionner toutes les lignes';
-  GSConst_ExportSelectedExcel = 'Exporter la sélection vers un fichier Excel...';
-  GSConst_ExportAllExcel = 'Exporter toutes les lignes vers un fichier Excel...';
-  GSConst_Print = 'Imprimer...';
-  GSConst_ExpandAll = 'Tout déplier';
-  GSConst_CollapseAll = 'Tour replier';
-  GSConst_CustomizeColumns = 'Personnaliser les colonnes affichées...';
-  GSConst_AdvancedCustomizeColumns = 'Personnalisation avancée du tableau...';
+  GSConst_Confirmation = 'Confirm';
+  GSConst_UndoLastUpdate = 'Undo last change';
+  GSConst_RevertRecord = 'Revert to initial record';
+  GSConst_Find = 'Search...';
+  GSConst_FindNext = 'Find next';
+  GSConst_FindReplace = 'Find and replace...';
+  GSConst_Copy = 'Copy';
+  GSConst_CopyCell = 'Copy cell';
+  GSConst_Cut = 'Cut';
+  GSConst_Paste = 'Paste';
+  GSConst_Insert = 'Insert';
+  GSConst_Delete = 'Delete';
+  GSConst_DeleteRows = 'Delete selected rows';
+  GSConst_ConfDeleteRow = 'Confirm the deletion of selected rows ?';
+  GSConst_SelectAll = 'Select all rows';
+  GSConst_ExportSelectedExcel = 'Export selected rows to CSV file...';
+  GSConst_ExportAllExcel = 'Export all rows to CSV file...';
+  GSConst_Print = 'Print...';
+  GSConst_ExpandAll = 'Expand all';
+  GSConst_CollapseAll = 'Collapse all';
+  GSConst_CustomizeColumns = 'Customize columns...';
+  GSConst_AdvancedCustomizeColumns = 'Advanced customize of table...';
 
 type
   TSOItemData = record
