@@ -645,6 +645,8 @@ type
 
     // Append a list of rows to the Grid
     procedure AddRows(SOArray: ISuperObject);
+    // Append rows, calling OnBeforePaste for each (to filter row or remove some properties...)
+    procedure PasteRows(Rows: ISuperObject);
 
     // Delete a list of rows from the Grid
     procedure DeleteRows(SOArray: ISuperObject);
@@ -3264,7 +3266,7 @@ begin
     end;
 end;
 
-procedure TSOGrid.DoPaste(Sender: TObject);
+procedure TSOGrid.PasteRows(Rows: ISuperObject);
 var
   row: ISuperObject;
   canpaste: Boolean;
@@ -3275,7 +3277,7 @@ begin
   if Assigned(Datasource) then
     Datasource.Enabled:=false;
   try
-    for row in ClipboardSOData do
+    for row in Rows do
     begin
       if Assigned(FOnBeforePaste) then
         canpaste := FOnBeforePaste(Self,row)
@@ -3297,6 +3299,11 @@ begin
       Datasource.Enabled:=true;
     FocusedRow := row;
   end;
+end;
+
+procedure TSOGrid.DoPaste(Sender: TObject);
+begin
+  PasteRows(ClipboardSOData);
 end;
 
 procedure TSOGrid.DoSelectAllRows(Sender: TObject);
