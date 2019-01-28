@@ -39,6 +39,11 @@
         <UnitName Value="sogrideditor"/>
       </Item5>
     </Files>
+    <i18n>
+      <EnableI18N Value="True"/>
+      <OutDir Value="languages"/>
+      <EnableI18NForLFM Value="True"/>
+    </i18n>
     <RequiredPkgs Count="5">
       <Item1>
         <PackageName Value="pltis_virtualtrees"/>

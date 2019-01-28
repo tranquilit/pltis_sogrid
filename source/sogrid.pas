@@ -13,7 +13,6 @@ uses
   {$IFDEF windows}
   Windows,
   {$ENDIF}
-
   Classes, SysUtils, VirtualTrees, Controls,
   SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages,StdCtrls,Types,IdHTTP,DefaultTranslator;
 
@@ -875,38 +874,38 @@ type
 
   function EncodeURIComponent(const ASrc: AnsiString): AnsiString;
 
+  resourcestring
+    GSConst_NoRecordFind = 'No record found';
+    GSConst_PrintOn = 'Printed on';
+    GSConst_Page = 'Page';
+
+    GSConst_Confirmation = 'Confirm';
+    GSConst_UndoLastUpdate = 'Undo last change';
+    GSConst_RevertRecord = 'Revert to initial record';
+    GSConst_Find = 'Search...';
+    GSConst_FindNext = 'Find next';
+    GSConst_FindReplace = 'Find and replace...';
+    GSConst_Copy = 'Copy';
+    GSConst_CopyCell = 'Copy cell';
+    GSConst_Cut = 'Cut';
+    GSConst_Paste = 'Paste';
+    GSConst_Insert = 'Insert';
+    GSConst_Delete = 'Delete';
+    GSConst_DeleteRows = 'Delete selected rows';
+    GSConst_ConfDeleteRow = 'Confirm the deletion of selected rows ?';
+    GSConst_SelectAll = 'Select all rows';
+    GSConst_ExportSelectedExcel = 'Export selected rows to CSV file...';
+    GSConst_ExportAllExcel = 'Export all rows to CSV file...';
+    GSConst_Print = 'Print...';
+    GSConst_ExpandAll = 'Expand all';
+    GSConst_CollapseAll = 'Collapse all';
+    GSConst_CustomizeColumns = 'Customize columns...';
+    GSConst_AdvancedCustomizeColumns = 'Advanced customize of table...';
+
 implementation
 
 uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms,
     variants,tisstrings,sogrideditor;
-
-resourcestring
-  GSConst_NoRecordFind = 'No record found';
-  GSConst_PrintOn = 'Printed on';
-  GSConst_Page = 'Page';
-
-  GSConst_Confirmation = 'Confirm';
-  GSConst_UndoLastUpdate = 'Undo last change';
-  GSConst_RevertRecord = 'Revert to initial record';
-  GSConst_Find = 'Search...';
-  GSConst_FindNext = 'Find next';
-  GSConst_FindReplace = 'Find and replace...';
-  GSConst_Copy = 'Copy';
-  GSConst_CopyCell = 'Copy cell';
-  GSConst_Cut = 'Cut';
-  GSConst_Paste = 'Paste';
-  GSConst_Insert = 'Insert';
-  GSConst_Delete = 'Delete';
-  GSConst_DeleteRows = 'Delete selected rows';
-  GSConst_ConfDeleteRow = 'Confirm the deletion of selected rows ?';
-  GSConst_SelectAll = 'Select all rows';
-  GSConst_ExportSelectedExcel = 'Export selected rows to CSV file...';
-  GSConst_ExportAllExcel = 'Export all rows to CSV file...';
-  GSConst_Print = 'Print...';
-  GSConst_ExpandAll = 'Expand all';
-  GSConst_CollapseAll = 'Collapse all';
-  GSConst_CustomizeColumns = 'Customize columns...';
-  GSConst_AdvancedCustomizeColumns = 'Advanced customize of table...';
 
 type
   TSOItemData = record
@@ -2707,7 +2706,7 @@ begin
         HMPast := AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), @DoPaste);
       AddItem('-', 0, nil);
       if (toEditable in TreeOptions.MiscOptions) or Assigned(FOnNodesDelete) then
-        HMDelete := AddItem(GSConst_Delete, ShortCut(VK_DELETE, [ssCtrl]), @DoDeleteRows);
+        HMDelete := AddItem(GSConst_DeleteRows, ShortCut(VK_DELETE, [ssCtrl]), @DoDeleteRows);
       if toMultiSelect in TreeOptions.SelectionOptions then
         HMSelAll := AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), @DoSelectAllRows);
       AddItem('-', 0, nil);
