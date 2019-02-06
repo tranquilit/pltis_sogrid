@@ -76,10 +76,6 @@ type
 implementation
 
 uses
-
-{$ifdef windows}
- tiswinhttp,
-{$endif}
  IdHTTP,
  Clipbrd,
  superobject,
@@ -119,8 +115,7 @@ end;
 
 procedure TSOGridEditor.ActDelColumnExecute(Sender: TObject);
 var
-    newidx : TColumnIndex;
-    delcol : TColumnIndex;
+  delcol : TColumnIndex;
 begin
   delcol := ASOGrid.FocusedColumn;
   ASOGrid.Header.Columns.Delete(delcol);
@@ -132,8 +127,6 @@ begin
 end;
 
 procedure TSOGridEditor.ActLoadDataExecute(Sender: TObject);
-label
-  LBL_FAIL;
 const
     HTTP_TIMEOUT_SECONDS : integer = 3;
 var
@@ -166,7 +159,6 @@ end;
 procedure TSOGridEditor.ActPasteJsontemplateExecute(Sender: TObject);
 var
   newData,row,samplerows:ISuperObject;
-  s:String;
 begin
     try
       if Clipboard.HasFormat(ClipbrdJson) then

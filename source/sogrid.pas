@@ -1044,10 +1044,11 @@ begin
       begin
         if paramsStr<>'' then
           paramsStr := paramsStr+'&';
-        paramsStr := key.AsString+'='+EncodeURIComponent(KWArgs.S[key.AsString]);
+        paramsStr := UTF8Encode(key.AsString)+'='+EncodeURIComponent(UTF8Encode(KWArgs.S[key.AsString]));
       end;
       url := url+'?'+paramsStr;
     end;
+
 
     IdHttpClient.Request.ContentType:='application/json';
     IdHttpClient.Response.ContentType:='application/json';
@@ -1133,7 +1134,7 @@ end;
 
 function TSOConnection.LoadData(provider: String; Params: ISuperObject; root:String = 'content'): ISuperObject;
 var
-  args,res,par:String;
+  res,par:String;
   pathargs:TDynStringArray;
   response:ISuperObject;
 begin
@@ -1144,7 +1145,7 @@ begin
   if response=Nil then
   begin
     if Params<>Nil then
-      par := Params.AsJSon
+      par := UTF8Encode(Params.AsJSon)
     else
       par := '""';
     Raise ESONoDataReturned.Create('GET method on server '+ServerURL+'/'+provider+' with params '+Par+' returned no data')
@@ -1160,7 +1161,7 @@ begin
   except
       Result := Nil;
       if Params<>Nil then
-        par := Params.AsJSon
+        par := UTF8Encode(Params.AsJSon)
       else
         par := '""';
       Raise ESONoDataReturned.Create('GET method on server '+ServerURL+'/'+provider+' with params '+Par+' returned bad data : '+copy(res,1,1000))
@@ -1170,19 +1171,17 @@ end;
 function TSOConnection.Refresh(provider: String; Params: ISuperObject
   ): ISuperObject;
 begin
-
+  Result := Nil;
+  raise ENotImplemented.Create('TSOCOnnection.Refresh not implemented');
 end;
 
 function TSOConnection.ApplyUpdates(provider: String; Params: ISuperObject;
   Delta: ISORowChanges): ISORowChanges;
 var
   change:ISORowChange;
-  key:Variant;
-  providerparams:String;
   JSonResult:String;
   SOResult:ISuperObject;
 begin
-  providerparams:='';
   result := TSORowChanges.Create(Delta.Datasource);
   for change in Delta do
   try
@@ -1248,11 +1247,9 @@ end;
 // build a JSON array of all changes
 function TSORowChanges.Delta: ISuperObject;
 var
-  i,updateIdx:Integer;
   rowchange : ISORowChange;
   rowdelta: ISuperObject;
   key:Variant;
-  seq: String;
 
 begin
   result := TSuperObject.Create(stArray);
@@ -1319,11 +1316,9 @@ end;
 
 function TSORowChanges.Flatten: ISORowChanges;
 var
-  i,updateIdx:Integer;
   PropertyName:ISuperObject;
   change,rowchange : ISORowChange;
   key:Variant;
-  seq: String;
 
   // find a concatenated change for the row, or creates a new one by cloning first change
   function GetDeltaForChange(FlatChanges:ISORowChanges;change:ISORowChange):ISORowChange;
@@ -1690,7 +1685,7 @@ end;
 function TSODataSource.GetParamsJSON: String;
 begin
   if Params<>Nil then
-    Result := Params.AsJSon
+    Result := Utf8Encode(Params.AsJSon)
   else
     Result := 'Nil';
 end;
@@ -1820,7 +1815,7 @@ end;
 
 function TSODataSource.UndoSingle(change:ISORowChange;Notify:Boolean=True):ISuperObject;
 var
-  PropertyName,OldValue:ISuperObject;
+  PropertyName:ISuperObject;
 begin
   Result := Nil;
   if change.UpdateType = usDeleted then
@@ -1901,9 +1896,8 @@ end;
 // return count of not applied records (remaining changes)
 // datachanges keeps only the remaining (not applied changes)
 function TSODataSource.ApplyUpdates: Integer;
-var
-  remaining:ISORowChanges;
 begin
+  Result := 0;
   if Assigned(Connection) then
     ChangeLog := Connection.ApplyUpdates(ProviderName,Params,ChangeLog.Flatten)
   else
@@ -1980,10 +1974,6 @@ begin
 end;
 
 procedure TSOGridColumn.Assign(Source: TPersistent);
-
-var
-  OldOptions: TVTColumnOptions;
-
 begin
   if Source is TSOGridColumn then
   begin
@@ -2196,7 +2186,7 @@ end;
 
 procedure TSOGrid.CreateColumnsFromData(FitWidth,AppendMissingAsHidden: Boolean);
 var
-  values,prop,properties,Row,propname:ISuperObject;
+  values,prop,Row,propname:ISuperObject;
   col : TSOGridColumn;
   i:Integer;
   NewColStartIdx:Integer;
@@ -2204,21 +2194,20 @@ begin
   NewColStartIdx := NoColumn;
   BeginUpdate;
   try
-    properties := TSuperObject.Create(stArray);
     values := TSuperObject.Create(stArray);
 
     for row in data do
     begin
       for propname in row.AsObject.GetNames do
       begin
-        col := FindColumnByPropertyName(propname.AsString);
+        col := FindColumnByPropertyName(UTF8Encode(propname.AsString));
         if col = Nil then
         begin
           begin
             col :=Header.Columns.Add as TSOGridColumn;
             NewColStartIdx:=col.Index;
-            col.Text:=propname.AsString;
-            col.PropertyName:=propname.AsString;
+            col.Text:=UTF8Encode(propname.AsString);
+            col.PropertyName:=UTF8Encode(propname.AsString);
             col.Width:= 100;
             if AppendMissingAsHidden then
               col.Options:=col.Options - [coVisible];
@@ -2247,7 +2236,6 @@ end;
 
 procedure TSOGrid.SetSettings(AValue: ISuperObject);
 var
-  i: integer;
   gridcol: TSOGridColumn;
   prop, column, columns: ISuperObject;
   propname : String;
@@ -2259,7 +2247,7 @@ begin
     begin
       for column in Columns do
       begin
-        propname := column.S['propertyname'] ;
+        propname := UTF8Encode(column.S['propertyname']);
         gridcol := FindColumnByPropertyName(propname);
         if gridcol = nil then
         begin
@@ -2498,8 +2486,6 @@ begin
 end;
 
 procedure TSOGrid.SetFocusedRow(AValue: ISuperObject);
-var
-  ANodes:TNodeArray;
 begin
   ClearSelection;
   SetFocusedRowNoClearSelection(AValue);
@@ -2740,7 +2726,6 @@ end;
 
 procedure TSOGrid.DoExit;
 var
-  ami: TMenuItem;
   i: Integer;
 begin
   // Remove auto items.
@@ -2964,7 +2949,7 @@ begin
             cpLess : Result := -1;
             cpEqu  : Result := 0;
             cpGreat : Result := 1;
-            cpError :  Result := strcompare(n1.S[propname],n2.S[propname]);
+            cpError :  Result := strcompare(UTF8Encode(n1.S[propname]),UTF8Encode(n2.S[propname]));
           end;
         end
         else
@@ -3127,7 +3112,7 @@ var
   b64: string;
   inifile: TIniFile;
 begin
-  b64 := EncodeStringBase64(Settings.AsJSon);
+  b64 := EncodeStringBase64(UTF8Encode(Settings.AsJSon));
   IniFile := TIniFile.Create(inifilename);
   try
     inifile.WriteString(Owner.Name, Name, b64);
@@ -3163,7 +3148,7 @@ begin
     st := ContentToUTF8(tstSelected, ';');
     Clipboard.AddFormat(CF_Text, st[1], Length(st));
 
-    st := SelectedRows.AsJSon(True);
+    st := UTF8Encode(SelectedRows.AsJSon(True));
     Clipboard.AddFormat(ClipbrdJson, st[1], Length(st));
 
   finally
@@ -3188,7 +3173,7 @@ begin
       st := Join(#13#10,cells);
       Clipboard.AddFormat(CF_Text, st[1], Length(st)+1);
 
-      st := cells.AsJSon(True);
+      st := UTF8Encode(cells.AsJSon(True));
       Clipboard.AddFormat(ClipbrdJson, st[1], Length(st));
 
     finally
@@ -3851,7 +3836,7 @@ begin
           if values.DataType in [stInt,stDouble] then
             values.AsArray.Add(value.AsString)
           else
-            values.AsArray.Add(UTF8Encode(AnsiQuotedStr(value.AsString,'"')))
+            values.AsArray.Add(UTF8Decode(AnsiQuotedStr(UTF8Encode(value.AsString),'"')))
         end
         else
           values.AsArray.Add('""');
@@ -3896,7 +3881,7 @@ procedure TSOGrid.DoNewText(Node: PVirtualNode; Column: TColumnIndex;
   const AText: string);
 var
   ItemData: PSOItemData;
-  RowData, OldCelldata, NewCellData: ISuperObject;
+  RowData, OldCellData, NewCellData: ISuperObject;
   PropertyName:String;
 begin
   RowData := nil;
