@@ -39,7 +39,7 @@ type
 
   TSOGetKeyEvent = procedure (ARow:ISuperObject;var key:Variant) of object;
 
-  TSONodesEvent = procedure(Sender: TSOGrid; Nodes: ISuperObject) of object;
+  TSONodesEvent = procedure(Sender: TSOGrid; Rows: ISuperObject) of object;
 
   TSOCompareNodesEvent = procedure(Sender: TSOGrid; Node1, Node2: ISuperObject; const Columns: Array of String;
     var Result: Integer) of object;
@@ -1232,7 +1232,7 @@ end;
 
 function SOCompareSeq(so1,so2:Pointer):integer;
 var
-   seq1,seq2:Integer;
+   seq1,seq2:Int64;
 begin
   seq1 := ISuperObject(so1).I['seq'];
   seq2 := ISuperObject(so2).I['seq'];
@@ -3900,12 +3900,12 @@ begin
         begin
           PropertyName:=TSOGridColumn(Header.Columns.Items[Column]).PropertyName;
           if FDatasource<>Nil then
-            FDatasource.UpdateValue(RowData,PropertyName,SO('"'+UTF8Decode(AText)+'"'))
+            FDatasource.UpdateValue(RowData,PropertyName,TSuperObject.Create(UTF8Decode(AText)))
           else
           //standalone grid
           begin
             OldCelldata := RowData[PropertyName];
-            NewCellData := SO('"'+UTF8Decode(AText)+'"');
+            NewCellData := TSuperObject.Create(UTF8Decode(AText));
             RowData[PropertyName] := NewCellData;
           end
         end
@@ -3913,7 +3913,7 @@ begin
         begin
           PropertyName:=DefaultText;
           OldCelldata := RowData[DefaultText];
-          NewCellData := SO(UTF8Decode(AText));
+          NewCellData := TSuperObject.Create(UTF8Decode(AText));
           RowData[DefaultText] := NewCellData;
         end;
       end;
