@@ -372,6 +372,7 @@ type
     function GetTitle: TCaption;
     procedure SetTitle(AValue: TCaption);
   public
+    //constructor Create(aCollection: TCollection); override;
     procedure Assign(Source: TPersistent); override;
   published
     property Text: TCaption read GetTitle write SetTitle;
@@ -1985,7 +1986,13 @@ procedure TSOGridColumn.SetTitle(AValue: TCaption);
 begin
   SetText(AValue);
 end;
-
+{
+constructor TSOGridColumn.Create(aCollection: TCollection);
+begin
+  inherited Create(Collection);
+  Options:=Options+[coWrapCaption];
+end;
+}
 procedure TSOGridColumn.Assign(Source: TPersistent);
 begin
   if Source is TSOGridColumn then
@@ -2352,7 +2359,6 @@ var
 
 begin
   // manage immediate editor
-    if (toEditable in TreeOptions.MiscOptions) then
     with Message do
     begin
       Shift := KeyDataToShiftState(KeyData);
@@ -2380,8 +2386,8 @@ begin
       else
         inherited WMKeyDown(Message);
     end
-    else
-      inherited WMKeyDown(Message);
+    //else
+    //  inherited WMKeyDown(Message);
 end;
 
 
@@ -2630,8 +2636,8 @@ begin
     PaintOptions := PaintOptions - [toShowRoot] +
       [toAlwaysHideSelection, toShowHorzGridLines, toShowVertGridLines, toHideFocusRect];
     SelectionOptions := SelectionOptions + [toExtendedFocus, toSimpleDrawSelection,toRightClickSelect];
-    MiscOptions := MiscOptions + [toEditable, toGridExtensions, toFullRowDrag] -
-      [toWheelPanning];
+    MiscOptions := MiscOptions + [toGridExtensions, toFullRowDrag] -
+      [toWheelPanning,toEditOnClick,toEditOnDblClick];
 
     AutoOptions := AutoOptions + [toAutoSort,toAutoChangeScale];
   end;
@@ -2697,14 +2703,14 @@ begin
       {HMFindReplace := AddItem(GSConst_FindReplace, ShortCut(Ord('H'), [ssCtrl]),
         @DoFindReplace);}
       AddItem('-', 0, nil);
-      if (toEditable in TreeOptions.MiscOptions) and Assigned(FOnCutToClipBoard) then
+      if (not (toReadOnly in TreeOptions.MiscOptions)) and Assigned(FOnCutToClipBoard) then
         HMCut := AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), @DoCutToClipBoard);
       HMCopy := AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), @DoCopyToClipBoard);
       HMCopyCell := AddItem(GSConst_CopyCell, ShortCut(Ord('C'), [ssCtrl,ssShift]), @DoCopyCellToClipBoard);
-      if (toEditable in TreeOptions.MiscOptions) or Assigned(FOnBeforePaste)  then
+      if not (toReadOnly in TreeOptions.MiscOptions) and ((toEditable in TreeOptions.MiscOptions) or Assigned(FOnBeforePaste))  then
         HMPast := AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), @DoPaste);
       AddItem('-', 0, nil);
-      if (toEditable in TreeOptions.MiscOptions) or Assigned(FOnNodesDelete) then
+      if not (toReadOnly in TreeOptions.MiscOptions) or Assigned(FOnNodesDelete) then
         HMDelete := AddItem(GSConst_DeleteRows, ShortCut(VK_DELETE, [ssCtrl]), @DoDeleteRows);
       if toMultiSelect in TreeOptions.SelectionOptions then
         HMSelAll := AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), @DoSelectAllRows);
@@ -4333,12 +4339,12 @@ begin
     FEdit.Text := Text;
     if Assigned(TSOGrid(Tree).OnEditing) then
     begin
-      Allowed:=(toEditable in TSOGrid(Tree).TreeOptions.MiscOptions);
+      Allowed:=(toEditable in TSOGrid(Tree).TreeOptions.MiscOptions) and not (toReadOnly in TSOGrid(Tree).TreeOptions.MiscOptions);
       TSOGrid(Tree).OnEditing(Tree,Node,Column,Allowed);
       FEdit.ReadOnly:=not Allowed;
     end
     else
-      FEdit.ReadOnly:= (toEditable in TSOGrid(Tree).TreeOptions.MiscOptions);
+      FEdit.ReadOnly:= not (toEditable in TSOGrid(Tree).TreeOptions.MiscOptions) or (toReadOnly in TSOGrid(Tree).TreeOptions.MiscOptions);
 
     if Column <= NoColumn then
     begin
