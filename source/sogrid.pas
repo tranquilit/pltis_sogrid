@@ -647,7 +647,7 @@ type
     function NodesForKey(sodata: ISuperObject): TNodeArray;
 
     // Append a list of rows to the Grid
-    procedure AddRows(SOArray: ISuperObject);
+    procedure AddRows(SOArray: ISuperObject;AllowDuplicates:Boolean=False);
     // Append rows, calling OnBeforePaste for each (to filter row or remove some properties...)
     procedure PasteRows(Rows: ISuperObject);
 
@@ -2397,9 +2397,16 @@ var
   ANodes:TNodeArray;
   ANode: PVirtualNode;
   TopRec: ISuperObject;
+  PrevReadOnly: Boolean;
 begin
   if (Data = nil) or (Data.AsArray = nil) then
-    inherited Clear
+  begin
+    PrevReadOnly := toReadOnly in TreeOptions.MiscOptions;
+    TreeOptions.MiscOptions := TreeOptions.MiscOptions - [toReadOnly];
+    inherited Clear;
+    if PrevReadOnly then
+      TreeOptions.MiscOptions := TreeOptions.MiscOptions + [toReadOnly];
+  end
   else
   begin
     //Stores previous focused and selected rows
@@ -2412,8 +2419,15 @@ begin
       AFocused := FocusedRow;
       TopRec := GetNodeSOData(TopNode);
       SetLength(ANodes,0);
-      inherited Clear;
-      RootNodeCount := Data.AsArray.Length;
+      PrevReadOnly := toReadOnly in TreeOptions.MiscOptions;
+      TreeOptions.MiscOptions := TreeOptions.MiscOptions - [toReadOnly];
+      try
+        inherited Clear;
+        RootNodeCount := Data.AsArray.Length;
+      finally
+        if PrevReadOnly then
+          TreeOptions.MiscOptions := TreeOptions.MiscOptions + [toReadOnly];
+      end;
     finally
       try
         // restore selected nodes
@@ -3029,7 +3043,7 @@ begin
   end;
 end;
 
-procedure TSOGrid.AddRows(SOArray: ISuperObject);
+procedure TSOGrid.AddRows(SOArray: ISuperObject;AllowDuplicates:Boolean=False);
 var
   ToAdd    : ISuperObject;
 begin
@@ -3043,7 +3057,9 @@ begin
       Data := TSuperObject.Create(stArray);
     try
       for ToAdd in SOArray do
-        Data.AsArray.Add(ToAdd);
+        // don't add if already in grid...
+        if AllowDuplicates or ((Length(KeyFieldsList)=0) and (Length(NodesForData(ToAdd))=0)) or (Length(NodesForKey(ToAdd))=0) then
+          Data.AsArray.Add(ToAdd);
     finally
       EndUpdate;
       // Load all nodes
@@ -3401,8 +3417,14 @@ begin
 end;
 
 procedure TSOGrid.Clear;
+var
+  PrevReadOnly: Boolean;
 begin
+  PrevReadOnly := toReadOnly in TreeOptions.MiscOptions;
+  TreeOptions.MiscOptions := TreeOptions.MiscOptions - [toReadOnly];
   inherited Clear;
+  if PrevReadOnly then
+    TreeOptions.MiscOptions := TreeOptions.MiscOptions + [toReadOnly];
   FData := nil;
 end;
 
