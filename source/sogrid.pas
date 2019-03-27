@@ -7,6 +7,7 @@ unit sogrid;
 
 {$mode objfpc}{$H+}
 
+
 interface
 
 uses
@@ -2649,7 +2650,7 @@ begin
   begin
     PaintOptions := PaintOptions - [toShowRoot] +
       [toAlwaysHideSelection, toShowHorzGridLines, toShowVertGridLines, toHideFocusRect];
-    SelectionOptions := SelectionOptions + [toExtendedFocus, toSimpleDrawSelection,toRightClickSelect];
+    SelectionOptions := SelectionOptions + [toExtendedFocus, toSimpleDrawSelection, toRightClickSelect];
     MiscOptions := MiscOptions + [toGridExtensions, toFullRowDrag] -
       [toWheelPanning,toEditOnClick,toEditOnDblClick];
 
@@ -4009,9 +4010,9 @@ begin
 
     if not Handled then
     begin
-      //lcl: probably not necessary
-      //if (Message.Msg in [WM_NCLBUTTONDOWN, WM_NCRBUTTONDOWN, WM_NCMBUTTONDOWN]) and not Focused and CanFocus then
-      //  SetFocus;
+      //lcl: probably  necessary
+      if (Message.Msg in [WM_NCLBUTTONDOWN, WM_NCRBUTTONDOWN, WM_NCMBUTTONDOWN]) and not Focused and CanFocus then
+        SetFocus;
       inherited;
     end
     //// BUGFIX Tranquil IT Systems.
