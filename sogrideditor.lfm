@@ -7,14 +7,16 @@ object SOGridEditor: TSOGridEditor
   ClientHeight = 293
   ClientWidth = 682
   OnCreate = FormCreate
-  LCLVersion = '1.3'
+  LCLVersion = '1.8.4.0'
   object ASOGrid: TSOGrid
     Left = 0
     Height = 189
     Top = 58
     Width = 484
+    ShowAdvancedColumnsCustomize = False
     Align = alClient
     Color = clWhite
+    Colors.UnfocusedColor = clMedGray
     EditDelay = 200
     Header.AutoSizeIndex = 0
     Header.Columns = <>

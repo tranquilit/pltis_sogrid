@@ -3479,10 +3479,12 @@ begin
     With TSOGridEditor.Create(Application) do
     try
         target := self;
+        asogrid.Header.Height:=target.Height;
         for i:=0 to target.Header.Columns.count-1 do
         begin
            col := ASOGrid.Header.Columns.Add as TSOGridColumn;
            col.Assign(target.Header.Columns[i]);
+           col.Options:=target.Header.Columns[i].Options;
         end;
         asogrid.Settings := target.Settings;
         ASOGrid.Datasource := target.Datasource;

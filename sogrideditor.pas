@@ -121,7 +121,7 @@ begin
   ASOGrid.Header.Columns.Delete(delcol);
   if ASOGrid.Header.Columns.IsValidColumn(delcol) then
     ASOGrid.FocusedColumn:=delcol
-  else
+  else if ASOGrid.Header.Columns.GetLastVisibleColumn>=0 then
     ASOGrid.FocusedColumn:=ASOGrid.Header.Columns.GetLastVisibleColumn;
 
 end;
