@@ -2848,10 +2848,10 @@ var
 begin
   if AMode in [lapAutoAdjustForDPI] then
   begin
-    Header.MaxHeight:=round(Header.MaxHeight * AXProportion)-Header.MaxHeight;
-    Header.DefaultHeight:=round(Header.DefaultHeight * AXProportion)-Header.DefaultHeight;
-    Header.Height:=round(Header.Height * AXProportion)-Header.Height;
-    Header.MinHeight:=round(Header.MinHeight * AXProportion)-Header.MinHeight;
+    Header.MaxHeight:=round(Header.MaxHeight * AXProportion)-Header.MaxHeight+1;
+    Header.DefaultHeight:=round(Header.DefaultHeight * AXProportion)-Header.DefaultHeight+1;
+    Header.Height:=round(Header.Height * AXProportion)-Header.Height+1;
+    Header.MinHeight:=round(Header.MinHeight * AXProportion)-Header.MinHeight+1;
 
     for i := 0 to header.Columns.Count-1 do
     begin
