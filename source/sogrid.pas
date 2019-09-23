@@ -2848,10 +2848,10 @@ var
 begin
   if AMode in [lapAutoAdjustForDPI] then
   begin
-    Header.MaxHeight:=round(Header.MaxHeight * AXProportion)-Header.MaxHeight+1;
-    Header.DefaultHeight:=round(Header.DefaultHeight * AXProportion)-Header.DefaultHeight+1;
-    Header.Height:=round(Header.Height * AXProportion)-Header.Height+1;
-    Header.MinHeight:=round(Header.MinHeight * AXProportion)-Header.MinHeight+1;
+    Header.MaxHeight:=min(18,round(Header.MaxHeight * AXProportion)-Header.MaxHeight+1);
+    Header.DefaultHeight:=min(18,round(Header.DefaultHeight * AXProportion)-Header.DefaultHeight+1);
+    Header.Height:=min(18,round(Header.Height * AXProportion)-Header.Height+1);
+    Header.MinHeight:=min(18,round(Header.MinHeight * AXProportion)-Header.MinHeight+1);
 
     for i := 0 to header.Columns.Count-1 do
     begin
@@ -2877,10 +2877,10 @@ begin
 
     if DoScale then
     begin
-      Header.MaxHeight:=  MulDiv(Header.MaxHeight, M, D);
-      Header.DefaultHeight:=MulDiv(Header.DefaultHeight, M, D);
-      Header.Height:=MulDiv(Header.Height, M, D);
-      Header.MinHeight:=MulDiv(Header.MinHeight, M, D);
+      Header.MaxHeight:= min(18,MulDiv(Header.MaxHeight, M, D));
+      Header.DefaultHeight:=min(18,MulDiv(Header.DefaultHeight, M, D));
+      Header.Height:=min(18,MulDiv(Header.Height, M, D));
+      Header.MinHeight:=min(18,MulDiv(Header.MinHeight, M, D));
 
       for i := 0 to header.Columns.Count-1 do
       begin
