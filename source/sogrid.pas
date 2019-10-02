@@ -2661,7 +2661,9 @@ begin
     hoShowSortGlyphs, hoVisible,hoHeaderClickAutoSort];
   Header.Style := hsFlatButtons;
   Header.DefaultHeight:=18;
+  Header.MinHeight:=18;
   Header.Height:=18;
+  Header.MaxHeight:=10000;
 
   DefaultNodeHeight:=18;
 
@@ -2848,10 +2850,10 @@ var
 begin
   if AMode in [lapAutoAdjustForDPI] then
   begin
-    Header.MaxHeight:=min(18,round(Header.MaxHeight * AXProportion)-Header.MaxHeight+1);
-    Header.DefaultHeight:=min(18,round(Header.DefaultHeight * AXProportion)-Header.DefaultHeight+1);
-    Header.Height:=min(18,round(Header.Height * AXProportion)-Header.Height+1);
-    Header.MinHeight:=min(18,round(Header.MinHeight * AXProportion)-Header.MinHeight+1);
+    Header.MinHeight:=max(18,round(Header.MinHeight * AXProportion)-Header.MinHeight+1);
+    Header.MaxHeight:=max(18,round(Header.MaxHeight * AXProportion)-Header.MaxHeight+1);
+    Header.DefaultHeight:=max(18,round(Header.DefaultHeight * AXProportion)-Header.DefaultHeight+1);
+    Header.Height:=max(18,round(Header.Height * AXProportion)-Header.Height+1);
 
     for i := 0 to header.Columns.Count-1 do
     begin
