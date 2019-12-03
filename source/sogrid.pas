@@ -180,7 +180,7 @@ type
     property Items[Index : Integer] : ISORowChange read Get write Put;default;
     //Add a new change to the list
     function AddChange(UpdateType:TSOUpdateStatus;Row:ISuperObject=nil;OldValues:ISuperObject=Nil;NewValues:ISuperObject=Nil):integer;
-    // Create a new list of changes grouping all changes of each row into one delta
+    // Remove all changes related to one row
     procedure RemoveRowChanges(row:ISuperObject);
     // return list of changes as a JSon object
     function Flatten:ISORowChanges;
@@ -489,6 +489,7 @@ type
     FOnCutToClipBoard: TNotifyEvent;
     FOnNodesDelete: TSONodesEvent;
     FOnSOCompareNodes: TSOCompareNodesEvent;
+    FParentProperty: String;
     FShowAdavancedColumnsCustomize: Boolean;
     FShowAdvancedColumnsCustomize: Boolean;
     FTextFound: boolean;
@@ -535,6 +536,7 @@ type
     procedure SetOnCutToClipBoard(AValue: TNotifyEvent);
     procedure SetOptions(const Value: TStringTreeOptions);
     function GetOptions: TStringTreeOptions;
+    procedure SetParentProperty(AValue: String);
     procedure SetSelectedRows(AValue: ISuperObject);
     procedure SetSettings(AValue: ISuperObject);
     procedure SetShowAdvancedColumnsCustomize(AValue: Boolean);
@@ -628,6 +630,7 @@ type
     function GetNodeSOData(Node: PVirtualNode): ISuperObject;
     procedure LoadData;
     property Data: ISuperObject read GetData write SetData;
+    property ParentProperty: String read FParentProperty write SetParentProperty;
     property SelectedRows: ISuperObject read GetSelectedRows write SetSelectedRows;
     property FocusedRow:ISuperObject read GetFocusedRow write SetFocusedRow;
     function CheckedRows: ISuperObject;
@@ -915,9 +918,9 @@ uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms,
 type
   TSOItemData = record
     JSONData: ISuperObject;
+    JSONChildren: ISuperObject;
   end;
   PSOItemData = ^TSOItemData;
-
 
   function EncodeURIComponent(const ASrc: Ansistring): AnsiString;
   const
@@ -1702,7 +1705,7 @@ end;
 
 function TSODataSource.GetActive: Boolean;
 begin
-  Result := Data<>Nil;
+  Result := FData <> Nil;
 end;
 
 function TSODataSource.GetData: ISuperObject;
@@ -1716,21 +1719,25 @@ procedure TSODataSource.SetConnection(AValue: TSOConnection);
 begin
   if FConnection=AValue then Exit;
   FConnection:=AValue;
-  Data := Nil;
+  Reset;
 end;
 
 procedure TSODataSource.Reset;
 begin
-  Data := Nil;
+  FData := Nil;
+  FChangeLog := TSORowChanges.Create(Self);
+  NotifyChange(deDataSetChange,Nil);
 end;
 
 procedure TSODataSource.SetActive(AValue: Boolean);
 begin
-  if AValue and (Data=Nil) then
-    LoadDataset
+  if AValue then
+  begin
+    if (FData=Nil) then
+      LoadDataset;
+  end
   else
-  if not AValue then
-    Data := Nil;
+    Reset;
 end;
 
 procedure TSODataSource.DeleteRecord(row: ISuperObject);
@@ -2146,6 +2153,13 @@ begin
   Result := TStringTreeOptions(inherited TreeOptions);
 end;
 
+procedure TSOGrid.SetParentProperty(AValue: String);
+begin
+  if FParentProperty=AValue then Exit;
+  FParentProperty:=AValue;
+  LoadData;
+end;
+
 // select all the nodes matching the AValue Array list of ISuperObject
 // if
 procedure TSOGrid.SetSelectedRows(AValue: ISuperObject);
@@ -2298,11 +2312,11 @@ begin
     if AValue.AsObject.Find('sortdirection', prop) then
       Header.SortDirection := TSortDirection(prop.AsInteger);
 
-    //if AValue.AsObject.Find('headerheight', prop) then
-    //  Header.Height := prop.AsInteger;
+    if AValue.AsObject.Find('headerheight', prop) then
+      Header.Height := prop.AsInteger;
 
-    //if AValue.AsObject.Find('defaultnodeheight', prop) then
-    //  DefaultNodeHeight := prop.AsInteger;
+    if AValue.AsObject.Find('defaultnodeheight', prop) then
+      DefaultNodeHeight := prop.AsInteger;
 
   end;
 end;
@@ -2424,7 +2438,15 @@ begin
       TreeOptions.MiscOptions := TreeOptions.MiscOptions - [toReadOnly];
       try
         inherited Clear;
-        RootNodeCount := Data.AsArray.Length;
+        if ParentProperty='' then
+          RootNodeCount := Data.AsArray.Length
+        else
+        begin
+          // find root nodes (Parent value is Nil or not found in current data array)
+          // RootData := GetSORootNodes(Data,ParentRow);
+          // RootNodeCount := RootData.AsArray.Length;
+          // For each root node, set SOChildren recursively
+        end;
       finally
         if PrevReadOnly then
           TreeOptions.MiscOptions := TreeOptions.MiscOptions + [toReadOnly];
@@ -2504,13 +2526,16 @@ begin
   if Assigned(FDatasource) then
     FDataSource.UnregisterView(Self);
   FDataSource := AValue;
+
   if Assigned(FDatasource) then
   begin
     FDataSource.RegisterView(Self);
     // be sure to release interface
     FData := Nil;
     LoadData;
-  end;
+  end
+  else
+    Clear;
 end;
 
 procedure TSOGrid.SetFocusedColumnObject(AValue: TSOGridColumn);
@@ -2561,8 +2586,8 @@ begin
   Result := TSuperObject.Create;
   Result.I['sortcolumn'] := Header.SortColumn;
   Result.I['sortdirection'] := integer(Header.SortDirection);
-  //Result.I['headerheight'] := integer(Header.Height);
-  //Result.I['defaultnodeheight'] := integer(DefaultNodeHeight);
+  Result.I['headerheight'] := integer(Header.Height);
+  Result.I['defaultnodeheight'] := integer(DefaultNodeHeight);
   Result['columns'] := TSuperObject.Create(stArray);
   for i := 0 to Header.Columns.Count - 1 do
   begin
@@ -2663,7 +2688,7 @@ begin
   Header.DefaultHeight:=18;
   Header.MinHeight:=18;
   Header.Height:=18;
-  Header.MaxHeight:=10000;
+  Header.MaxHeight:=100;
 
   DefaultNodeHeight:=18;
 
@@ -2685,16 +2710,20 @@ procedure TSOGrid.FillMenu(LocalMenu: TPopupMenu);
   var
     AMI: TMenuItem;
   begin
-    AMI := TMenuItem.Create(LocalMenu);
-    with AMI do
+    AMI := LocalMenu.Items.Find(ACaption);
+    if AMI = Nil then
     begin
-      Caption := ACaption;
-      ShortCut := AShortcut;
-      OnClick := AEvent;
-      // to delete them
-      Tag := 250;
+      AMI := TMenuItem.Create(LocalMenu);
+      with AMI do
+      begin
+        Caption := ACaption;
+        ShortCut := AShortcut;
+        OnClick := AEvent;
+        // to delete them
+        Tag := 250;
+      end;
+      LocalMenu.Items.Add(AMI);
     end;
-    LocalMenu.Items.Add(AMI);
     Result := AMI.Handle;
   end;
 
@@ -2745,11 +2774,11 @@ begin
         @DoCollapseAll);}
       AddItem('-', 0, nil);
       HMCustomize := AddItem(GSConst_CustomizeColumns, 0, @DoCustomizeColumns);
-      if (csDesigning in ComponentState) or ShowAdvancedColumnsCustomize then
-        HMAdvancedCustomize := AddItem(GSConst_AdvancedCustomizeColumns, 0, @DoAdvancedCustomizeColumns);
     finally
       FMenuFilled := True;
     end;
+    if (csDesigning in ComponentState) or ShowAdvancedColumnsCustomize then
+      HMAdvancedCustomize := AddItem(GSConst_AdvancedCustomizeColumns, 0, @DoAdvancedCustomizeColumns);
 end;
 
 procedure TSOGrid.DoEnter;
@@ -3775,7 +3804,7 @@ end;
 function TSOGrid.GetData: ISuperObject;
 begin
   if Assigned(FDatasource) then
-    Result := FDatasource.Data
+    Result := FDatasource.FData
   else
   begin
     // Side effect if we use Data = Nil as an indicator of lazy loading.
