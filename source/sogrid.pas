@@ -346,7 +346,7 @@ type
     property Root:String read FRoot write FRoot;
 
     //True if Data contains rows else False : data is empty
-    property Active:Boolean read GetActive write SetActive;
+    property Active:Boolean read GetActive write SetActive Stored False default False;
 
     //if True, attached views are notified from changes through OnDataChange
     property Enabled: Boolean read GetEnabled write SetEnabled default True;
