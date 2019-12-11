@@ -17,6 +17,8 @@ type
         ActDelColumn: TAction;
         ActCopySettings: TAction;
         ActAddColumns: TAction;
+        ActApplyUpdates: TAction;
+        ActLoadRefresh: TAction;
         ActRemoveAllColumns: TAction;
         ActpasteCSV: TAction;
         ActUpdateColumn: TAction;
@@ -28,6 +30,8 @@ type
         Button3: TButton;
         Button4: TButton;
         Button5: TButton;
+        Button6: TButton;
+        Button7: TButton;
         ButtonPanel1: TButtonPanel;
         cbEditorType: TComboBox;
         EdColumnTitle: TLabeledEdit;
@@ -49,9 +53,13 @@ type
         PopupMenu1: TPopupMenu;
         procedure ActAddColumnExecute(Sender: TObject);
         procedure ActAddColumnsExecute(Sender: TObject);
+        procedure ActApplyUpdatesExecute(Sender: TObject);
+        procedure ActApplyUpdatesUpdate(Sender: TObject);
         procedure ActDelColumnExecute(Sender: TObject);
         procedure ActLoadDataExecute(Sender: TObject);
         procedure ActLoadDataUpdate(Sender: TObject);
+        procedure ActLoadRefreshExecute(Sender: TObject);
+        procedure ActLoadRefreshUpdate(Sender: TObject);
         procedure ActpasteCSVExecute(Sender: TObject);
         procedure ActPasteJsontemplateExecute(Sender: TObject);
         procedure ActRemoveAllColumnsExecute(Sender: TObject);
@@ -90,7 +98,17 @@ const
 
 procedure TSOGridEditor.ActLoadDataUpdate(Sender: TObject);
 begin
-    ActLoadData.Enabled := EdJSONUrl.text<>'';
+  ActLoadData.Enabled := (EdJSONUrl.text<>'') and (ASOGrid.Datasource=Nil);
+end;
+
+procedure TSOGridEditor.ActLoadRefreshExecute(Sender: TObject);
+begin
+  ASOGrid.Datasource.Refresh;
+end;
+
+procedure TSOGridEditor.ActLoadRefreshUpdate(Sender: TObject);
+begin
+  ActLoadRefresh.Enabled := ASOGrid.Datasource <> Nil;
 end;
 
 procedure TSOGridEditor.ActpasteCSVExecute(Sender: TObject);
@@ -111,6 +129,16 @@ end;
 procedure TSOGridEditor.ActAddColumnsExecute(Sender: TObject);
 begin
   ASOGrid.CreateColumnsFromData(False,False);
+end;
+
+procedure TSOGridEditor.ActApplyUpdatesExecute(Sender: TObject);
+begin
+  ASOGrid.Datasource.ApplyUpdates;
+end;
+
+procedure TSOGridEditor.ActApplyUpdatesUpdate(Sender: TObject);
+begin
+  ActApplyUpdates.Enabled:=(ASOGrid.Datasource<>Nil) and (ASOGrid.Datasource.ChangeCount>0);
 end;
 
 procedure TSOGridEditor.ActDelColumnExecute(Sender: TObject);

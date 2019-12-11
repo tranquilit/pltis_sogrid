@@ -170,9 +170,10 @@ type
   ISORowChanges = interface(IInterfaceList)
     ['{310B128D-2751-4860-BC15-2F1AA1A0B2B7}']
     function Get(i : Integer) : ISORowChange;
-    function GetDataSource: TSODataSource;
     procedure Put(i : Integer;item : ISORowChange);
     function GetEnumerator: TSORowChangesEnumerator;
+
+    function GetDataSource: TSODataSource;
 
     //associated datasource for flatten operations
     property Datasource:TSODataSource read GetDataSource;
@@ -207,8 +208,8 @@ type
   private
     Fdatasource:TSODataSource;
     function Get(i : Integer) : ISORowChange;
-    function GetDataSource: TSODataSource;
     procedure Put(i : Integer;item : ISORowChange);
+    function GetDataSource: TSODataSource;
 
   public
     constructor Create(adatasource:TSODatasource);
@@ -282,6 +283,8 @@ type
     // log of all changes for Applyupdates, UndoLastChange etc...:
     property ChangeLog:ISORowChanges read FChangeLog write SetDataChanges;
 
+    function BuildDeltaPacket: ISuperObject;
+
     // add a component to the list of notified objects
     procedure RegisterView(AComponent:TComponent);
     procedure UnregisterView(AComponent:TComponent);
@@ -331,6 +334,7 @@ type
 
     //get a unique key for the row
     function GetKey(Row:ISuperObject):Variant; virtual;
+    function GetKeyProperty:String; virtual;
 
     //returns the row associated with a key
     function FindKey(key:Variant):ISuperObject; virtual;
@@ -1278,7 +1282,7 @@ begin
     if VarIsNull(Key) then
       key := Fdatasource.GetKey(rowchange.Row);
     if not VarIsNull(key) then
-      rowdelta.AsObject['key'] := SO(key);
+      rowdelta.AsObject['id'] := SO(key);
     Result.AsArray.Add(rowdelta);
   end;
 end;
@@ -1288,14 +1292,14 @@ begin
   result := inherited Get(i) as ISORowChange;
 end;
 
-function TSORowChanges.GetDataSource: TSODataSource;
-begin
-  Result := Fdatasource;
-end;
-
 procedure TSORowChanges.Put(i: Integer; item: ISORowChange);
 begin
   inherited Put(i,item);
+end;
+
+function TSORowChanges.GetDataSource: TSODataSource;
+begin
+  Result := Fdatasource;
 end;
 
 constructor TSORowChanges.Create(adatasource: TSODatasource);
@@ -1443,6 +1447,10 @@ end;
 function TSORowChange.GetKey: Variant;
 begin
   Result := FKey;
+  if VarIsNull(Result) and Assigned(OldValues) and OldValues.AsObject.Exists('id') then
+    Result := OldValues.I['id'];
+  if VarIsNull(Result) and Assigned(NewValues) and NewValues.AsObject.Exists('id') then
+    Result := NewValues.I['id'];
 end;
 
 function TSORowChange.GetNewValues: ISuperObject;
@@ -1764,10 +1772,16 @@ begin
   UpdateRecord(row,Newvalues);
 end;
 
+function TSODataSource.GetKeyProperty:String;
+begin
+  Result := 'id';
+end;
+
 procedure TSODataSource.UpdateRecord(row: ISuperObject;
   NewValues: ISuperObject);
 var
   PropertyName,oldvalues,rowbefore:ISuperObject;
+  SPropertyName:String;
 begin
   oldValues := TSuperObject.Create;
   for PropertyName in NewValues.AsObject.GetNames do
@@ -1788,7 +1802,7 @@ begin
       // find updates
       for PropertyName in row.AsObject.GetNames do
       begin
-        if row.AsObject[PropertyName.AsString].compare(rowbefore.AsObject[PropertyName.AsString])<>cpEqu then
+        if (row.AsObject[PropertyName.AsString].compare(rowbefore.AsObject[PropertyName.AsString])<>cpEqu) or (PropertyName.AsString=GetKeyProperty) then
         begin
           // add oldvalue if not already there
           if not oldvalues.AsObject.Exists(PropertyName.AsString) then
@@ -1905,13 +1919,48 @@ begin
   end;
 end;
 
+function TSODataSource.BuildDeltaPacket: ISuperObject;
+var
+  seq: Integer;
+  Change: ISORowChange;
+  SOChange, k,ov,nv: ISuperObject;
+begin
+  seq := 0;
+  Result := TSuperObject.Create(stArray);
+  //for Change in ChangeLog.Flatten do
+  for Change in ChangeLog do
+  begin
+    SOChange := TSuperObject.Create(stObject);
+    Result.AsArray.Add(SOChange);
+    SOChange.I['seq'] := seq;
+    SOChange.I['id'] := Change.Key;
+    SOChange.I['update_type'] := integer(Change.UpdateType);
+    if (Change.UpdateType in [usModified,usInserted]) then
+    begin
+      if Change.UpdateType=usModified then
+        SOChange['old_values'] := Change.OldValues;
+      SOChange['new_values'] := Change.NewValues;
+    end;
+    inc(seq);
+  end;
+end;
+
 // return count of not applied records (remaining changes)
 // datachanges keeps only the remaining (not applied changes)
 function TSODataSource.ApplyUpdates: Integer;
+var
+  ReturnStr: String;
+  ReturnPacket,DeltaPacket: ISuperObject;
 begin
   Result := 0;
   if Assigned(Connection) then
-    ChangeLog := Connection.ApplyUpdates(ProviderName,Params,ChangeLog.Flatten)
+  begin
+    DeltaPacket := BuildDeltaPacket;
+    //DeltaPacket := ChangeLog.Flatten.Delta;
+    ReturnStr := Connection.CallServerMethod('POST',[ProviderName],Nil,DeltaPacket);
+    ReturnPacket := SO(ReturnStr);
+    //ChangeLog := Connection.ApplyUpdates(ProviderName,Params,DeltaPacket)
+  end
   else
     raise ESOUndefinedConnection.Create('Datasource is not connected to a connection component');
 end;
@@ -1952,14 +2001,15 @@ begin
     FOnGetKey(Row,Result)
   else
   begin
-    if not ObjectIsNull(Row['id']) then
-      result := Row.I['id']
+    if not ObjectIsNull(Row[GetKeyProperty()]) then
+      result := Row.I[GetKeyProperty()]
   end;
 end;
 
 function TSODataSource.FindKey(key: Variant): ISuperObject;
 var
   rk : Variant;
+
 begin
   result := Nil;
   if (Data=Nil) or VarIsNull(key) then
@@ -2736,11 +2786,9 @@ begin
 
       if Assigned(FDatasource) then
       begin
-        if (HMUndo = 0) then
-          HMUndo := AddItem(GSConst_UndoLastUpdate, ShortCut(Ord('Z'), [ssCtrl]),
+        HMUndo := AddItem(GSConst_UndoLastUpdate, ShortCut(Ord('Z'), [ssCtrl]),
             @DoUndoLastUpdate);
-        if (HMRevert = 0) then
-          HMRevert := AddItem(GSConst_RevertRecord, 0, @DoRevertRecord);
+        HMRevert := AddItem(GSConst_RevertRecord, 0, @DoRevertRecord);
         AddItem('-', 0, nil);
       end;
 
