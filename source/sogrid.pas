@@ -1237,6 +1237,7 @@ begin
   newChange := TSORowChange.Create;
   newChange.UpdateType:=UpdateType;
   newChange.Row := Row;
+  newChange.Key := Null;
   newChange.OldValues := OldValues;
   newChange.NewValues := NewValues;
   result := Add(newChange);
@@ -1268,11 +1269,7 @@ begin
   for rowchange in Self do
   begin
     rowdelta := TSuperObject.Create;
-    case rowchange.UpdateType of
-      usInserted : rowdelta.S['update_type'] := 'insert';
-      usModified : rowdelta.S['update_type'] := 'update';
-      usDeleted : rowdelta.S['update_type'] := 'delete';
-    end;
+    rowdelta.I['update_type'] := Integer(rowchange.UpdateType);
     rowdelta['old'] := rowchange.OldValues;
     rowdelta['new'] := rowchange.NewValues;
 
@@ -1447,9 +1444,9 @@ end;
 function TSORowChange.GetKey: Variant;
 begin
   Result := FKey;
-  if VarIsNull(Result) and Assigned(OldValues) and OldValues.AsObject.Exists('id') then
+  if (VarIsNull(Result) or VarIsEmpty(Result)) and Assigned(OldValues) and OldValues.AsObject.Exists('id') then
     Result := OldValues.I['id'];
-  if VarIsNull(Result) and Assigned(NewValues) and NewValues.AsObject.Exists('id') then
+  if (VarIsNull(Result) or VarIsEmpty(Result)) and Assigned(NewValues) and NewValues.AsObject.Exists('id') then
     Result := NewValues.I['id'];
 end;
 
@@ -1924,6 +1921,7 @@ var
   seq: Integer;
   Change: ISORowChange;
   SOChange, k,ov,nv: ISuperObject;
+  key: Variant;
 begin
   seq := 0;
   Result := TSuperObject.Create(stArray);
@@ -1933,7 +1931,6 @@ begin
     SOChange := TSuperObject.Create(stObject);
     Result.AsArray.Add(SOChange);
     SOChange.I['seq'] := seq;
-    SOChange.I['id'] := Change.Key;
     SOChange.I['update_type'] := integer(Change.UpdateType);
     if (Change.UpdateType in [usModified,usInserted]) then
     begin
@@ -1941,6 +1938,14 @@ begin
         SOChange['old_values'] := Change.OldValues;
       SOChange['new_values'] := Change.NewValues;
     end;
+
+    key := Null;
+    if (Change.UpdateType=usModified) and (Change.OldValues<>Nil) then
+      key := GetKey(Change.OldValues);
+    if VarIsNull(Key) then
+      key := GetKey(Change.Row);
+    if not VarIsNull(key) then
+      SOChange.AsObject.I['id'] := key;
     inc(seq);
   end;
 end;
@@ -2001,8 +2006,10 @@ begin
     FOnGetKey(Row,Result)
   else
   begin
-    if not ObjectIsNull(Row[GetKeyProperty()]) then
-      result := Row.I[GetKeyProperty()]
+    if not Row.AsObject.Exists(GetKeyProperty()) then
+      result := Row[GetKeyProperty()]
+    else
+      Raise Exception.create('No key');
   end;
 end;
 
