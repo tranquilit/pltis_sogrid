@@ -653,6 +653,7 @@ type
     function NodesForData(sodata: ISuperObject): TNodeArray;
     // returns list of nodes matching the key fields (from grid's KeyFieldsNames property) of sodata
     function NodesForKey(sodata: ISuperObject): TNodeArray;
+    function NodesForKeyStr(Keyname,Keyvalue: String): TNodeArray;
 
     // Append a list of rows to the Grid
     procedure AddRows(SOArray: ISuperObject;AllowDuplicates:Boolean=False);
@@ -2239,18 +2240,26 @@ begin
 
     NewFocusedNode:=Nil;
 
-    for ARec in AValue do
-    begin
-      if Length(KeyFieldsList)>0 then
-        ANodes := NodesForKey(ARec)
-      else
-        ANodes := NodesForData(ARec);
+    BeginUpdate;
+    try
+      for ARec in AValue do
+      begin
+        if Length(KeyFieldsList)=1 then
+          ANodes := NodesForKeyStr(KeyFieldsList[0],ARec.S[KeyFieldsList[0]])
+        else if Length(KeyFieldsList)>0 then
+          ANodes := NodesForKey(ARec)
+        else
+          ANodes := NodesForData(ARec);
 
-      for ANode in ANodes do begin
-        if ARec = OldFocused then
-          NewFocusedNode := ANode;
-        Selected[ANode] := True;
+        for ANode in ANodes do begin
+          if ARec = OldFocused then
+            NewFocusedNode := ANode;
+          Selected[ANode] := True;
+        end;
       end;
+
+    finally
+      EndUpdate;
     end;
 
     // Focused the last selected node.
@@ -2485,7 +2494,7 @@ begin
     BeginUpdate;
     try
       if Length(FKeyFieldsList) > 0 then
-        ASelected := SelectedRows
+        ASelected := ExtractFields(SelectedRows,FKeyFieldsList)
       else
         ASelected := Nil;
       AFocused := FocusedRow;
@@ -3129,6 +3138,26 @@ begin
     p := GetNext(p,True);
   end;
 end;
+
+function TSOGrid.NodesForKeyStr(Keyname,Keyvalue: String): TNodeArray;
+var
+  ASO: ISuperObject;
+  p: PVirtualNode;
+begin
+  SetLength(Result, 0);
+  p := GetFirst(True);
+  while (p <> nil) do
+  begin
+    ASO := GetNodeSOData(p);
+    if (ASO <> nil) and (ASO.S[Keyname] = KeyValue ) then
+    begin
+      SetLength(Result, length(Result) + 1);
+      Result[length(Result) - 1] := p;
+    end;
+    p := GetNext(p,True);
+  end;
+end;
+
 
 procedure TSOGrid.AddRows(SOArray: ISuperObject;AllowDuplicates:Boolean=False);
 var
