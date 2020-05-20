@@ -4128,8 +4128,10 @@ begin
     if not Handled then
     begin
       //lcl: probably  necessary
-      if (Message.Msg in [WM_NCLBUTTONDOWN, WM_NCRBUTTONDOWN, WM_NCMBUTTONDOWN]) and not Focused and CanFocus then
+      {$IFNDEF UNIX}
+	  if (Message.Msg in [WM_NCLBUTTONDOWN, WM_NCRBUTTONDOWN, WM_NCMBUTTONDOWN]) and not Focused and CanFocus then
         SetFocus;
+	  {$ENDIF}
       inherited;
     end
     //// BUGFIX Tranquil IT Systems.
