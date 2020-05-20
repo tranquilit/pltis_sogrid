@@ -14,7 +14,7 @@ uses
   {$IFDEF windows}
   Windows,
   {$ENDIF}
-  Classes, SysUtils, VirtualTrees, Controls,
+  Classes, SysUtils, VirtualTrees, Controls, math,
   SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages,StdCtrls,Types,IdHTTP,DefaultTranslator;
 
 type
@@ -3804,10 +3804,10 @@ var
 
 begin
   //On part de la ligne en cours
-	if (TextToFind = '') then
-		FindDlg.Execute
-	else
-	try
+    if (TextToFind = '') then
+        FindDlg.Execute
+    else
+    try
     p := FocusedNode;
     TextFound := False;
 
@@ -4129,9 +4129,9 @@ begin
     begin
       //lcl: probably  necessary
       {$IFNDEF UNIX}
-	  if (Message.Msg in [WM_NCLBUTTONDOWN, WM_NCRBUTTONDOWN, WM_NCMBUTTONDOWN]) and not Focused and CanFocus then
+      if (Message.Msg in [WM_NCLBUTTONDOWN, WM_NCRBUTTONDOWN, WM_NCMBUTTONDOWN]) and not Focused and CanFocus then
         SetFocus;
-	  {$ENDIF}
+      {$ENDIF}
       inherited;
     end
     //// BUGFIX Tranquil IT Systems.
