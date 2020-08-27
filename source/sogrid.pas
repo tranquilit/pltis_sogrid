@@ -494,6 +494,7 @@ type
     FOnNodesDelete: TSONodesEvent;
     FOnSOCompareNodes: TSOCompareNodesEvent;
     FParentProperty: String;
+    FSelectedAndTotalLabel: TLabel;
     FShowAdavancedColumnsCustomize: Boolean;
     FShowAdvancedColumnsCustomize: Boolean;
     FTextFound: boolean;
@@ -542,6 +543,7 @@ type
     function GetOptions: TStringTreeOptions;
     procedure SetParentProperty(AValue: String);
     procedure SetSelectedRows(AValue: ISuperObject);
+    procedure SetSelectedAndTotalLabel(AValue: TLabel);
     procedure SetSettings(AValue: ISuperObject);
     procedure SetShowAdvancedColumnsCustomize(AValue: Boolean);
 
@@ -628,6 +630,8 @@ type
 
     procedure ChangeScale(M, D: Integer); override;
 
+
+    procedure DoChange(Node: PVirtualNode); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -697,6 +701,9 @@ type
 
     // Creates a temporary CSV file and open it in the default app
     procedure ExportExcel(Prefix:String='';Selection: TVSTTextSourceType=tstAll; Separator:Char=#9);
+
+    // Force refresh the "Selected / Total : %d/%d" label
+    procedure UpdateSelectedAndTotalLabel;
 
   published
     property OnGetText: TSOGridGetText read FOnGetText write FOnGetText;
@@ -771,6 +778,7 @@ type
     property ParentShowHint;
     property PopupMenu;
     property ScrollBarOptions;
+    property SelectedAndTotalLabel: TLabel read FSelectedAndTotalLabel write SetSelectedAndTotalLabel;
     property SelectionBlendFactor;
     property SelectionCurveRadius;
     property ShowHint;
@@ -2270,6 +2278,32 @@ begin
   end;
 end;
 
+procedure TSOGrid.SetSelectedAndTotalLabel(AValue: TLabel);
+begin
+  FSelectedAndTotalLabel := AValue;
+  UpdateSelectedAndTotalLabel;
+end;
+
+procedure TSOGrid.UpdateSelectedAndTotalLabel;
+var
+  nbrTotal, nbrSelected: integer;
+begin
+  if not Assigned(FSelectedAndTotalLabel) then
+    Exit;
+
+  if self.Data <> nil then
+    nbrTotal := self.Data.AsArray.Length
+  else
+    nbrTotal := 0;
+
+  nbrSelected := self.SelectedCount;
+
+  if nbrSelected > 0 then
+    FSelectedAndTotalLabel.Caption := Format('Selected / Total : %d / %d', [nbrSelected, nbrTotal])
+  else
+    FSelectedAndTotalLabel.Caption := Format('Total : %d elements', [nbrTotal]);
+end;
+
 function TSOGrid.FindColumnByPropertyName(propertyname: string): TSOGridColumn;
 var
   i: integer;
@@ -2583,6 +2617,7 @@ begin
     FData := Value;
     LoadData;
   end;
+  UpdateSelectedAndTotalLabel;
 end;
 
 procedure TSOGrid.SetDatasource(AValue: TSODataSource);
@@ -2986,6 +3021,13 @@ begin
     end;
   end;
 
+end;
+
+procedure TSOGrid.DoChange(Node: PVirtualNode);
+begin
+  inherited DoChange(Node);
+  if Assigned(FSelectedAndTotalLabel) then
+    SetSelectedAndTotalLabel(FSelectedAndTotalLabel);
 end;
 
 procedure TSOGrid.FixDesignFontsPPI(const ADesignTimePPI: Integer);
