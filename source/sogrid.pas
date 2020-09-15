@@ -1156,7 +1156,7 @@ end;
 function TSOConnection.LoadData(provider: String; Params: ISuperObject; root:String = 'content'): ISuperObject;
 var
   res,par:String;
-  pathargs:TDynStringArray;
+  pathargs:TStringArray;
   response:ISuperObject;
 begin
   pathargs := StrSplit(provider,'/');
