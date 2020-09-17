@@ -700,7 +700,7 @@ type
       ): Utf8String;
 
     // Creates a temporary CSV file and open it in the default app
-    procedure ExportExcel(Prefix:String='';Selection: TVSTTextSourceType=tstAll; Separator:Char=#9);
+    procedure ExportExcel(Prefix:String='';Selection: TVSTTextSourceType=tstAll; Separator:Char=',');
 
     // Force refresh the "Selected / Total : %d/%d" label
     procedure UpdateSelectedAndTotalLabel;
@@ -4047,7 +4047,7 @@ begin
   end;
 end;
 
-procedure TSOGrid.ExportExcel(Prefix:String='';Selection:TVSTTextSourceType=tstAll;Separator:Char=#9);
+procedure TSOGrid.ExportExcel(Prefix:String='';Selection:TVSTTextSourceType=tstAll;Separator:Char=',');
 var
   tempfn:Utf8String;
   txt:Utf8String;
@@ -4072,9 +4072,9 @@ end;
 procedure TSOGrid.DoExportExcel(Sender: TObject);
 begin
   if (toMultiSelect in TreeOptions.SelectionOptions) then
-    ExportExcel(Name,tstSelected,#9)
+    ExportExcel(Name,tstSelected,',')
   else
-    ExportExcel(Name,tstAll,#9);
+    ExportExcel(Name,tstAll,',');
 end;
 
 
