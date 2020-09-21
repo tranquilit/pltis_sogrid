@@ -2291,7 +2291,7 @@ begin
   if not Assigned(FSelectedAndTotalLabel) then
     Exit;
 
-  if self.Data <> nil then
+  if (self.Data <> nil) and Assigned(self.Data) and Assigned(self.Data.AsArray) then
     nbrTotal := self.Data.AsArray.Length
   else
     nbrTotal := 0;
