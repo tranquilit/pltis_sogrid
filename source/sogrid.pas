@@ -529,6 +529,7 @@ type
     function GetData: ISuperObject;
     function GetFocusedColumnObject: TSOGridColumn;
     function GetFocusedRow: ISuperObject;
+    function GetGridSettings: String;
     function GetKeyFieldsNames: String;
     function GetSettings: ISuperObject;
 
@@ -537,6 +538,7 @@ type
     procedure SetDatasource(AValue: TSODataSource);
     procedure SetFocusedColumnObject(AValue: TSOGridColumn);
     procedure SetFocusedRow(AValue: ISuperObject);
+    procedure SetGridSettings(AValue: String);
     procedure SetKeyFieldsNames(AValue: String);
     procedure SetOnCutToClipBoard(AValue: TNotifyEvent);
     procedure SetOptions(const Value: TStringTreeOptions);
@@ -718,6 +720,8 @@ type
     property KeyFieldsNames: String read GetKeyFieldsNames write SetKeyFieldsNames;
 
     property OnSOCompareNodes: TSOCompareNodesEvent read FOnSOCompareNodes write FOnSOCompareNodes;
+
+    property GridSettings: String read GetGridSettings write SetGridSettings stored False;
 
     //inherited properties
     property Action;
@@ -2651,6 +2655,12 @@ begin
   SetFocusedRowNoClearSelection(AValue);
 end;
 
+procedure TSOGrid.SetGridSettings(AValue: String);
+begin
+  if AValue <> '' then
+    Settings := SO(DecodeStringBase64(AValue));
+end;
+
 procedure TSOGrid.SetFocusedRowNoClearSelection(AValue: ISuperObject);
 var
   ANodes:TNodeArray;
@@ -3949,6 +3959,11 @@ begin
     Result := GetNodeSOData(N)
   else
     Result := Nil;
+end;
+
+function TSOGrid.GetGridSettings: String;
+begin
+  Result := EncodeStringBase64(UTF8Encode(Settings.AsJSon));
 end;
 
 function TSOGrid.GetKeyFieldsNames: String;
