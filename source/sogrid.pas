@@ -3252,7 +3252,7 @@ begin
     if Data <> Nil then
       for ToDelete in SOArray do begin
         //Remove from SO backend
-        for i := 0 to data.AsArray.Length-1 do
+        for i := data.AsArray.Length-1 downto 0  do
           if data.AsArray[i] = ToDelete then
             Data.AsArray.Delete(i);
 
