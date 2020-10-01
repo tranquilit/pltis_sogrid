@@ -669,6 +669,9 @@ type
     // Delete a list of rows from the Grid
     procedure DeleteRows(SOArray: ISuperObject);
 
+    // ask to delete the semected rows
+    procedure DeleteSelectedRows;
+
     // Handle the default sort behavious
     procedure DoHeaderClickSort(HitInfo: TVTHeaderHitInfo);
 
@@ -917,7 +920,7 @@ type
     GSConst_Insert = 'Insert';
     GSConst_Delete = 'Delete';
     GSConst_DeleteRows = 'Delete selected rows';
-    GSConst_ConfDeleteRow = 'Confirm the deletion of selected rows ?';
+    GSConst_ConfDeleteRow = 'Confirm the deletion of the %d selected rows ?';
     GSConst_SelectAll = 'Select all rows';
     GSConst_ExportSelectedExcel = 'Export selected rows to CSV file...';
     GSConst_ExportAllExcel = 'Export all rows to CSV file...';
@@ -3264,6 +3267,11 @@ begin
   end;
 end;
 
+procedure TSOGrid.DeleteSelectedRows;
+begin
+  DoDeleteRows(Self);
+end;
+
 function TSOGrid.NodesForData(sodata: ISuperObject): TNodeArray;
 var
   ASO: ISuperObject;
@@ -3410,8 +3418,8 @@ begin
       Datasource.EnableControls;
   end
   else
-    if Dialogs.MessageDlg(GSConst_Confirmation, 'Confirmez-vous la suppression de ' +
-      IntToStr(SelectedCount) + ' enregistrement(s) ?', mtConfirmation, mbYesNoCancel, 0) =
+    if Dialogs.MessageDlg(GSConst_Confirmation, Format(GSConst_ConfDeleteRow,[SelectedCount]),
+        mtConfirmation, mbYesNoCancel, 0) =
       mrYes then
     try
       if Assigned(Datasource) then

@@ -10,8 +10,10 @@ msgid "Collapse all"
 msgstr ""
 
 #: sogrid.gsconst_confdeleterow
-msgid "Confirm the deletion of selected rows ?"
-msgstr "Confirmer la suppresson des lignes sélectionnées ?"
+
+#| msgid "Confirm the deletion of selected rows ?"
+msgid "Confirm the deletion of the %d selected rows ?"
+msgstr "Confirmer la suppression des %s lignes sélectionnées ?"
 
 #: sogrid.gsconst_confirmation
 msgid "Confirm"
