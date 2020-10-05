@@ -105,7 +105,7 @@ begin
     2:src.PasteFromClipboard;
     3:With TOpenDialog.Create(Application) do
       try
-        Title:='Chosse a JSON file';
+        Title:='Choose a JSON file';
         Filter:='All files|*.*|JSon files|*.json';
         DefaultExt := 'json';
         if Execute then
