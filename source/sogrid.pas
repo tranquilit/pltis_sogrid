@@ -2807,7 +2807,7 @@ begin
   DefaultNodeHeight:=18;
 
   // Initialisation de la boite de dialogue de recherche
-  FindDlg := TFindDialog.Create(nil);
+  FindDlg := TFindDialog.Create(Self);
   FindDlg.OnFind := @FindDlgFind;
   FindDlg.Options := FindDlg.Options + [frHideMatchCase,frHideEntireScope,frEntireScope];
 
@@ -2922,6 +2922,8 @@ begin
   FData := Nil;
   if Assigned(FDatasource) then
     FDatasource.UnregisterView(Self);
+  if Assigned(FindDlg) then
+    FreeAndNil(FindDlg);
   inherited Destroy;
 end;
 
