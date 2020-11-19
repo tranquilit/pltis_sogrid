@@ -207,8 +207,9 @@ type
   TSORowChanges = class(TInterfaceList,ISORowChanges)
   private
     Fdatasource:TSODataSource;
-    function Get(i : Integer) : ISORowChange;
-    procedure Put(i : Integer;item : ISORowChange);
+    function Get(i : Integer) : ISORowChange; overload;
+    procedure Put(i : Integer;item : ISORowChange); overload;
+
     function GetDataSource: TSODataSource;
 
   public
@@ -1309,6 +1310,7 @@ procedure TSORowChanges.Put(i: Integer; item: ISORowChange);
 begin
   inherited Put(i,item);
 end;
+
 
 function TSORowChanges.GetDataSource: TSODataSource;
 begin
