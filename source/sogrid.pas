@@ -482,11 +482,11 @@ type
     procedure SetBounds(R: TRect); virtual; stdcall;
   end;
 
-  { TSOGrid }
   TSOGridGetText = procedure(Sender: TBaseVirtualTree; Node: PVirtualNode;
     RowData, CellData: ISuperObject; Column: TColumnIndex; TextType: TVSTTextType;
     var CellText: string) of object;
 
+  { TSOGrid }
   TSOGrid = class(TCustomVirtualStringTree,ISODataView)
   private
     FKeyFieldsList: Array of String;
@@ -496,7 +496,6 @@ type
     FOnSOCompareNodes: TSOCompareNodesEvent;
     FParentProperty: String;
     FSelectedAndTotalLabel: TLabel;
-    FShowAdavancedColumnsCustomize: Boolean;
     FShowAdvancedColumnsCustomize: Boolean;
     FTextFound: boolean;
     FindDlg: TFindDialog;
@@ -652,6 +651,10 @@ type
       Default: ISuperObject = nil): ISuperObject;
     function GetCellStrValue(N: PVirtualNode; FieldName: string;
       Default: string = ''): string;
+
+
+    procedure AutoAdjustLayout(AMode: TLayoutAdjustmentPolicy; const AFromPPI,
+      AToPPI, AOldFormWidth, ANewFormWidth: Integer); override;
 
     procedure FixDesignFontsPPI(const ADesignTimePPI: Integer); override;
     procedure ScaleFontsPPI(const AToPPI: Integer; const AProportion: Double); override;
@@ -2816,7 +2819,6 @@ begin
   Header.PopupMenu :=  TSOHeaderPopupMenu.Create(Self);
   Header.PopupMenu.PopupComponent := Self;
 
-
 end;
 
 
@@ -2988,6 +2990,13 @@ begin
   end;
 end;
 
+procedure TSOGrid.AutoAdjustLayout(AMode: TLayoutAdjustmentPolicy;
+  const AFromPPI, AToPPI, AOldFormWidth, ANewFormWidth: Integer);
+begin
+  inherited AutoAdjustLayout(AMode, AFromPPI, AToPPI, AOldFormWidth,
+    ANewFormWidth);
+end;
+
 procedure TSOGrid.DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy;
   const AXProportion, AYProportion: Double);
 var
@@ -2995,10 +3004,10 @@ var
 begin
   if AMode in [lapAutoAdjustForDPI] then
   begin
-    Header.MinHeight:=max(18,round(Header.MinHeight * AXProportion)-Header.MinHeight+1);
-    Header.MaxHeight:=max(18,round(Header.MaxHeight * AXProportion)-Header.MaxHeight+1);
-    Header.DefaultHeight:=max(18,round(Header.DefaultHeight * AXProportion)-Header.DefaultHeight+1);
-    Header.Height:=max(18,round(Header.Height * AXProportion)-Header.Height+1);
+    Header.MinHeight := max(18,round(Header.MinHeight * AXProportion)+1);
+    Header.MaxHeight := max(18,round(Header.MaxHeight * AXProportion)+1);
+    Header.DefaultHeight := max(18,round(Header.DefaultHeight * AXProportion)+1);
+    Header.Height := max(18,round(Header.Height * AXProportion)+1);
 
     for i := 0 to header.Columns.Count-1 do
     begin
@@ -3024,10 +3033,10 @@ begin
 
     if DoScale then
     begin
-      Header.MaxHeight:= min(18,MulDiv(Header.MaxHeight, M, D));
-      Header.DefaultHeight:=min(18,MulDiv(Header.DefaultHeight, M, D));
-      Header.Height:=min(18,MulDiv(Header.Height, M, D));
-      Header.MinHeight:=min(18,MulDiv(Header.MinHeight, M, D));
+      Header.MaxHeight:= MulDiv(Header.MaxHeight, M, D);
+      Header.DefaultHeight:=MulDiv(Header.DefaultHeight, M, D);
+      Header.Height:=MulDiv(Header.Height, M, D);
+      Header.MinHeight:=MulDiv(Header.MinHeight, M, D);
 
       for i := 0 to header.Columns.Count-1 do
       begin
