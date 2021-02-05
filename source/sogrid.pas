@@ -627,11 +627,12 @@ type
 
     function GetSelectedRows: ISuperObject;
 
+    procedure FixDesignFontsPPI(const ADesignTimePPI: Integer); override;
+
+    procedure ScaleFontsPPI(const AToPPI: Integer; const AProportion: Double); override;
+
     procedure DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy;
       const AXProportion, AYProportion: Double); override;
-
-    procedure ChangeScale(M, D: Integer); override;
-
 
     procedure DoChange(Node: PVirtualNode); override;
   public
@@ -652,12 +653,6 @@ type
     function GetCellStrValue(N: PVirtualNode; FieldName: string;
       Default: string = ''): string;
 
-
-    procedure AutoAdjustLayout(AMode: TLayoutAdjustmentPolicy; const AFromPPI,
-      AToPPI, AOldFormWidth, ANewFormWidth: Integer); override;
-
-    procedure FixDesignFontsPPI(const ADesignTimePPI: Integer); override;
-    procedure ScaleFontsPPI(const AToPPI: Integer; const AProportion: Double); override;
 
     // returns list of nodes matching exactly this record pointer
     function NodesForData(sodata: ISuperObject): TNodeArray;
@@ -2990,19 +2985,12 @@ begin
   end;
 end;
 
-procedure TSOGrid.AutoAdjustLayout(AMode: TLayoutAdjustmentPolicy;
-  const AFromPPI, AToPPI, AOldFormWidth, ANewFormWidth: Integer);
-begin
-  inherited AutoAdjustLayout(AMode, AFromPPI, AToPPI, AOldFormWidth,
-    ANewFormWidth);
-end;
-
 procedure TSOGrid.DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy;
   const AXProportion, AYProportion: Double);
 var
   i: Integer;
 begin
-  if AMode in [lapAutoAdjustForDPI] then
+  if (AMode in [lapAutoAdjustForDPI]) then
   begin
     Header.MinHeight := max(18,round(Header.MinHeight * AXProportion)+1);
     Header.MaxHeight := max(18,round(Header.MaxHeight * AXProportion)+1);
@@ -3016,37 +3004,6 @@ begin
       header.Columns[i].MinWidth:=round(header.Columns[i].MinWidth * AXProportion);
     end;
   end;
-end;
-
-procedure TSOGrid.ChangeScale(M, D: Integer);
-var
-  DoScale: Boolean;
-  i: integer;
-begin
-  inherited ChangeScale(M, D);
-  if (M <> D) and (toAutoChangeScale in TreeOptions.AutoOptions) then
-  begin
-    if (csLoading in ComponentState) then
-      DoScale := tsNeedScale in TreeStates
-    else
-      DoScale := True;
-
-    if DoScale then
-    begin
-      Header.MaxHeight:= MulDiv(Header.MaxHeight, M, D);
-      Header.DefaultHeight:=MulDiv(Header.DefaultHeight, M, D);
-      Header.Height:=MulDiv(Header.Height, M, D);
-      Header.MinHeight:=MulDiv(Header.MinHeight, M, D);
-
-      for i := 0 to header.Columns.Count-1 do
-      begin
-        header.Columns[i].MaxWidth:=MulDiv(header.Columns[i].MaxWidth, M, D);
-        header.Columns[i].Width:=MulDiv(header.Columns[i].Width, M, D);
-        header.Columns[i].MinWidth:=MulDiv(header.Columns[i].MinWidth, M, D);
-      end;
-    end;
-  end;
-
 end;
 
 procedure TSOGrid.DoChange(Node: PVirtualNode);
