@@ -3188,6 +3188,9 @@ procedure TSOGrid.AddRows(SOArray: ISuperObject;AllowDuplicates:Boolean=False);
 var
   ToAdd    : ISuperObject;
 begin
+  if not Assigned(SOArray) then
+    Exit;
+
   if Assigned(Datasource) then
     for ToAdd in SOArray do
       Datasource.AppendRecord(ToAdd)
@@ -3217,6 +3220,9 @@ var
   ANodesArray: TNodeArray;
 
 begin
+  if not Assigned(SOArray) then
+    Exit;
+
   if Assigned(Datasource) then
     for ToDelete in SOArray do
       Datasource.DeleteRecord(ToDelete)
@@ -3271,6 +3277,8 @@ procedure TSOGrid.InvalidateFordata(sodata: ISuperObject);
 var
   p: PVirtualNode;
 begin
+  if not Assigned(sodata) then
+    Exit;
   p := GetFirst(True);
   while (p <> nil) do
   begin
