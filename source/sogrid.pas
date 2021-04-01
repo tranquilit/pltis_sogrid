@@ -3202,7 +3202,8 @@ begin
     try
       for ToAdd in SOArray do
         // don't add if already in grid...
-        if AllowDuplicates or ((Length(KeyFieldsList)=0) and (Length(NodesForData(ToAdd))=0)) or (Length(NodesForKey(ToAdd))=0) then
+        if AllowDuplicates or (
+            (Length(KeyFieldsList)=0) and (Length(NodesForData(ToAdd))=0)) or (Length(NodesForKey(ToAdd))=0) then
           Data.AsArray.Add(ToAdd);
     finally
       EndUpdate;
@@ -3706,13 +3707,13 @@ begin
   if (CellPaintMode = cpmPaint) and (toMultiSelect in TreeOptions.SelectionOptions) and
     (vsSelected in Node^.States) then
   begin
-    if (not Focused or (column <> FocusedColumn) or (Node <> FocusedNode)) then
+    if not Focused or (column <> FocusedColumn) or (Node <> FocusedNode) then
     begin
       ACanvas.Brush.Color := clLtGray;
       ACanvas.FillRect(CellRect);
     end
     else
-    if (column = FocusedColumn) then
+    if (column = FocusedColumn) and (Node=FocusedNode) and Focused then
     begin
       ACanvas.Brush.Color := Colors.SelectionRectangleBlendColor;
       ACanvas.FillRect(CellRect);
