@@ -10,10 +10,9 @@ msgid "Collapse all"
 msgstr ""
 
 #: sogrid.gsconst_confdeleterow
-
 #| msgid "Confirm the deletion of selected rows ?"
 msgid "Confirm the deletion of the %d selected rows ?"
-msgstr "Confirmer la suppression des %s lignes sélectionnées ?"
+msgstr "Confirmer la suppression des %d lignes sélectionnées ?"
 
 #: sogrid.gsconst_confirmation
 msgid "Confirm"
@@ -72,8 +71,8 @@ msgid "Insert"
 msgstr "Insérer"
 
 #: sogrid.gsconst_norecordfind
-msgid "No record found"
-msgstr "Pas d'enregistrement trouvé"
+msgid "No more record found for \"%s\""
+msgstr "Pas d'autre enregistrement trouvé pour \"%s\""
 
 #: sogrid.gsconst_page
 msgid "Page"

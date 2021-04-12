@@ -70,7 +70,7 @@ msgid "Insert"
 msgstr ""
 
 #: sogrid.gsconst_norecordfind
-msgid "No record found"
+msgid "No more record found for \"%s\""
 msgstr ""
 
 #: sogrid.gsconst_page

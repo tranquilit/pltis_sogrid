@@ -902,7 +902,7 @@ type
   function EncodeURIComponent(const ASrc: AnsiString): AnsiString;
 
   resourcestring
-    GSConst_NoRecordFind = 'No record found';
+    GSConst_NoRecordFind = 'No more record found for "%s"';
     GSConst_PrintOn = 'Printed on';
     GSConst_Page = 'Page';
 
@@ -2812,7 +2812,7 @@ begin
   // Initialisation de la boite de dialogue de recherche
   FindDlg := TFindDialog.Create(Self);
   FindDlg.OnFind := @FindDlgFind;
-  FindDlg.Options := FindDlg.Options + [frHideMatchCase,frHideEntireScope,frEntireScope];
+  FindDlg.Options := FindDlg.Options + [frHideMatchCase,frHideEntireScope,frEntireScope,frHideUpDown];
 
   Header.PopupMenu :=  TSOHeaderPopupMenu.Create(Self);
   Header.PopupMenu.PopupComponent := Self;
@@ -3900,7 +3900,7 @@ begin
       end;
     end;
     FStartSearchNode := nil;
-    ShowMessage(GSConst_NoRecordFind);
+    ShowMessageFmt(GSConst_NoRecordFind,[TextToFind]);
   finally
   end;
 end;
