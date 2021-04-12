@@ -2577,12 +2577,15 @@ begin
           else
             ANodes := NodesForData(TopRec);
         end;
+
       finally
         EndUpdate;
         for ANode in ANodes do begin
           TopNode := ANode;
           break;
         end;
+        // restore visible focused column
+        ScrollIntoView(FocusedColumn,False);
       end;
     end;
   end;
