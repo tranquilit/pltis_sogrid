@@ -15,7 +15,7 @@ uses
   Windows,
   {$ENDIF}
   Classes, SysUtils, VirtualTrees, Controls, math,
-  SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages,StdCtrls,Types,IdHTTP,DefaultTranslator;
+  SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages,StdCtrls,Types, DefaultTranslator;
 
 type
 
@@ -57,7 +57,7 @@ type
   { TSOConnection }
   TSOConnection = class(TComponent)
   private
-    FIdHttpClient: TIdHTTP;
+    //FIdHttpClient: TIdHTTP;
     FPassword: String;
     FServerURL: String;
     FUsername: String;
@@ -97,7 +97,7 @@ type
     property ServerURL:String read FServerURL write SetServerURL;
     property Username:String read FUsername write SetUsername;
     property Password:String read FPassword write SetPassword;
-    property IdHttpClient:TIdHTTP read FIdHttpClient;
+    //property IdHttpClient:TIdHTTP read FIdHttpClient;
 
   end;
 
@@ -1024,14 +1024,14 @@ end;
 { TSOConnection }
 constructor TSOConnection.Create(AOwner: TComponent);
 begin
-  FIdHttpClient := TIdHTTP.Create(Self);
-  FIdHttpClient.HandleRedirects:=True;
+  //FIdHttpClient := TIdHTTP.Create(Self);
+  //FIdHttpClient.HandleRedirects:=True;
   inherited;
 end;
 
 destructor TSOConnection.Destroy;
 begin
-  FIdHttpClient.Free;
+  //FIdHttpClient.Free;
   inherited Destroy;
 end;
 
@@ -1047,6 +1047,7 @@ var
   key:ISuperObject;
 
 begin
+  {
   try
     url := ServerURL;
 
@@ -1075,7 +1076,6 @@ begin
       end;
       url := url+'?'+paramsStr;
     end;
-
 
     IdHttpClient.Request.ContentType:='application/json';
     IdHttpClient.Response.ContentType:='application/json';
@@ -1127,7 +1127,9 @@ begin
         raise
     else
       Raise
-  end;
+  end;}
+  Raise ENotImplemented.Create('TSOConnection.CallServerMethod');
+
 end;
 
 function TSOConnection.GetProviders: ISuperObject;
@@ -1209,7 +1211,7 @@ var
   JSonResult:String;
   SOResult:ISuperObject;
 begin
-  result := TSORowChanges.Create(Delta.Datasource);
+{  result := TSORowChanges.Create(Delta.Datasource);
   for change in Delta do
   try
     if change.UpdateType=usInserted then
@@ -1239,6 +1241,8 @@ begin
     else
       raise;
   end;
+}
+  Raise ENotImplemented.Create('TSOConnection.ApplyUpdates');
 end;
 
 { TSORowChanges }

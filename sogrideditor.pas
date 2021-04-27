@@ -84,7 +84,6 @@ type
 implementation
 
 uses
- IdHTTP,
  Clipbrd,
  superobject,
  soutils,
@@ -154,8 +153,9 @@ begin
 
 end;
 
+
 procedure TSOGridEditor.ActLoadDataExecute(Sender: TObject);
-const
+{const
     HTTP_TIMEOUT_SECONDS : integer = 3;
 var
     newdata:ISuperObject;
@@ -182,6 +182,10 @@ begin
     http.free;
     http := nil;
   end;
+end;
+}
+begin
+
 end;
 
 procedure TSOGridEditor.ActPasteJsontemplateExecute(Sender: TObject);

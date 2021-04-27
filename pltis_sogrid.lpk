@@ -13,10 +13,15 @@
         <OtherUnitFiles Value="source"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)"/>
       </SearchPaths>
+      <CodeGeneration>
+        <SmartLinkUnit Value="True"/>
+        <Optimizations>
+          <OptimizationLevel Value="3"/>
+        </Optimizations>
+      </CodeGeneration>
       <Linking>
         <Debugging>
           <DebugInfoType Value="dsDwarf3"/>
-          <UseExternalDbgSyms Value="True"/>
         </Debugging>
       </Linking>
     </CompilerOptions>
@@ -50,22 +55,19 @@
       <OutDir Value="languages"/>
       <EnableI18NForLFM Value="True"/>
     </i18n>
-    <RequiredPkgs Count="5">
+    <RequiredPkgs Count="4">
       <Item1>
         <PackageName Value="pltis_virtualtrees"/>
       </Item1>
       <Item2>
-        <PackageName Value="indylaz"/>
+        <PackageName Value="IDEIntf"/>
       </Item2>
       <Item3>
-        <PackageName Value="IDEIntf"/>
+        <PackageName Value="pltis_utils"/>
       </Item3>
       <Item4>
-        <PackageName Value="pltis_utils"/>
-      </Item4>
-      <Item5>
         <PackageName Value="pltis_superobject"/>
-      </Item5>
+      </Item4>
     </RequiredPkgs>
     <UsageOptions>
       <UnitPath Value="$(PkgOutDir)"/>
