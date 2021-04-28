@@ -1,0 +1,103 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: sogridsource.gsconst_advancedcustomizecolumns
+msgid "Advanced customize of table..."
+msgstr ""
+
+#: sogridsource.gsconst_collapseall
+msgid "Collapse all"
+msgstr ""
+
+#: sogridsource.gsconst_confdeleterow
+msgid "Confirm the deletion of the %d selected rows ?"
+msgstr ""
+
+#: sogridsource.gsconst_confirmation
+msgid "Confirm"
+msgstr ""
+
+#: sogridsource.gsconst_copy
+msgid "Copy"
+msgstr ""
+
+#: sogridsource.gsconst_copycell
+msgid "Copy cell"
+msgstr ""
+
+#: sogridsource.gsconst_customizecolumns
+msgid "Customize columns..."
+msgstr ""
+
+#: sogridsource.gsconst_cut
+msgid "Cut"
+msgstr ""
+
+#: sogridsource.gsconst_delete
+msgid "Delete"
+msgstr ""
+
+#: sogridsource.gsconst_deleterows
+msgid "Delete selected rows"
+msgstr ""
+
+#: sogridsource.gsconst_expandall
+msgid "Expand all"
+msgstr ""
+
+#: sogridsource.gsconst_exportallexcel
+msgid "Export all rows to CSV file..."
+msgstr ""
+
+#: sogridsource.gsconst_exportselectedexcel
+msgid "Export selected rows to CSV file..."
+msgstr ""
+
+#: sogridsource.gsconst_find
+msgid "Search..."
+msgstr ""
+
+#: sogridsource.gsconst_findnext
+msgid "Find next"
+msgstr ""
+
+#: sogridsource.gsconst_findreplace
+msgid "Find and replace..."
+msgstr ""
+
+#: sogridsource.gsconst_insert
+msgid "Insert"
+msgstr ""
+
+#: sogridsource.gsconst_norecordfind
+msgid "No more record found for \"%s\""
+msgstr ""
+
+#: sogridsource.gsconst_page
+msgid "Page"
+msgstr ""
+
+#: sogridsource.gsconst_paste
+msgid "Paste"
+msgstr ""
+
+#: sogridsource.gsconst_print
+msgid "Print..."
+msgstr ""
+
+#: sogridsource.gsconst_printon
+msgid "Printed on"
+msgstr ""
+
+#: sogridsource.gsconst_revertrecord
+msgid "Revert to initial record"
+msgstr ""
+
+#: sogridsource.gsconst_selectall
+msgid "Select all rows"
+msgstr ""
+
+#: sogridsource.gsconst_undolastupdate
+msgid "Undo last change"
+msgstr ""
+

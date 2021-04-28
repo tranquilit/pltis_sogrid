@@ -6,7 +6,8 @@ interface
 
 uses
     Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs,
-    ButtonPanel, ExtCtrls, StdCtrls, ActnList, Menus, sogrid, VirtualTrees;
+    ButtonPanel, ExtCtrls, StdCtrls, ActnList, Menus, VirtualTrees,
+    sogrid, sogridcommon;
 
 type
 
@@ -17,28 +18,21 @@ type
         ActDelColumn: TAction;
         ActCopySettings: TAction;
         ActAddColumns: TAction;
-        ActApplyUpdates: TAction;
-        ActLoadRefresh: TAction;
         ActRemoveAllColumns: TAction;
         ActpasteCSV: TAction;
         ActUpdateColumn: TAction;
         ActPasteJsontemplate: TAction;
-        ActLoadData: TAction;
         ActionList1: TActionList;
-        Button1: TButton;
         Button2: TButton;
         Button3: TButton;
         Button4: TButton;
         Button5: TButton;
-        Button6: TButton;
-        Button7: TButton;
         ButtonPanel1: TButtonPanel;
         cbEditorType: TComboBox;
         EdColumnTitle: TLabeledEdit;
         EdColumnProperty: TLabeledEdit;
         EdColumnIndex: TLabeledEdit;
         EdPosition: TEdit;
-        EdJSONUrl: TLabeledEdit;
         LstEditorType: TLabel;
         MenuItem1: TMenuItem;
         MenuItem2: TMenuItem;
@@ -53,13 +47,7 @@ type
         PopupMenu1: TPopupMenu;
         procedure ActAddColumnExecute(Sender: TObject);
         procedure ActAddColumnsExecute(Sender: TObject);
-        procedure ActApplyUpdatesExecute(Sender: TObject);
-        procedure ActApplyUpdatesUpdate(Sender: TObject);
         procedure ActDelColumnExecute(Sender: TObject);
-        procedure ActLoadDataExecute(Sender: TObject);
-        procedure ActLoadDataUpdate(Sender: TObject);
-        procedure ActLoadRefreshExecute(Sender: TObject);
-        procedure ActLoadRefreshUpdate(Sender: TObject);
         procedure ActpasteCSVExecute(Sender: TObject);
         procedure ActPasteJsontemplateExecute(Sender: TObject);
         procedure ActRemoveAllColumnsExecute(Sender: TObject);
@@ -95,20 +83,6 @@ uses
 const
     sampleJsonData = '[{''id'':0}]';
 
-procedure TSOGridEditor.ActLoadDataUpdate(Sender: TObject);
-begin
-  ActLoadData.Enabled := (EdJSONUrl.text<>'') and (ASOGrid.Datasource=Nil);
-end;
-
-procedure TSOGridEditor.ActLoadRefreshExecute(Sender: TObject);
-begin
-  ASOGrid.Datasource.Refresh;
-end;
-
-procedure TSOGridEditor.ActLoadRefreshUpdate(Sender: TObject);
-begin
-  ActLoadRefresh.Enabled := ASOGrid.Datasource <> Nil;
-end;
 
 procedure TSOGridEditor.ActpasteCSVExecute(Sender: TObject);
 begin
@@ -130,16 +104,6 @@ begin
   ASOGrid.CreateColumnsFromData(False,False);
 end;
 
-procedure TSOGridEditor.ActApplyUpdatesExecute(Sender: TObject);
-begin
-  ASOGrid.Datasource.ApplyUpdates;
-end;
-
-procedure TSOGridEditor.ActApplyUpdatesUpdate(Sender: TObject);
-begin
-  ActApplyUpdates.Enabled:=(ASOGrid.Datasource<>Nil) and (ASOGrid.Datasource.ChangeCount>0);
-end;
-
 procedure TSOGridEditor.ActDelColumnExecute(Sender: TObject);
 var
   delcol : TColumnIndex;
@@ -153,40 +117,6 @@ begin
 
 end;
 
-
-procedure TSOGridEditor.ActLoadDataExecute(Sender: TObject);
-{const
-    HTTP_TIMEOUT_SECONDS : integer = 3;
-var
-    newdata:ISuperObject;
-    http : TIdHTTP;
-    s : String;
-begin
-  http := nil;
-
-  http := TIdHTTP.Create;
-  http.HandleRedirects := true;
-  http.ConnectTimeout := HTTP_TIMEOUT_SECONDS * 1000;
-  http.ReadTimeout := HTTP_TIMEOUT_SECONDS * 1000;
-  try
-    s := http.Get( EdJSONUrl.Text );
-    if http.Connected then
-      http.DisconnectNotifyPeer;
-    if http.ResponseCode <> 200 then
-       raise Exception.CreateFmt('Bad HTTP Status: %s for URL %s',[http.ResponseCode,EdJSONUrl.Text]);
-    newData := SO( s );
-    if (newdata<>Nil) and (newdata.DataType=stObject) and (newdata.AsObject.Exists('content')) then
-      newdata := newdata.AsObject['content'];
-    ASOGrid.Data := newdata;
-  finally
-    http.free;
-    http := nil;
-  end;
-end;
-}
-begin
-
-end;
 
 procedure TSOGridEditor.ActPasteJsontemplateExecute(Sender: TObject);
 var

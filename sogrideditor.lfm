@@ -7,11 +7,11 @@ object SOGridEditor: TSOGridEditor
   ClientHeight = 293
   ClientWidth = 682
   OnCreate = FormCreate
-  LCLVersion = '1.8.4.0'
+  LCLVersion = '2.0.12.0'
   object ASOGrid: TSOGrid
     Left = 0
-    Height = 183
-    Top = 64
+    Height = 207
+    Top = 40
     Width = 484
     ShowAdvancedColumnsCustomize = False
     Align = alClient
@@ -55,92 +55,47 @@ object SOGridEditor: TSOGridEditor
   end
   object Panel1: TPanel
     Left = 0
-    Height = 64
+    Height = 40
     Top = 0
     Width = 682
     Align = alTop
     BevelOuter = bvNone
-    ClientHeight = 64
+    ClientHeight = 40
     ClientWidth = 682
     TabOrder = 0
-    object EdJSONUrl: TLabeledEdit
-      Left = 92
-      Height = 21
-      Top = 4
-      Width = 220
-      EditLabel.AnchorSideTop.Control = EdJSONUrl
-      EditLabel.AnchorSideTop.Side = asrCenter
-      EditLabel.AnchorSideRight.Control = EdJSONUrl
-      EditLabel.AnchorSideBottom.Control = EdJSONUrl
-      EditLabel.AnchorSideBottom.Side = asrBottom
-      EditLabel.Left = 12
-      EditLabel.Height = 13
-      EditLabel.Top = 8
-      EditLabel.Width = 77
-      EditLabel.Caption = 'JSON source Url'
-      EditLabel.ParentColor = False
-      LabelPosition = lpLeft
-      TabOrder = 0
-      Text = 'http://srvwapt:8080/json/host_list'
-    end
-    object Button1: TButton
-      Left = 320
-      Height = 25
-      Top = 4
-      Width = 84
-      Action = ActLoadData
-      TabOrder = 1
-    end
     object Button2: TButton
-      Left = 408
+      Left = 12
       Height = 25
       Top = 4
       Width = 148
       Action = ActPasteJsontemplate
-      TabOrder = 2
+      TabOrder = 0
     end
     object Button3: TButton
-      Left = 12
+      Left = 176
       Height = 25
-      Top = 32
+      Top = 4
       Width = 75
       Action = ActAddColumn
-      TabOrder = 3
-    end
-    object Button6: TButton
-      Left = 208
-      Height = 25
-      Top = 32
-      Width = 96
-      Action = ActLoadRefresh
-      OnClick = Button6Click
-      TabOrder = 4
-    end
-    object Button7: TButton
-      Left = 312
-      Height = 25
-      Top = 32
-      Width = 107
-      Action = ActApplyUpdates
-      TabOrder = 5
+      TabOrder = 1
     end
   end
   object Button4: TButton
-    Left = 96
+    Left = 260
     Height = 25
-    Top = 32
+    Top = 4
     Width = 75
     Action = ActDelColumn
     TabOrder = 1
   end
   object Panel2: TPanel
     Left = 484
-    Height = 183
-    Top = 64
+    Height = 207
+    Top = 40
     Width = 198
     Align = alRight
     BevelOuter = bvNone
-    ClientHeight = 183
+    ClientHeight = 207
     ClientWidth = 198
     TabOrder = 3
     object EdColumnTitle: TLabeledEdit
@@ -148,14 +103,7 @@ object SOGridEditor: TSOGridEditor
       Height = 21
       Top = 26
       Width = 108
-      EditLabel.AnchorSideTop.Control = EdColumnTitle
-      EditLabel.AnchorSideTop.Side = asrCenter
-      EditLabel.AnchorSideRight.Control = EdColumnTitle
-      EditLabel.AnchorSideBottom.Control = EdColumnTitle
-      EditLabel.AnchorSideBottom.Side = asrBottom
-      EditLabel.Left = 25
       EditLabel.Height = 13
-      EditLabel.Top = 30
       EditLabel.Width = 56
       EditLabel.Caption = 'Column title'
       EditLabel.ParentColor = False
@@ -169,14 +117,7 @@ object SOGridEditor: TSOGridEditor
       Height = 21
       Top = 54
       Width = 110
-      EditLabel.AnchorSideTop.Control = EdColumnProperty
-      EditLabel.AnchorSideTop.Side = asrCenter
-      EditLabel.AnchorSideRight.Control = EdColumnProperty
-      EditLabel.AnchorSideBottom.Control = EdColumnProperty
-      EditLabel.AnchorSideBottom.Side = asrBottom
-      EditLabel.Left = 10
       EditLabel.Height = 13
-      EditLabel.Top = 58
       EditLabel.Width = 71
       EditLabel.Caption = 'Property name'
       EditLabel.ParentColor = False
@@ -222,14 +163,7 @@ object SOGridEditor: TSOGridEditor
       Height = 21
       Top = 2
       Width = 53
-      EditLabel.AnchorSideTop.Control = EdColumnIndex
-      EditLabel.AnchorSideTop.Side = asrCenter
-      EditLabel.AnchorSideRight.Control = EdColumnIndex
-      EditLabel.AnchorSideBottom.Control = EdColumnIndex
-      EditLabel.AnchorSideBottom.Side = asrBottom
-      EditLabel.Left = 17
       EditLabel.Height = 13
-      EditLabel.Top = 6
       EditLabel.Width = 64
       EditLabel.Caption = 'Column index'
       EditLabel.ParentColor = False
@@ -249,13 +183,8 @@ object SOGridEditor: TSOGridEditor
     end
   end
   object ActionList1: TActionList
-    left = 81
-    top = 95
-    object ActLoadData: TAction
-      Caption = 'Load data'
-      OnExecute = ActLoadDataExecute
-      OnUpdate = ActLoadDataUpdate
-    end
+    Left = 81
+    Top = 95
     object ActPasteJsontemplate: TAction
       Caption = 'Paste json template data'
       OnExecute = ActPasteJsontemplateExecute
@@ -289,22 +218,10 @@ object SOGridEditor: TSOGridEditor
       Caption = 'Remove all columns'
       OnExecute = ActRemoveAllColumnsExecute
     end
-    object ActApplyUpdates: TAction
-      Caption = 'Apply updates'
-      OnExecute = ActApplyUpdatesExecute
-      OnUpdate = ActApplyUpdatesUpdate
-      ShortCut = 16467
-    end
-    object ActLoadRefresh: TAction
-      Caption = 'Load / Refresh'
-      OnExecute = ActLoadRefreshExecute
-      OnUpdate = ActLoadRefreshUpdate
-      ShortCut = 116
-    end
   end
   object PopupMenu1: TPopupMenu
-    left = 168
-    top = 96
+    Left = 168
+    Top = 96
     object MenuItem1: TMenuItem
       Action = ActAddColumn
     end

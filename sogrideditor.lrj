@@ -1,0 +1,15 @@
+{"version":1,"strings":[
+{"hash":221963154,"name":"tsogrideditor.caption","sourcebytes":[83,79,71,114,105,100,69,100,105,116,111,114],"value":"SOGridEditor"},
+{"hash":81606501,"name":"tsogrideditor.edcolumntitle.editlabel.caption","sourcebytes":[67,111,108,117,109,110,32,116,105,116,108,101],"value":"Column title"},
+{"hash":203500789,"name":"tsogrideditor.edcolumnproperty.editlabel.caption","sourcebytes":[80,114,111,112,101,114,116,121,32,110,97,109,101],"value":"Property name"},
+{"hash":101585109,"name":"tsogrideditor.lsteditortype.caption","sourcebytes":[69,100,105,116,111,114,32,84,121,112,101],"value":"Editor Type"},
+{"hash":80377480,"name":"tsogrideditor.edcolumnindex.editlabel.caption","sourcebytes":[67,111,108,117,109,110,32,105,110,100,101,120],"value":"Column index"},
+{"hash":77713441,"name":"tsogrideditor.actpastejsontemplate.caption","sourcebytes":[80,97,115,116,101,32,106,115,111,110,32,116,101,109,112,108,97,116,101,32,100,97,116,97],"value":"Paste json template data"},
+{"hash":111297118,"name":"tsogrideditor.actaddcolumn.caption","sourcebytes":[65,100,100,32,99,111,108,117,109,110],"value":"Add column"},
+{"hash":111317470,"name":"tsogrideditor.actdelcolumn.caption","sourcebytes":[68,101,108,32,99,111,108,117,109,110],"value":"Del column"},
+{"hash":152089118,"name":"tsogrideditor.actupdatecolumn.caption","sourcebytes":[85,112,100,97,116,101,32,67,111,108,117,109,110],"value":"Update Column"},
+{"hash":255265156,"name":"tsogrideditor.actcopysettings.caption","sourcebytes":[67,111,112,121,32,103,114,105,100,32,99,111,110,102,105,103,117,114,97,116,105,111,110,32,116,111,32,99,108,105,112,98,111,97,114,100],"value":"Copy grid configuration to clipboard"},
+{"hash":2939201,"name":"tsogrideditor.actpastecsv.caption","sourcebytes":[80,97,115,116,101,32,67,83,86,32,100,97,116,97],"value":"Paste CSV data"},
+{"hash":168750705,"name":"tsogrideditor.actaddcolumns.caption","sourcebytes":[65,100,100,32,109,105,115,115,105,110,103,32,99,111,108,117,109,110,115,32,102,114,111,109,32,115,97,109,112,108,101,32,100,97,116,97],"value":"Add missing columns from sample data"},
+{"hash":214953203,"name":"tsogrideditor.actremoveallcolumns.caption","sourcebytes":[82,101,109,111,118,101,32,97,108,108,32,99,111,108,117,109,110,115],"value":"Remove all columns"}
+]}
