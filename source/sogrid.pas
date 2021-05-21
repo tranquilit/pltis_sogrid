@@ -942,7 +942,7 @@ begin
         if gridcol = nil then
         begin
           gridcol := Header.Columns.Add as TSOGridColumn;
-          gridcol.Text:=propname;
+          gridcol.Text:=UTF8Encode(column.S['text']);
           gridcol.PropertyName:=propname;
           gridcol.Width:= 100;
         end;
