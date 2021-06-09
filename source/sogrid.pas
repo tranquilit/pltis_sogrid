@@ -1934,23 +1934,18 @@ var
   row: ISuperObject;
   canpaste: Boolean;
 begin
-  row := Nil;
   if Data = Nil then
     Data := TSuperObject.Create(stArray);
-  try
-    for row in Rows do
-    begin
-      if Assigned(FOnBeforePaste) then
-        canpaste := FOnBeforePaste(Self,row)
-      else
-        canpaste := True;
-      if canpaste then
-        Data.AsArray.Add(row);
-    end;
-    LoadData;
-  finally
-    FocusedRow := row;
+  for row in Rows do
+  begin
+    if Assigned(FOnBeforePaste) then
+      canpaste := FOnBeforePaste(Self,row)
+    else
+      canpaste := True;
+    if canpaste then
+      Data.AsArray.Add(row);
   end;
+  LoadData;
 end;
 
 procedure TSOGrid.DoPaste(Sender: TObject);
