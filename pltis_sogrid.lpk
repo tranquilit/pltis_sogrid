@@ -61,7 +61,7 @@
     </i18n>
     <RequiredPkgs Count="4">
       <Item1>
-        <PackageName Value="pltis_virtualtrees"/>
+        <PackageName Value="virtualtreeview_package"/>
       </Item1>
       <Item2>
         <PackageName Value="IDEIntf"/>
