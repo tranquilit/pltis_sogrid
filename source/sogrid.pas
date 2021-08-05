@@ -157,6 +157,7 @@ type
     FParentProperty: String;
     FSelectedAndTotalLabel: TLabel;
     FShowAdvancedColumnsCustomize: Boolean;
+    FAllowDataExport: Boolean;
     FTextFound: boolean;
     FindDlg: TFindDialog;
     FZebraPaint: Boolean;
@@ -205,6 +206,7 @@ type
     procedure SetSelectedAndTotalLabel(AValue: TLabel);
     procedure SetSettings(AValue: ISuperObject);
     procedure SetShowAdvancedColumnsCustomize(AValue: Boolean);
+    procedure SetAllowDataExport(AValue: Boolean);
 
     procedure WMKeyDown(var Message: TLMKeyDown); message LM_KEYDOWN;
 
@@ -374,6 +376,7 @@ type
     property OnNodesDelete: TSONodesEvent read FOnNodesDelete write FOnNodesDelete;
 
     property ShowAdvancedColumnsCustomize: Boolean read FShowAdvancedColumnsCustomize write SetShowAdvancedColumnsCustomize;
+    property AllowDataExport: Boolean read FAllowDataExport write SetAllowDataExport;
     property KeyFieldsList: TStringDynArray read FKeyFieldsList;
     property KeyFieldsNames: String read GetKeyFieldsNames write SetKeyFieldsNames;
 
@@ -982,6 +985,12 @@ begin
   FShowAdvancedColumnsCustomize:=AValue;
 end;
 
+procedure TSOGrid.SetAllowDataExport(AValue: Boolean);
+begin
+  if FAllowDataExport = AValue then Exit;
+  FAllowDataExport := AValue;
+end;
+
 {$IFNDEF windows}
 procedure GetKeyboardState( ks : TKeyBoardState );
 var
@@ -1391,10 +1400,13 @@ begin
       if toMultiSelect in TreeOptions.SelectionOptions then
         HMSelAll := AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), @DoSelectAllRows);
       AddItem('-', 0, nil);
-      if (toMultiSelect in TreeOptions.SelectionOptions) then
-        HMExcel := AddItem(GSConst_ExportSelectedExcel, 0, @DoExportExcel)
-      else
-        HMExcel := AddItem(GSConst_ExportAllExcel, 0, @DoExportExcel);
+      if AllowDataExport then
+        begin
+          if (toMultiSelect in TreeOptions.SelectionOptions) then
+          HMExcel := AddItem(GSConst_ExportSelectedExcel, 0, @DoExportExcel)
+        else
+          HMExcel := AddItem(GSConst_ExportAllExcel, 0, @DoExportExcel);
+      end;
       {if (HMPrint = 0) then
         HMPrint := AddItem(GSConst_Print, ShortCut(Ord('P'), [ssCtrl]), @DoPrint);
       AddItem('-', 0, nil);
