@@ -14,7 +14,7 @@ uses
   {$IFDEF windows}
   Windows,
   {$ENDIF}
-  Classes, SysUtils, VirtualTrees, Controls, math,
+  Classes, SysUtils, Controls, ComCtrls, VirtualTrees, math,
   SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages,StdCtrls,
   Types, DefaultTranslator,
   sogridcommon;
@@ -558,6 +558,11 @@ type
     property ZebraPaint:Boolean read FZebraPaint write FZebraPaint stored True default False ;
   end;
 
+  TWidgetHelper = class helper for TWinControl
+  public
+    procedure SetFocusSafe;
+  end;
+
   resourcestring
     GSConst_NoRecordFind = 'No more record found for "%s"';
     GSConst_PrintOn = 'Printed on';
@@ -968,7 +973,7 @@ begin
       Header.SortColumn := prop.AsInteger;
 
     if AValue.AsObject.Find('sortdirection', prop) then
-      Header.SortDirection := TSortDirection(prop.AsInteger);
+      Header.SortDirection := VirtualTrees.TSortDirection(prop.AsInteger);
 
     if AValue.AsObject.Find('headerheight', prop) then
       Header.Height := prop.AsInteger;
@@ -2303,7 +2308,7 @@ begin
           SelectNodes(p,p,False);
           FocusedNode := p;
           FocusedColumn := col;
-          SetFocus;
+          SetFocusSafe;
           Exit;
         end;
 
@@ -2844,7 +2849,7 @@ begin
   begin
     FEdit.Show;
     FEdit.SelectAll;
-    FEdit.SetFocus;
+    FEdit.SetFocusSafe;
   end;
 end;
 
@@ -2985,5 +2990,30 @@ begin
     end;
   end;
 end;
+
+{ TWidgetHelper }
+
+procedure TWidgetHelper.SetFocusSafe;
+var
+  p: TWinControl;
+begin
+  try
+    if Visible and Enabled then
+    begin
+      p := Parent;
+      if p.InheritsFrom(TFrame) then
+        p.SetFocusSafe;
+      while Assigned(p) and p.Enabled do
+      begin
+        if p.InheritsFrom(TTabSheet) then
+          TPageControl(p.Parent).ActivePage := TTabSheet(p);
+        p := p.Parent;
+      end;
+      SetFocus;
+    end;
+  except
+  end;
+end;
+
 
 end.
