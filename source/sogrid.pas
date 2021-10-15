@@ -286,9 +286,6 @@ type
 
     function GetSelectedRows: ISuperObject;
 
-    procedure FixDesignFontsPPI(const ADesignTimePPI: Integer); override;
-
-    procedure ScaleFontsPPI(const AToPPI: Integer; const AProportion: Double); override;
 
     procedure DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy;
       const AXProportion, AYProportion: Double); override;
@@ -297,6 +294,10 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
+    procedure FixDesignFontsPPI(const ADesignTimePPI: Integer); override;
+    procedure ScaleFontsPPI(const AToPPI: Integer; const AProportion: Double); override;
+
     function GetNodeSOData(Node: PVirtualNode): ISuperObject;
     procedure LoadData;
     property Data: ISuperObject read GetData write SetData;
@@ -1330,9 +1331,9 @@ begin
   begin
     PaintOptions := PaintOptions - [toShowRoot] +
       [toAlwaysHideSelection, toShowHorzGridLines, toShowVertGridLines, toHideFocusRect];
-    SelectionOptions := SelectionOptions + [toExtendedFocus, toSimpleDrawSelection, toRightClickSelect];
+    SelectionOptions := SelectionOptions + [toExtendedFocus, toSimpleDrawSelection, toRightClickSelect, toDisableDrawSelection];
     MiscOptions := MiscOptions + [toGridExtensions, toFullRowDrag] -
-      [toWheelPanning,toEditOnClick,toEditOnDblClick];
+      [toWheelPanning,toEditOnClick,toEditOnDblClick,toToggleOnDblClick];
 
     AutoOptions := AutoOptions + [toAutoSort,toAutoChangeScale];
   end;
