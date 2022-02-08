@@ -14,7 +14,7 @@ uses
   {$IFDEF windows}
   Windows,
   {$ENDIF}
-  Classes, SysUtils, Controls, ComCtrls, VirtualTrees, math,
+  Classes, Controls, ComCtrls, VirtualTrees, math, SysUtils,
   SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages,StdCtrls,
   Types, DefaultTranslator,
   sogridcommon;
@@ -87,59 +87,56 @@ type
   // Edit support classes.
   TSOStringEditLink = class;
 
-  TSOEdit = class(TCustomEdit)
-  private
-    procedure CMAutoAdjust(var Message: TLMessage); message CM_AUTOADJUST;
-    procedure CMExit(var Message: TLMessage); message CM_EXIT;
-    procedure CMRelease(var Message: TLMessage); message CM_RELEASE;
-    procedure CNCommand(var Message: TLMCommand); message CN_COMMAND;
-    procedure WMChar(var Message: TLMChar); message LM_CHAR;
-    procedure WMDestroy(var Message: TLMDestroy); message LM_DESTROY;
-    procedure WMGetDlgCode(var Message: TLMNoParams); message LM_GETDLGCODE;
-    procedure WMKeyDown(var Message: TLMKeyDown); message LM_KEYDOWN;
+  /// this class implements the base for an in-place edit control
+  // - use it if you want to implement your own controls
+  TTisGridControl = class(TObject)
   protected
-    FRefLink: IVTEditLink;
-    FLink: TSOStringEditLink;
-    procedure AutoAdjustSize; virtual;
-    procedure CreateParams(var Params: TCreateParams); override;
+    fInternal: TWinControl;
   public
-    constructor Create(Link: TSOStringEditLink); reintroduce;
+    constructor Create; reintroduce; virtual;
+    destructor Destroy; override;
+    /// access to the internal (generic) WinControl instance
+    function Internal: TWinControl;
+    /// set OnKeyDown event allowing grid to be in control
+    procedure SetOnKeyDown(aEvent: TKeyEvent); virtual;
+    /// set OnExit event allowing grid to be in control
+    procedure SetOnExit(aEvent: TNotifyEvent); virtual;
+    /// it returns the value edited by user
+    function GetValue: Variant; virtual;
+    /// it set the value from grid to the control
+    procedure SetValue(const aValue: Variant); virtual;
+  end;
 
-    procedure Release; virtual;
-
-    property AutoSelect;
-    property AutoSize;
-    property BorderStyle;
-    property CharCase;
-    //property HideSelection;
-    property MaxLength;
-    //property OEMConvert;
-    property PasswordChar;
+  /// control used for all String data type
+  TTisGridEditControl = class(TTisGridControl)
+  public
+    constructor Create; override;
+    function GetValue: Variant; override;
+    procedure SetValue(const aValue: Variant); override;
+    function Edit: TEdit;
   end;
 
   TSOStringEditLink = class(TInterfacedObject, IVTEditLink)
   private
-    FEdit: TSOEdit;                  // A normal custom edit control.
-    procedure SetEdit(const Value: TSOEdit);
-  protected
-    FTree: TSOGrid; // A back reference to the tree calling.
-    FNode: PVirtualNode;             // The node to be edited.
-    FColumn: TColumnIndex;           // The column of the node.
-    FAlignment: TAlignment;
+    fControl: TTisGridControl;
+    fGrid: TSOGrid;
+    fNode: PVirtualNode;
+    fColumn: Integer;
     FTextBounds: TRect;              // Smallest rectangle around the text.
-    FStopping: Boolean;              // Set to True when the edit link requests stopping the edit action.
+  protected
+    procedure EditKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState); virtual;
+    procedure EditExit(Sender: TObject); virtual;
+    function NewControl: TTisGridControl; virtual;
   public
     constructor Create;
     destructor Destroy; override;
-
-    function BeginEdit: Boolean; virtual; stdcall;
-    function CancelEdit: Boolean; virtual; stdcall;
-    property Edit: TSOEdit read FEdit write SetEdit;
-    function EndEdit: Boolean; virtual; stdcall;
-    function GetBounds: TRect; virtual; stdcall;
-    function PrepareEdit(Tree: TBaseVirtualTree; Node: PVirtualNode; Column: TColumnIndex): Boolean; virtual; stdcall;
-    procedure ProcessMessage(var Message: TLMessage); virtual; stdcall;
-    procedure SetBounds(R: TRect); virtual; stdcall;
+    function BeginEdit: Boolean; stdcall;
+    function CancelEdit: Boolean; stdcall;
+    function EndEdit: Boolean; stdcall;
+    function GetBounds: TRect; stdcall;
+    function PrepareEdit(aTree: TBaseVirtualTree; aNode: PVirtualNode; aColumn: TColumnIndex): Boolean; stdcall;
+    procedure ProcessMessage(var aMessage: TLMessage); stdcall;
+    procedure SetBounds(R: TRect); stdcall;
   end;
 
   TSOGridGetText = procedure(Sender: TBaseVirtualTree; Node: PVirtualNode;
@@ -755,7 +752,73 @@ begin
   inherited;
 end;
 
+{ TTisGridControl }
+
+constructor TTisGridControl.Create;
+begin
+  inherited Create;
+end;
+
+destructor TTisGridControl.Destroy;
+begin
+  Application.ReleaseComponent(fInternal);
+  inherited Destroy;
+end;
+
+function TTisGridControl.Internal: TWinControl;
+begin
+  result := fInternal;
+end;
+
+procedure TTisGridControl.SetOnKeyDown(aEvent: TKeyEvent);
+begin
+  fInternal.OnKeyDown := aEvent;
+end;
+
+procedure TTisGridControl.SetOnExit(aEvent: TNotifyEvent);
+begin
+  fInternal.OnExit := aEvent;
+end;
+
+function TTisGridControl.GetValue: Variant;
+begin
+  if fInternal.Caption = '' then
+    result := NULL
+  else
+    result := fInternal.Caption;
+end;
+
+procedure TTisGridControl.SetValue(const aValue: Variant);
+begin
+  fInternal.Caption := VarToStr(aValue);
+end;
+
+{ TTisGridEditControl }
+
+constructor TTisGridEditControl.Create;
+begin
+  inherited Create;
+  fInternal := TEdit.Create(nil);
+  Edit.Clear;
+end;
+
+function TTisGridEditControl.GetValue: Variant;
+begin
+  result := Edit.Text;
+end;
+
+procedure TTisGridEditControl.SetValue(const aValue: Variant);
+begin
+  Edit.Text := VarToStr(aValue);
+end;
+
+function TTisGridEditControl.Edit: TEdit;
+begin
+  result := fInternal as TEdit;
+end;
+
 { TSOGrid }
+
 function TSOGrid.GetItemData(Node: PVirtualNode): Pointer;
 begin
   if (Node = nil) or (FItemDataOffset <= 0) then
@@ -2583,413 +2646,134 @@ begin
   end;
 end;
 
-
-//----------------- TSOEdit --------------------------------------------------------------------------------------------
-// Implementation of a generic node cell editor.
-
-constructor TSOEdit.Create(Link: TSOStringEditLink);
-
-begin
-  inherited Create(nil);
-  ShowHint := False;
-  ParentShowHint := False;
-  // This assignment increases the reference count for the interface.
-  FRefLink := Link;
-  // This reference is used to access the link.
-  FLink := Link;
-end;
-
-
-procedure TSOEdit.CMAutoAdjust(var Message: TLMessage);
-
-begin
-  AutoAdjustSize;
-end;
-
-
-procedure TSOEdit.CMExit(var Message: TLMessage);
-
-begin
-  if Assigned(FLink) and not FLink.FStopping then
-    with FLink, FTree do
-    begin
-      if (toAutoAcceptEditChange in TreeOptions.StringOptions) then
-        DoEndEdit
-      else
-        DoCancelEdit;
-    end;
-end;
-
-
-procedure TSOEdit.CMRelease(var Message: TLMessage);
-
-begin
-  Free;
-end;
-
-
-procedure TSOEdit.CNCommand(var Message: TLMCommand);
-
-begin
-  {if Assigned(FLink) and Assigned(FLink.FTree) and (Message.NotifyCode = EN_UPDATE) and
-    not (toGridExtensions in FLink.FTree.FOptions.FMiscOptions) and
-    not (vsMultiline in FLink.FNode.States) then
-    // Instead directly calling AutoAdjustSize it is necessary on Win9x/Me to decouple this notification message
-    // and eventual resizing. Hence we use a message to accomplish that.
-    if IsWinNT then
-      AutoAdjustSize
-    else
-      PostMessage(Handle, CM_AUTOADJUST, 0, 0);}
-end;
-
-
-procedure TSOEdit.WMChar(var Message: TLMChar);
-
-begin
-  if not (Message.CharCode in [VK_ESCAPE, VK_TAB]) then
-    inherited;
-end;
-
-
-procedure TSOEdit.WMDestroy(var Message: TLMDestroy);
-
-begin
-  // If editing stopped by other means than accept or cancel then we have to do default processing for
-  // pending changes.
-  if Assigned(FLink) and not FLink.FStopping then
-  begin
-    with FLink, FTree do
-    begin
-      if (toAutoAcceptEditChange in TreeOptions.StringOptions) and Modified then
-        Text[FNode, FColumn] := FEdit.Text;
-    end;
-    FLink := nil;
-    FRefLink := nil;
-  end;
-
-  inherited;
-end;
-
-
-procedure TSOEdit.WMGetDlgCode(var Message: TLMNoParams);
-
-begin
-  inherited;
-
-  Message.Result := Message.Result or DLGC_WANTALLKEYS or DLGC_WANTTAB or DLGC_WANTARROWS;
-end;
-
-
-procedure TSOEdit.WMKeyDown(var Message: TLMKeyDown);
-
-// Handles some control keys.
-
-var
-  Shift: TShiftState;
-  EndEdit: Boolean;
-  Tree: TSOGrid;
-
-begin
-  case Message.CharCode of
-    VK_ESCAPE:
-      begin
-        Tree := FLink.FTree;
-        FLink.FTree.DoCancelEdit;
-        Tree.SetFocus;
-      end;
-    VK_RETURN:
-      begin
-        EndEdit := not (vsMultiline in FLink.FNode^.States);
-        if not EndEdit then
-        begin
-          // If a multiline node is being edited the finish editing only if Ctrl+Enter was pressed,
-          // otherwise allow to insert line breaks into the text.
-          Shift := KeyDataToShiftState(Message.KeyData);
-          EndEdit := ssCtrl in Shift;
-        end;
-        if EndEdit then
-        begin
-          Tree := FLink.FTree;
-          FLink.FTree.InvalidateNode(FLink.FNode);
-          FLink.FTree.DoEndEdit;
-          Tree.SetFocus;
-        end;
-      end;
-    VK_UP,VK_DOWN:
-      begin
-        if not (vsMultiline in FLink.FNode^.States) then
-        begin
-            Tree := (FLink as TSOStringEditLink).FTree;
-            Tree.InvalidateNode((FLink as TSOStringEditLink).FNode);
-            Tree.DoEndEdit;
-            Tree.SetFocus;
-            SendMessage(Tree.Handle,Message.Msg,Message.CharCode,Message.KeyData);
-        end
-        else
-          inherited;
-      end;
-    VK_TAB:
-      begin
-          Tree := (FLink as TSOStringEditLink).FTree;
-          Tree.InvalidateNode((FLink as TSOStringEditLink).FNode);
-          Tree.DoEndEdit;
-          Tree.SetFocus;
-          SendMessage(Tree.Handle,Message.Msg,Message.CharCode,Message.KeyData);
-      end;
-  else
-    inherited;
-  end;
-end;
-
-
-procedure TSOEdit.AutoAdjustSize;
-
-// Changes the size of the edit to accomodate as much as possible of its text within its container window.
-// NewChar describes the next character which will be added to the edit's text.
-
-var
-  DC: HDC;
-  Size: TSize;
-  LastFont: THandle;
-
-begin
-  if not (vsMultiline in FLink.FNode^.States) then
-  begin
-    DC := GetDC(Handle);
-    LastFont := SelectObject(DC, Font.Reference.Handle);
-    try
-      // Read needed space for the current text.
-      GetTextExtentPoint32(DC, PChar(Text), Length(Text), Size);
-      Inc(Size.cx, 2 * FLink.FTree.TextMargin);
-
-      // Repaint associated node if the edit becomes smaller.
-      if Size.cx < Width then
-        FLink.FTree.InvalidateNode(FLink.FNode);
-
-      if FLink.FAlignment = taRightJustify then
-        FLink.SetBounds(Rect(Left + Width - Size.cx, Top, Left + Width, Top + Height))
-      else
-        FLink.SetBounds(Rect(Left, Top, Left + Size.cx, Top + Height));
-    finally
-      SelectObject(DC, LastFont);
-      ReleaseDC(Handle, DC);
-    end;
-  end;
-end;
-
-
-procedure TSOEdit.CreateParams(var Params: TCreateParams);
-
-begin
-  inherited;
-
-  // Only with multiline style we can use the text formatting rectangle.
-  // This does not harm formatting as single line control, if we don't use word wrapping.
-  with Params do
-  begin
-    //todo: delphi uses Multiline for all
-    //Style := Style or ES_MULTILINE;
-    if vsMultiline in FLink.FNode^.States then
-    begin
-      Style := Style and not (ES_AUTOHSCROLL or WS_HSCROLL) or WS_VSCROLL or ES_AUTOVSCROLL;
-      Style := Style or ES_MULTILINE;
-    end;
-    {if tsUseThemes in FLink.FTree.States then
-    begin
-      Style := Style and not WS_BORDER;
-      ExStyle := ExStyle or WS_EX_CLIENTEDGE;
-    end
-    else}
-    begin
-      Style := Style or WS_BORDER;
-      ExStyle := ExStyle and not WS_EX_CLIENTEDGE;
-    end;
-  end;
-end;
-
-
-procedure TSOEdit.Release;
-
-begin
-  if HandleAllocated then
-    PostMessage(Handle, CM_RELEASE, 0, 0);
-end;
-
 //----------------- TSOStringEditLink ------------------------------------------------------------------------------------
 
-constructor TSOStringEditLink.Create;
-
+procedure TSOStringEditLink.EditKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+var
+  CanAdvance: Boolean;
 begin
-  inherited;
-  FEdit := TSOEdit.Create(Self);
-  with FEdit do
-  begin
-    Visible := False;
-    BorderStyle := bsSingle;
-    AutoSize := False;
+  CanAdvance := True;
+  case Key of
+    VK_ESCAPE:
+      if CanAdvance then
+      begin
+        fControl.Internal.OnExit := nil; // prevents an Access Violation
+        fGrid.SetFocusSafe; // needed if grid.parent is a Frame
+        fGrid.CancelEditNode;
+        Key := 0;
+      end;
+    VK_RETURN:
+      if CanAdvance then
+      begin
+        fGrid.EndEditNode;
+        Key := 0;
+      end;
+    VK_UP,
+    VK_DOWN:
+      begin
+        // Consider special cases before finishing edit mode.
+        CanAdvance := Shift = [];
+        if fControl.Internal is TCustomComboBox then
+          CanAdvance := CanAdvance and not TCustomComboBox(fControl.Internal).DroppedDown;
+        if CanAdvance then
+        begin
+          // Forward the keypress to the tree. It will asynchronously change the focused node.
+          PostMessage(fGrid.Handle, LM_KEYDOWN, Key, 0);
+          Key := 0;
+        end;
+      end;
   end;
 end;
 
+procedure TSOStringEditLink.EditExit(Sender: TObject);
+begin
+  if Assigned(fControl) then
+  begin
+    if (toAutoAcceptEditChange in fGrid.TreeOptions.StringOptions) then
+      fGrid.EndEditNode
+    else
+      fGrid.CancelEditNode;
+  end;
+end;
+
+function TSOStringEditLink.NewControl: TTisGridControl;
+begin
+  result := TTisGridEditControl.Create;
+  result.SetOnKeyDown(@EditKeyDown);
+  result.SetOnExit(@EditExit);
+  result.Internal.Visible := False;
+  result.Internal.Parent := fGrid;
+end;
+
+constructor TSOStringEditLink.Create;
+begin
+  inherited Create;
+end;
 
 destructor TSOStringEditLink.Destroy;
-
 begin
-  FEdit.Release;
-  inherited;
+  fControl.Free;
+  inherited Destroy;
 end;
-
 
 function TSOStringEditLink.BeginEdit: Boolean; stdcall;
-
-// Notifies the edit link that editing can start now. descendants may cancel node edit
-// by returning False.
-
 begin
-  Result := not FStopping;
-  if Result then
-  begin
-    FEdit.Show;
-    FEdit.SelectAll;
-    FEdit.SetFocusSafe;
-  end;
+  result := True;
+  fControl.Internal.Show;
+  fControl.Internal.SetFocus;
 end;
-
-
-procedure TSOStringEditLink.SetEdit(const Value: TSOEdit);
-
-begin
-  if Assigned(FEdit) then
-    FEdit.Free;
-  FEdit := Value;
-end;
-
 
 function TSOStringEditLink.CancelEdit: Boolean; stdcall;
-
 begin
-  Result := not FStopping;
-  if Result then
-  begin
-    FStopping := True;
-    FEdit.Hide;
-    FTree.CancelEditNode;
-    FEdit.FLink := nil;
-    FEdit.FRefLink := nil;
-  end;
+  result := True;
+  fControl.Internal.Hide;
 end;
 
-
 function TSOStringEditLink.EndEdit: Boolean; stdcall;
-
 begin
-  Result := not FStopping;
-  if Result then
+  result := True;
   try
-    FStopping := True;
-    if FEdit.Modified then
-      FTree.Text[FNode, FColumn] := FEdit.Text;
-    FEdit.Hide;
-    FEdit.FLink := nil;
-    FEdit.FRefLink := nil;
-  except
-    FStopping := False;
-    raise;
+    fGrid.Text[fNode, fColumn] := VarToStr(fControl.GetValue);
+  finally
+    fGrid.InvalidateNode(fNode);
+    fGrid.SetFocusSafe;
   end;
 end;
 
 function TSOStringEditLink.GetBounds: TRect; stdcall;
 begin
-  Result := FEdit.BoundsRect;
+  result := fControl.Internal.BoundsRect;
 end;
 
-function TSOStringEditLink.PrepareEdit(Tree: TBaseVirtualTree; Node: PVirtualNode; Column: TColumnIndex): Boolean; stdcall;
-// Retrieves the true text bounds from the owner tree.
+function TSOStringEditLink.PrepareEdit(aTree: TBaseVirtualTree; aNode: PVirtualNode;
+  aColumn: TColumnIndex): Boolean; stdcall;
 var
-  Text: String;
-  Allowed:Boolean;
-
+  text: string;
 begin
-  Result := Tree is TCustomVirtualStringTree;
-  if Result then
-  begin
-    FTree := Tree as TSOGrid;
-    FNode := Node;
-    FColumn := Column;
-    // Initial size, font and text of the node.
-    FTree.GetTextInfo(Node, Column, FEdit.Font, FTextBounds, Text);
-    FEdit.Font.Color := clWindowText;
-    FEdit.Parent := Tree;
-    FEdit.HandleNeeded;
-    FEdit.Text := Text;
-    if Assigned(TSOGrid(Tree).OnEditing) then
-    begin
-      Allowed:=(toEditable in TSOGrid(Tree).TreeOptions.MiscOptions) and not (toReadOnly in TSOGrid(Tree).TreeOptions.MiscOptions);
-      TSOGrid(Tree).OnEditing(Tree,Node,Column,Allowed);
-      FEdit.ReadOnly:=not Allowed;
-    end
-    else
-      FEdit.ReadOnly:= not (toEditable in TSOGrid(Tree).TreeOptions.MiscOptions) or (toReadOnly in TSOGrid(Tree).TreeOptions.MiscOptions);
-
-    if Column <= NoColumn then
-    begin
-      FEdit.BidiMode := FTree.BidiMode;
-      FAlignment := FTree.Alignment;
-    end
-    else
-    begin
-      FEdit.BidiMode := FTree.Header.Columns[Column].BidiMode;
-      FAlignment := FTree.Header.Columns[Column].Alignment;
-    end;
-
-    if FEdit.BidiMode <> bdLeftToRight then
-      ChangeBidiModeAlignment(FAlignment);
-  end;
+  result := True;
+  fGrid := aTree as TSOGrid;
+  fNode := aNode;
+  fColumn := aColumn;
+  FreeAndNil(fControl);
+  fControl := NewControl;
+  fGrid.GetTextInfo(fNode, fColumn, fControl.Internal.Font, FTextBounds, text);
+  fControl.SetValue(text);
 end;
 
-procedure TSOStringEditLink.ProcessMessage(var Message: TLMessage); stdcall;
+procedure TSOStringEditLink.ProcessMessage(var aMessage: TLMessage); stdcall;
 begin
-  Message.Result := SendMessage(FEdit.Handle,Message.msg,Message.wParam,Message.lParam);
-  //FEdit.WindowProc(Message);
+  PostMessage(fControl.Internal.Handle, aMessage.Msg, aMessage.wParam, aMessage.lParam);
 end;
 
 procedure TSOStringEditLink.SetBounds(R: TRect); stdcall;
-// Sets the outer bounds of the edit control and the actual edit area in the control.
 var
-  AOffset: Integer;
+  dummy: Integer;
 begin
-  if not FStopping then
-  begin
-    with R do
-    begin
-      // Set the edit's bounds but make sure there's a minimum width and the right border does not
-      // extend beyond the parent's left/right border.
-      if Left < 0 then
-        Left := 0;
-      if Right - Left < 30 then
-      begin
-        if FAlignment = taRightJustify then
-          Left := Right - 30
-        else
-          Right := Left + 30;
-      end;
-      if Right > FTree.ClientWidth then
-        Right := FTree.ClientWidth;
-      FEdit.BoundsRect := R;
-
-      // The selected text shall exclude the text margins and be centered vertically.
-      // We have to take out the two pixel border of the edit control as well as a one pixel "edit border" the
-      // control leaves around the (selected) text.
-      R := FEdit.ClientRect;
-      AOffset := 2;
-      {if tsUseThemes in FTree.FStates then
-        Inc(Offset);}
-      InflateRect(R, -FTree.TextMargin + AOffset, AOffset);
-      if not (vsMultiline in FNode^.States) then
-        OffsetRect(R, 0, FTextBounds.Top - FEdit.Top);
-
-      SendMessage(FEdit.Handle, EM_SETRECTNP, 0, PtrUInt(@R));
-    end;
-  end;
+  // Since we don't want to activate grid extensions in the tree (this would
+  // influence how the selection is drawn)
+  // we have to set the edit's width explicitly to the width of the column.
+  fGrid.Header.Columns.GetColumnBounds(fColumn, dummy, R.Right);
+  fControl.Internal.BoundsRect := R;
 end;
 
 { TWidgetHelper }
