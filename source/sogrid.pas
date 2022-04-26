@@ -38,7 +38,7 @@ type
     function GetTitle: TCaption;
     procedure SetTitle(AValue: TCaption);
   public
-    //constructor Create(aCollection: TCollection); override;
+    constructor Create(aCollection: TCollection); override;
     procedure Assign(Source: TPersistent); override;
   published
     property Text: TCaption read GetTitle write SetTitle;
@@ -621,6 +621,13 @@ procedure TSOGridColumn.SetTitle(AValue: TCaption);
 begin
   SetText(AValue);
 end;
+
+constructor TSOGridColumn.Create(aCollection: TCollection);
+begin
+  inherited Create(aCollection);
+  Options := Options + [coWrapCaption];
+end;
+
 {
 constructor TSOGridColumn.Create(aCollection: TCollection);
 begin
