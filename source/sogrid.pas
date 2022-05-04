@@ -2742,6 +2742,7 @@ begin
   try
     fGrid.Text[fNode, fColumn] := VarToStr(fControl.GetValue);
   finally
+    FreeAndNil(fControl); // for do not perform any event from it
     fGrid.InvalidateNode(fNode);
     fGrid.SetFocusSafe;
   end;
