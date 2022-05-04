@@ -89,9 +89,15 @@ type
 
   /// this class implements the base for an in-place edit control
   // - use it if you want to implement your own controls
+
+  { TTisGridControl }
+
   TTisGridControl = class(TObject)
+  private
   protected
     fInternal: TWinControl;
+    fIsReadOnly: Boolean;
+    procedure SetIsReadOnly(AValue: Boolean); Virtual;
   public
     constructor Create; reintroduce; virtual;
     destructor Destroy; override;
@@ -105,10 +111,17 @@ type
     function GetValue: Variant; virtual;
     /// it set the value from grid to the control
     procedure SetValue(const aValue: Variant); virtual;
+
+    property IsReadOnly: Boolean read fIsReadOnly write SetIsReadOnly;
   end;
 
   /// control used for all String data type
+
+  { TTisGridEditControl }
+
   TTisGridEditControl = class(TTisGridControl)
+  protected
+    procedure SetIsReadOnly(AValue: Boolean); override;
   public
     constructor Create; override;
     function GetValue: Variant; override;
@@ -761,6 +774,12 @@ end;
 
 { TTisGridControl }
 
+procedure TTisGridControl.SetIsReadOnly(AValue: Boolean);
+begin
+  if fIsReadOnly = AValue then Exit;
+  fIsReadOnly := AValue;
+end;
+
 constructor TTisGridControl.Create;
 begin
   inherited Create;
@@ -801,6 +820,12 @@ begin
 end;
 
 { TTisGridEditControl }
+
+procedure TTisGridEditControl.SetIsReadOnly(AValue: Boolean);
+begin
+  inherited SetIsReadOnly(AValue);
+  Edit.ReadOnly := fIsReadOnly;
+end;
 
 constructor TTisGridEditControl.Create;
 begin
@@ -2766,6 +2791,7 @@ begin
   fControl := NewControl;
   fGrid.GetTextInfo(fNode, fColumn, fControl.Internal.Font, FTextBounds, text);
   fControl.SetValue(text);
+  fControl.IsReadOnly := not aTree.CanEdit(aNode,aColumn);
 end;
 
 procedure TSOStringEditLink.ProcessMessage(var aMessage: TLMessage); stdcall;
