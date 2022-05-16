@@ -94,6 +94,10 @@ msgstr "Imprimer..."
 msgid "Printed on"
 msgstr "Imprimé le"
 
+#: sogrid.gsconst_restoredefaultcolumns
+msgid "Restore default columns"
+msgstr "Restaurer les colonnes par défaut"
+
 #: sogrid.gsconst_revertrecord
 msgid "Revert to initial record"
 msgstr "Revenir à la version initiale"

@@ -77,6 +77,7 @@ type
     procedure OnMenuItemClick(Sender: TObject);
     procedure OnMenuShowAllClick(Sender: TObject);
     procedure OnMenuHideAllClick(Sender: TObject);
+    procedure OnMenuRestoreClick(Sender: TObject);
   public
     procedure Popup(x, y: Integer); override;
   published
@@ -188,6 +189,7 @@ type
     FPendingAppendObject:ISuperObject;
 
     FDefaultPopupMenu: TPopupMenu;
+    fDefaultSettings: ISuperObject; // all default settings after load component
     FMenuFilled: boolean;
     HMUndo, HMRevert: HMENU;
     HMFind, HMFindNext, HMReplace: HMENU;
@@ -226,6 +228,7 @@ type
 
 
   protected
+    procedure Loaded; override;
 
     property RootNodeCount stored False;
     property NodeDataSize;
@@ -383,6 +386,8 @@ type
     // Force refresh the "Selected / Total : %d/%d" label
     procedure UpdateSelectedAndTotalLabel;
 
+    /// it restore original settings from original design
+    procedure RestoreSettings;
   published
     property OnGetText: TSOGridGetText read FOnGetText write FOnGetText;
 
@@ -608,6 +613,7 @@ type
 
     GSConst_ShowAllColumns = 'Show all columns';
     GSConst_HideAllColumns = 'Hide all columns';
+    GSConst_RestoreDefaultColumns = 'Restore default columns';
 
 implementation
 
@@ -739,6 +745,10 @@ begin
   end;
 end;
 
+procedure TSOHeaderPopupMenu.OnMenuRestoreClick(Sender: TObject);
+begin
+  TSOGrid(PopupComponent).RestoreSettings;
+end;
 
 procedure TSOHeaderPopupMenu.Popup(x, y: Integer);
 
@@ -821,6 +831,13 @@ begin
       NewMenuItem.OnClick := @OnMenuHideAllClick;
       Items.Add(NewMenuItem);
 
+      // restore default columns
+
+      NewMenuItem := TSOMenuItem.Create(Self);
+      NewMenuItem.Tag := -3;
+      NewMenuItem.Caption := GSConst_RestoreDefaultColumns;
+      NewMenuItem.OnClick := @OnMenuRestoreClick;
+      Items.Add(NewMenuItem);
       // Conditionally disable menu item of last enabled column.
       if (VisibleCounter = 1) and (VisibleItem <> nil) and not (poAllowHideAll in FOptions) then
         VisibleItem.Enabled := False;
@@ -1019,6 +1036,11 @@ begin
     FSelectedAndTotalLabel.Caption := Format('Selected / Total : %d / %d', [nbrSelected, nbrTotal])
   else
     FSelectedAndTotalLabel.Caption := Format('Total : %d elements', [nbrTotal]);
+end;
+
+procedure TSOGrid.RestoreSettings;
+begin
+  Settings := fDefaultSettings;
 end;
 
 function TSOGrid.FindColumnByPropertyName(propertyname: string): TSOGridColumn;
@@ -1226,6 +1248,12 @@ begin
     end
     //else
     //  inherited WMKeyDown(Message);
+end;
+
+procedure TSOGrid.Loaded;
+begin
+  inherited Loaded;
+  fDefaultSettings := GetSettings;
 end;
 
 
