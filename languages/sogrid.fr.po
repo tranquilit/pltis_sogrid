@@ -66,6 +66,10 @@ msgstr "Rechercher le suivant"
 msgid "Find and replace..."
 msgstr "Rechercher et remplacer..."
 
+#: sogrid.gsconst_hideallcolumns
+msgid "Hide all columns"
+msgstr "Cacher toutes les colonnes"
+
 #: sogrid.gsconst_insert
 msgid "Insert"
 msgstr "Insérer"
@@ -97,6 +101,10 @@ msgstr "Revenir à la version initiale"
 #: sogrid.gsconst_selectall
 msgid "Select all rows"
 msgstr "Sélectionner toutes les lignes"
+
+#: sogrid.gsconst_showallcolumns
+msgid "Show all columns"
+msgstr "Montrer toutes les colonnes"
 
 #: sogrid.gsconst_undolastupdate
 msgid "Undo last change"

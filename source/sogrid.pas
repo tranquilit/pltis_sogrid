@@ -63,6 +63,8 @@ type
 
   TSOMenuItem = TMenuItem;
 
+  { TSOHeaderPopupMenu }
+
   TSOHeaderPopupMenu = class(TPopupMenu)
   private
     FOptions: TSOHeaderPopupOptions;
@@ -73,6 +75,8 @@ type
     procedure DoAddHeaderPopupItem(const Column: TColumnIndex; out Cmd: TAddPopupItemType); virtual;
     procedure DoColumnChange(Column: TColumnIndex; Visible: Boolean); virtual;
     procedure OnMenuItemClick(Sender: TObject);
+    procedure OnMenuShowAllClick(Sender: TObject);
+    procedure OnMenuHideAllClick(Sender: TObject);
   public
     procedure Popup(x, y: Integer); override;
   published
@@ -602,6 +606,9 @@ type
     GSConst_CustomizeColumns = 'Customize columns...';
     GSConst_AdvancedCustomizeColumns = 'Advanced customize of table...';
 
+    GSConst_ShowAllColumns = 'Show all columns';
+    GSConst_HideAllColumns = 'Hide all columns';
+
 implementation
 
 uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms,
@@ -682,7 +689,6 @@ end;
 
 
 procedure TSOHeaderPopupMenu.OnMenuItemClick(Sender: TObject);
-
 begin
   if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
     with TSOMenuItem(Sender),
@@ -695,6 +701,42 @@ begin
 
        DoColumnChange(TSOMenuItem(Sender).Tag, not Checked);
     end;
+end;
+
+procedure TSOHeaderPopupMenu.OnMenuShowAllClick(Sender: TObject);
+var
+  i: Integer;
+begin
+  if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
+  begin
+    with TVirtualTreeCast(PopupComponent).Header.Columns do
+    begin
+      for i := 0 to Count-1 do
+      if not (coVisible in Items[i].Options) then
+      begin
+        Items[i].Options := Items[i].Options + [coVisible];
+        DoColumnChange(i, True);
+      end;
+    end;
+  end;
+end;
+
+procedure TSOHeaderPopupMenu.OnMenuHideAllClick(Sender: TObject);
+var
+  i: Integer;
+begin
+  if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
+  begin
+    with TVirtualTreeCast(PopupComponent).Header.Columns do
+    begin
+      for i := 0 to Count-1 do
+      if coVisible in Items[i].Options then
+      begin
+        Items[i].Options := Items[i].Options - [coVisible];
+        DoColumnChange(i, False);
+      end;
+    end;
+  end;
 end;
 
 
@@ -762,6 +804,22 @@ begin
           end;
         end;
       end;
+
+      NewMenuItem := TSOMenuItem.Create(Self);
+      NewMenuItem.Caption := '-';
+      Items.Add(NewMenuItem);
+
+      NewMenuItem := TSOMenuItem.Create(Self);
+      NewMenuItem.Tag := -1;
+      NewMenuItem.Caption := GSConst_ShowAllColumns;
+      NewMenuItem.OnClick := @OnMenuShowAllClick;
+      Items.Add(NewMenuItem);
+
+      NewMenuItem := TSOMenuItem.Create(Self);
+      NewMenuItem.Tag := -2;
+      NewMenuItem.Caption := GSConst_HideAllColumns;
+      NewMenuItem.OnClick := @OnMenuHideAllClick;
+      Items.Add(NewMenuItem);
 
       // Conditionally disable menu item of last enabled column.
       if (VisibleCounter = 1) and (VisibleItem <> nil) and not (poAllowHideAll in FOptions) then
