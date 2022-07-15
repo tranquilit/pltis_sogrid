@@ -46,13 +46,13 @@ msgstr "Supprimer les lignes sélectionnées"
 msgid "Expand all"
 msgstr "Tout développer"
 
-#: sogrid.gsconst_exportallexcel
-msgid "Export all rows to CSV file..."
-msgstr "Exporter toutes les lignes vers un fichier CSV..."
+#: sogrid.gsconst_exportall
+msgid "Export all rows to file..."
+msgstr Exporter toutes les lignes vers un fichier...""
 
-#: sogrid.gsconst_exportselectedexcel
-msgid "Export selected rows to CSV file..."
-msgstr "Exporter les lignes sélectionnées vers un fichier CSV..."
+#: sogrid.gsconst_exportselected
+msgid "Export selected rows to file..."
+msgstr "Exporter les lignes sélectionnées vers un fichier..."
 
 #: sogrid.gsconst_find
 msgid "Search..."

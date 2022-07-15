@@ -17,6 +17,9 @@ uses
   Classes, Controls, ComCtrls, VirtualTrees, math, SysUtils,
   SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages,StdCtrls,
   Types, DefaultTranslator,
+  mormot.core.base,
+  mormot.core.variants,
+  mormot.core.unicode,
   sogridcommon;
 
 type
@@ -157,6 +160,18 @@ type
     procedure SetBounds(R: TRect); stdcall;
   end;
 
+  TTisGridExportFormatOption = (
+    /// inherited types
+    gefRtf,  // by ContentToRTF
+    gefHtml, // by ContentToHTML
+    gefText, // by ContentToText
+    /// our own types
+    gefCsv,  // by ContentToCsv
+    gefJson // by ContentToJson
+  );
+
+  TTisGridExportFormatOptions = set of TTisGridExportFormatOption;
+
   TSOGridGetText = procedure(Sender: TBaseVirtualTree; Node: PVirtualNode;
     RowData, CellData: ISuperObject; Column: TColumnIndex; TextType: TVSTTextType;
     var CellText: string) of object;
@@ -189,6 +204,7 @@ type
     FPendingAppendObject:ISuperObject;
 
     FDefaultPopupMenu: TPopupMenu;
+    fExportFormatOptions: TTisGridExportFormatOptions;
     fDefaultSettings: ISuperObject; // all default settings after load component
     FMenuFilled: boolean;
     HMUndo, HMRevert: HMENU;
@@ -228,6 +244,7 @@ type
 
 
   protected
+    const DefaultExportFormatOptions = [gefCsv, gefJson];
     procedure Loaded; override;
 
     property RootNodeCount stored False;
@@ -278,7 +295,7 @@ type
 
     procedure DoUndoLastUpdate(Sender: TObject); virtual;
     procedure DoRevertRecord(Sender: TObject); virtual;
-    procedure DoExportExcel(Sender: TObject); virtual;
+    procedure DoExport(Sender: TObject); virtual;
     procedure DoCopyToClipBoard(Sender: TObject); virtual;
     procedure DoCopyCellToClipBoard(Sender: TObject); virtual;
     procedure DoCutToClipBoard(Sender: TObject); virtual;
@@ -377,15 +394,26 @@ type
     //Ajouter les colonnes en s'inspirant du contenu Data
     procedure CreateColumnsFromData(FitWidth,AppendMissingAsHidden: Boolean);
 
-    function ContentAsCSV(Source: TVSTTextSourceType; const Separator: String
-      ): Utf8String;
-
+    /// export Data to CSV format
+    function ContentToCsv(Source: TVSTTextSourceType; const Separator: String): Utf8String;
+    /// export Data to JSON format
+    function ContentToJson(aSource: TVSTTextSourceType): RawUtf8;
+    /// export data
+    // - it will export using the format that matchs to aFileName extension
+    // - if extension do not exist in ExportFormatOptions, it will use OnExportCustomContent event to get the content
+    // - use aSelection as tstAll to export all nodes - default
+    // - use aSelection as tstSelected to export only selected nodes
+    procedure ExportData(const aFileName: TFileName; const aSelection: TVSTTextSourceType = tstAll);
     // Creates a temporary CSV file and open it in the default app
     procedure ExportExcel(Prefix:String='';Selection: TVSTTextSourceType=tstAll; Separator:Char=',');
 
     // Force refresh the "Selected / Total : %d/%d" label
     procedure UpdateSelectedAndTotalLabel;
 
+    /// it returns the filter for the Save Dialog, when user wants to export data
+    // - it will add file filters based on ExportFormatOptions property values
+    // - you can override this method to customize default filters
+    function GetExportDialogFilter: string; virtual;
     /// it restore original settings from original design
     procedure RestoreSettings;
   published
@@ -403,7 +431,8 @@ type
     property OnSOCompareNodes: TSOCompareNodesEvent read FOnSOCompareNodes write FOnSOCompareNodes;
 
     property GridSettings: String read GetGridSettings write SetGridSettings stored False;
-
+    property ExportFormatOptions: TTisGridExportFormatOptions
+      read fExportFormatOptions write fExportFormatOptions default DefaultExportFormatOptions;
     //inherited properties
     property Action;
     property Align;
@@ -587,7 +616,6 @@ type
     GSConst_NoRecordFind = 'No more record found for "%s"';
     GSConst_PrintOn = 'Printed on';
     GSConst_Page = 'Page';
-
     GSConst_Confirmation = 'Confirm';
     GSConst_UndoLastUpdate = 'Undo last change';
     GSConst_RevertRecord = 'Revert to initial record';
@@ -603,14 +631,13 @@ type
     GSConst_DeleteRows = 'Delete selected rows';
     GSConst_ConfDeleteRow = 'Confirm the deletion of the %d selected rows ?';
     GSConst_SelectAll = 'Select all rows';
-    GSConst_ExportSelectedExcel = 'Export selected rows to CSV file...';
-    GSConst_ExportAllExcel = 'Export all rows to CSV file...';
+    GSConst_ExportSelected = 'Export selected rows to file...';
+    GSConst_ExportAll = 'Export all rows to file...';
     GSConst_Print = 'Print...';
     GSConst_ExpandAll = 'Expand all';
     GSConst_CollapseAll = 'Collapse all';
     GSConst_CustomizeColumns = 'Customize columns...';
     GSConst_AdvancedCustomizeColumns = 'Advanced customize of table...';
-
     GSConst_ShowAllColumns = 'Show all columns';
     GSConst_HideAllColumns = 'Hide all columns';
     GSConst_RestoreDefaultColumns = 'Restore default columns';
@@ -1036,6 +1063,29 @@ begin
     FSelectedAndTotalLabel.Caption := Format('Selected / Total : %d / %d', [nbrSelected, nbrTotal])
   else
     FSelectedAndTotalLabel.Caption := Format('Total : %d elements', [nbrTotal]);
+end;
+
+function TSOGrid.GetExportDialogFilter: string;
+
+  procedure _Add(const aFilter: string);
+  begin
+    if result <> '' then
+      result += '|';
+    result += aFilter;
+  end;
+
+begin
+  result := '';
+  if gefCsv in fExportFormatOptions then
+    _Add('CSV (*.csv)|*.csv');
+  if gefJson in fExportFormatOptions then
+   _Add('JSON (*.json)|*.json');
+  if gefRtf in fExportFormatOptions then
+    _Add('RTF (*.rtf)|*.rtf');
+  if gefHtml in fExportFormatOptions then
+    _Add('HTML (*.html, *.htm)|*.html;*.htm');
+  if gefText in fExportFormatOptions then
+    _Add('Text (*.txt)|*.txt');
 end;
 
 procedure TSOGrid.RestoreSettings;
@@ -1503,7 +1553,7 @@ begin
   SetLength(FKeyFieldsList,0);
 
   FItemDataOffset := AllocateInternalDataArea(SizeOf(TSOItemData));
-
+  fExportFormatOptions := DefaultExportFormatOptions;
   WantTabs:=True;
   TabStop:=True;
 
@@ -1590,9 +1640,9 @@ begin
       if AllowDataExport then
         begin
           if (toMultiSelect in TreeOptions.SelectionOptions) then
-          HMExcel := AddItem(GSConst_ExportSelectedExcel, 0, @DoExportExcel)
+          HMExcel := AddItem(GSConst_ExportSelected, 0, @DoExport)
         else
-          HMExcel := AddItem(GSConst_ExportAllExcel, 0, @DoExportExcel);
+          HMExcel := AddItem(GSConst_ExportAll, 0, @DoExport);
       end;
       {if (HMPrint = 0) then
         HMPrint := AddItem(GSConst_Print, ShortCut(Ord('P'), [ssCtrl]), @DoPrint);
@@ -2590,7 +2640,7 @@ begin
   Until not FileExists(Result);
 end;
 
-function TSOGrid.ContentAsCSV(Source: TVSTTextSourceType; const Separator: String):Utf8String;
+function TSOGrid.ContentToCsv(Source: TVSTTextSourceType; const Separator: String):Utf8String;
 var
   values,Row,Rows,value:ISuperObject;
   i:Integer;
@@ -2633,6 +2683,72 @@ begin
   end;
 end;
 
+function TSOGrid.ContentToJson(aSource: TVSTTextSourceType): RawUtf8;
+var
+  json: RawUtf8;
+  rows: PDocVariantData;
+  cols, res: TDocVariantData;
+  col: TSOGridColumn;
+  c: Integer;
+begin
+  if aSource in [tstAll, tstInitialized, tstVisible] then
+    json := SynUnicodeToUtf8(Data.AsJSon)
+  else
+    json := SynUnicodeToUtf8(SelectedRows.AsJSon);
+  rows := _Safe(_JsonFastFloat(json));
+  cols.InitArray([], JSON_FAST_FLOAT);
+  for c := 0 to Header.Columns.Count-1 do
+  begin
+    col := TSOGridColumn(Header.Columns[c]);
+    if (coVisible in col.Options) then
+      cols.AddItemText(col.PropertyName);
+  end;
+  res.Clear;
+  rows^.Reduce(cols.ToRawUtf8DynArray, False, res);
+  result := res.ToJson;
+end;
+
+procedure TSOGrid.ExportData(const aFileName: TFileName;
+  const aSelection: TVSTTextSourceType);
+
+  procedure _SaveToFile(const aBuffer: RawUtf8);
+  var
+    buf: PUtf8Char;
+    l: LongInt;
+    st: File;
+  begin
+    AssignFile(st, aFileName);
+    Rewrite(st,1);
+    try
+      buf := PUtf8Char(aBuffer + #0);
+      l := StrLen(buf);
+      BlockWrite(st, buf^, l);
+    finally
+      CloseFile(st);
+    end;
+  end;
+
+var
+  buf: RawUtf8;
+begin
+  buf := '';
+  case SysUtils.LowerCase(ExtractFileExt(aFileName)) of
+    '.csv':
+      buf := ContentToCsv(aSelection, ',');
+    '.json':
+      buf := ContentToJson(aSelection);
+    '.html', '.htm':
+      buf := StringToUtf8(ContentToHTML(aSelection));
+    '.rtf':
+      buf := StringToUtf8(ContentToRTF(aSelection));
+    '.txt':
+      buf := StringToUtf8(ContentToText(aSelection, ','));
+  else
+    raise Exception.CreateFmt('File extension "%s" is not valid to export.', [ExtractFileExt(aFileName)]);
+  end;
+  _SaveToFile(buf);
+end;
+
 procedure TSOGrid.ExportExcel(Prefix:String='';Selection:TVSTTextSourceType=tstAll;Separator:Char=',');
 var
   tempfn:Utf8String;
@@ -2645,7 +2761,7 @@ begin
   AssignFile(st,tempfn);
   Rewrite(st,1);
   try
-    txt := ContentAsCSV(Selection,Separator)+#0;
+    txt := ContentToCsv(Selection,Separator)+#0;
     txtbuf := pchar(txt);
     l := strlen(txtbuf);
     BlockWrite(st,txtbuf^,l);
@@ -2655,12 +2771,31 @@ begin
   end;
 end;
 
-procedure TSOGrid.DoExportExcel(Sender: TObject);
+procedure TSOGrid.DoExport(Sender: TObject);
+
+  function _GetSelectionType: TVSTTextSourceType;
+  begin
+    if (toMultiSelect in TreeOptions.SelectionOptions) then
+      result := tstSelected
+    else
+      result := tstAll;
+  end;
+
+var
+  dlg: TSaveDialog;
 begin
-  if (toMultiSelect in TreeOptions.SelectionOptions) then
-    ExportExcel(Name,tstSelected,',')
-  else
-    ExportExcel(Name,tstAll,',');
+  dlg := TSaveDialog.Create(nil);
+  try
+    dlg.Title := Application.Title;
+    dlg.Filter := GetExportDialogFilter;
+    dlg.DefaultExt := 'csv';
+    dlg.FileName := 'data.csv';
+    dlg.Options := dlg.Options + [ofOverwritePrompt];
+    if dlg.Execute then
+      ExportData(dlg.FileName, _GetSelectionType);
+  finally
+    dlg.Free;
+  end;
 end;
 
 

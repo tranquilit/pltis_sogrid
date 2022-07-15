@@ -45,12 +45,12 @@ msgstr ""
 msgid "Expand all"
 msgstr ""
 
-#: sogrid.gsconst_exportallexcel
-msgid "Export all rows to CSV file..."
+#: sogrid.gsconst_exportall
+msgid "Export all rows to file..."
 msgstr ""
 
-#: sogrid.gsconst_exportselectedexcel
-msgid "Export selected rows to CSV file..."
+#: sogrid.gsconst_exportselected
+msgid "Export selected rows to file..."
 msgstr ""
 
 #: sogrid.gsconst_find
