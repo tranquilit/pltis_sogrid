@@ -162,12 +162,12 @@ type
 
   TTisGridExportFormatOption = (
     /// inherited types
-    gefRtf,  // by ContentToRTF
-    gefHtml, // by ContentToHTML
-    gefText, // by ContentToText
-    /// our own types
-    gefCsv,  // by ContentToCsv
-    gefJson // by ContentToJson
+    efoRtf,  // by ContentToRTF
+    efoHtml, // by ContentToHTML
+    efoText, // by ContentToText
+    /// our custom types
+    efoCsv,  // by ContentToCsv
+    efoJson // by ContentToJson
   );
 
   TTisGridExportFormatOptions = set of TTisGridExportFormatOption;
@@ -244,7 +244,7 @@ type
 
 
   protected
-    const DefaultExportFormatOptions = [gefCsv, gefJson];
+    const DefaultExportFormatOptions = [efoCsv, efoJson];
     procedure Loaded; override;
 
     property RootNodeCount stored False;
@@ -1076,15 +1076,15 @@ function TSOGrid.GetExportDialogFilter: string;
 
 begin
   result := '';
-  if gefCsv in fExportFormatOptions then
+  if efoCsv in fExportFormatOptions then
     _Add('CSV (*.csv)|*.csv');
-  if gefJson in fExportFormatOptions then
+  if efoJson in fExportFormatOptions then
    _Add('JSON (*.json)|*.json');
-  if gefRtf in fExportFormatOptions then
+  if efoRtf in fExportFormatOptions then
     _Add('RTF (*.rtf)|*.rtf');
-  if gefHtml in fExportFormatOptions then
+  if efoHtml in fExportFormatOptions then
     _Add('HTML (*.html, *.htm)|*.html;*.htm');
-  if gefText in fExportFormatOptions then
+  if efoText in fExportFormatOptions then
     _Add('Text (*.txt)|*.txt');
 end;
 
