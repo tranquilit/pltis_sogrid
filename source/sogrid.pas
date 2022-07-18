@@ -172,6 +172,24 @@ type
 
   TTisGridExportFormatOptions = set of TTisGridExportFormatOption;
 
+  /// adapter for TTisGridExportFormatOption
+  TTisGridExportFormatOptionAdapter = object
+    /// convert enum to caption
+    function EnumToCaption(const aValue: TTisGridExportFormatOption): string;
+    /// convert caption to enum
+    // - if aValue not found, it will return the first element
+    function CaptionToEnum(const aValue: string): TTisGridExportFormatOption;
+    /// convert all enums to strings
+    // - you can customize elements using aCustom
+    procedure EnumsToStrings(aDest: TStrings; const aCustom: TTisGridExportFormatOptions = [
+      low(TTisGridExportFormatOption)..high(TTisGridExportFormatOption)]);
+    /// convert file extension to enum
+    // - if aValue not found, it will return the first element
+    function ExtensionToEnum(const aValue: TFileName): TTisGridExportFormatOption;
+    /// convert enum to save dialog filter
+    function EnumToFilter(const aValue: TTisGridExportFormatOption): string;
+  end;
+
   TSOGridGetText = procedure(Sender: TBaseVirtualTree; Node: PVirtualNode;
     RowData, CellData: ISuperObject; Column: TColumnIndex; TextType: TVSTTextType;
     var CellText: string) of object;
@@ -647,6 +665,19 @@ implementation
 uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms,
     variants,tisstrings,sogrideditor;
 
+var
+  cGridExportFormatOptions: array[TTisGridExportFormatOption] of record
+    Caption: string;
+    Extension: string;
+    Filter: string;
+  end = (
+    (Caption: 'RTF'; Extension: '.rtf'; Filter: 'RTF (*.rtf)|*.rtf'),
+    (Caption: 'HTML'; Extension: '.html'; Filter: 'HTML (*.html)|*.html'),
+    (Caption: 'Text'; Extension: '.text'; Filter: 'Text (*.txt)|*.txt'),
+    (Caption: 'CSV'; Extension: '.csv'; Filter: 'CSV (*.csv)|*.csv'),
+    (Caption: 'JSON'; Extension: '.json'; Filter: 'JSON (*.json)|*.json')
+  );
+
 type
   TSOItemData = record
     JSONData: ISuperObject;
@@ -654,8 +685,8 @@ type
   end;
   PSOItemData = ^TSOItemData;
 
-
 { TSOGridColumn }
+
 procedure TSOGridColumn.SetPropertyName(const Value: string);
 begin
   if FPropertyName = Value then
@@ -1066,26 +1097,20 @@ begin
 end;
 
 function TSOGrid.GetExportDialogFilter: string;
-
-  procedure _Add(const aFilter: string);
-  begin
-    if result <> '' then
-      result += '|';
-    result += aFilter;
-  end;
-
+var
+  efo: TTisGridExportFormatOptionAdapter;
+  i: TTisGridExportFormatOption;
 begin
   result := '';
-  if efoCsv in fExportFormatOptions then
-    _Add('CSV (*.csv)|*.csv');
-  if efoJson in fExportFormatOptions then
-   _Add('JSON (*.json)|*.json');
-  if efoRtf in fExportFormatOptions then
-    _Add('RTF (*.rtf)|*.rtf');
-  if efoHtml in fExportFormatOptions then
-    _Add('HTML (*.html, *.htm)|*.html;*.htm');
-  if efoText in fExportFormatOptions then
-    _Add('Text (*.txt)|*.txt');
+  for i := high(TTisGridExportFormatOption) downto low(TTisGridExportFormatOption) do
+  begin
+    if i in fExportFormatOptions then
+    begin
+      if result <> '' then
+        result += '|';
+      result += efo.EnumToFilter(i);
+    end;
+  end;
 end;
 
 procedure TSOGrid.RestoreSettings;
@@ -2788,8 +2813,7 @@ begin
   try
     dlg.Title := Application.Title;
     dlg.Filter := GetExportDialogFilter;
-    dlg.DefaultExt := 'csv';
-    dlg.FileName := 'data.csv';
+    dlg.FileName := 'data';
     dlg.Options := dlg.Options + [ofOverwritePrompt];
     if dlg.Execute then
       ExportData(dlg.FileName, _GetSelectionType);
@@ -3029,6 +3053,57 @@ begin
   // we have to set the edit's width explicitly to the width of the column.
   fGrid.Header.Columns.GetColumnBounds(fColumn, dummy, R.Right);
   fControl.Internal.BoundsRect := R;
+end;
+
+{ TTisGridExportFormatOptionAdapter }
+
+function TTisGridExportFormatOptionAdapter.EnumToCaption(
+  const aValue: TTisGridExportFormatOption): string;
+begin
+  result := cGridExportFormatOptions[aValue].Caption;
+end;
+
+function TTisGridExportFormatOptionAdapter.CaptionToEnum(const aValue: string): TTisGridExportFormatOption;
+var
+  i: TTisGridExportFormatOption;
+begin
+  result := low(TTisGridExportFormatOption);
+  for i := low(cGridExportFormatOptions) to high(cGridExportFormatOptions) do
+    if cGridExportFormatOptions[i].Caption = aValue then
+    begin
+      result := i;
+      exit;
+    end;
+end;
+
+procedure TTisGridExportFormatOptionAdapter.EnumsToStrings(aDest: TStrings;
+  const aCustom: TTisGridExportFormatOptions);
+var
+  i: TTisGridExportFormatOption;
+begin
+  for i := low(TTisGridExportFormatOption) to high(TTisGridExportFormatOption) do
+    if i in aCustom then
+      aDest.Append(EnumToCaption(i));
+end;
+
+function TTisGridExportFormatOptionAdapter.ExtensionToEnum(
+  const aValue: TFileName): TTisGridExportFormatOption;
+var
+  i: TTisGridExportFormatOption;
+begin
+  result := low(TTisGridExportFormatOption);
+  for i := low(cGridExportFormatOptions) to high(cGridExportFormatOptions) do
+    if cGridExportFormatOptions[i].Extension = aValue then
+    begin
+      result := i;
+      exit;
+    end;
+end;
+
+function TTisGridExportFormatOptionAdapter.EnumToFilter(
+  const aValue: TTisGridExportFormatOption): string;
+begin
+  result := cGridExportFormatOptions[aValue].Filter;
 end;
 
 { TWidgetHelper }
