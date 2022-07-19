@@ -8,7 +8,8 @@ unit pltis_sogrid;
 interface
 
 uses
-  sogrid_register, sogrid, sogrideditor, sogridcommon, LazarusPackageIntf;
+  sogrid_register, sogrid, sogrideditor, sogridcommon, ucopyspecial, 
+  LazarusPackageIntf;
 
 implementation
 

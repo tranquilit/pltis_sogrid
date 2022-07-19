@@ -26,6 +26,10 @@ msgstr "Copier"
 msgid "Copy cell"
 msgstr "Copier la cellule"
 
+#: sogrid.gsconst_copyspecial
+msgid "Copy special..."
+msgstr "Copie spéciale..."
+
 #: sogrid.gsconst_customizecolumns
 msgid "Customize columns..."
 msgstr "Configurer les colonnes..."
@@ -48,7 +52,7 @@ msgstr "Tout développer"
 
 #: sogrid.gsconst_exportall
 msgid "Export all rows to file..."
-msgstr Exporter toutes les lignes vers un fichier...""
+msgstr ""
 
 #: sogrid.gsconst_exportselected
 msgid "Export selected rows to file..."

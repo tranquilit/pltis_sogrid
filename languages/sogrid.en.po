@@ -26,6 +26,10 @@ msgstr ""
 msgid "Copy cell"
 msgstr ""
 
+#: sogrid.gsconst_copyspecial
+msgid "Copy special..."
+msgstr ""
+
 #: sogrid.gsconst_customizecolumns
 msgid "Customize columns..."
 msgstr ""

@@ -241,9 +241,9 @@ type
     FMenuFilled: boolean;
     HMUndo, HMRevert: HMENU;
     HMFind, HMFindNext, HMReplace: HMENU;
-    HMCut, HMCopy, HMCopyCell, HMPast, HMFindReplace: HMENU;
+    HMCut, HMCopy, HMCopyCell, HMCopySpecial, HMPast, HMFindReplace: HMENU;
     HMInsert, HMDelete, HMSelAll: HMENU;
-    HMExcel, HMPrint: HMENU;
+    HMExport, HMPrint: HMENU;
     HMCollAll, HMExpAll: HMENU;
     HMCustomize: HMENU;
     HMAdvancedCustomize: HMENU;
@@ -330,6 +330,7 @@ type
     procedure DoExport(Sender: TObject); virtual;
     procedure DoCopyToClipBoard(Sender: TObject); virtual;
     procedure DoCopyCellToClipBoard(Sender: TObject); virtual;
+    procedure DoCopySpecialToClipboard({%H-}aSender: TObject); virtual;
     procedure DoCutToClipBoard(Sender: TObject); virtual;
     procedure DoDeleteRows(Sender: TObject); virtual;
     procedure DoPaste(Sender: TObject); virtual;
@@ -427,9 +428,10 @@ type
     procedure CreateColumnsFromData(FitWidth,AppendMissingAsHidden: Boolean);
 
     /// export Data to CSV format
-    function ContentToCsv(Source: TVSTTextSourceType; const Separator: String): Utf8String;
+    function ContentToCsv(aSource: TVSTTextSourceType; const aSeparator: string = ',';
+      aColumnsVisibleOnly: Boolean = True; aColumnsTranslated: Boolean = True): RawUtf8;
     /// export Data to JSON format
-    function ContentToJson(aSource: TVSTTextSourceType): RawUtf8;
+    function ContentToJson(aSource: TVSTTextSourceType; aColumnsVisibleOnly: Boolean = True): RawUtf8;
     /// export data
     // - it will export using the format that matchs to aFileName extension
     // - if extension do not exist in ExportFormatOptions, it will use OnExportCustomContent event to get the content
@@ -656,6 +658,7 @@ type
     GSConst_FindReplace = 'Find and replace...';
     GSConst_Copy = 'Copy';
     GSConst_CopyCell = 'Copy cell';
+    GSConst_CopySpecial = 'Copy special...';
     GSConst_Cut = 'Cut';
     GSConst_Paste = 'Paste';
     GSConst_Insert = 'Insert';
@@ -677,7 +680,7 @@ type
 implementation
 
 uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms,
-    variants,tisstrings,sogrideditor;
+    variants,tisstrings,sogrideditor, ucopyspecial;
 
 type
   TSOItemData = record
@@ -1655,6 +1658,8 @@ begin
         HMCut := AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), @DoCutToClipBoard);
       HMCopy := AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), @DoCopyToClipBoard);
       HMCopyCell := AddItem(GSConst_CopyCell, ShortCut(Ord('C'), [ssCtrl,ssShift]), @DoCopyCellToClipBoard);
+      if AllowDataExport then
+        HMCopySpecial := AddItem(GSConst_CopySpecial, ShortCut(Ord('S'), [ssCtrl,ssShift]), @DoCopySpecialToClipboard);
       if not (toReadOnly in TreeOptions.MiscOptions) and ((toEditable in TreeOptions.MiscOptions) or Assigned(FOnBeforePaste))  then
         HMPast := AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), @DoPaste);
       AddItem('-', 0, nil);
@@ -1664,11 +1669,11 @@ begin
         HMSelAll := AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), @DoSelectAllRows);
       AddItem('-', 0, nil);
       if AllowDataExport then
-        begin
-          if (toMultiSelect in TreeOptions.SelectionOptions) then
-          HMExcel := AddItem(GSConst_ExportSelected, 0, @DoExport)
+      begin
+        if (toMultiSelect in TreeOptions.SelectionOptions) then
+          HMExport := AddItem(GSConst_ExportSelected, 0, @DoExport)
         else
-          HMExcel := AddItem(GSConst_ExportAll, 0, @DoExport);
+          HMExport := AddItem(GSConst_ExportAll, 0, @DoExport);
       end;
       {if (HMPrint = 0) then
         HMPrint := AddItem(GSConst_Print, ShortCut(Ord('P'), [ssCtrl]), @DoPrint);
@@ -2149,6 +2154,56 @@ begin
     finally
       Clipboard.Close;
     end;
+  end;
+end;
+
+procedure TSOGrid.DoCopySpecialToClipboard(aSender: TObject);
+var
+  buf: RawByteString;
+  efo: TTisGridExportFormatOptionAdapter;
+  tst: TTisGridTextSourceTypeAdapter;
+  params: record
+    Selection: TVSTTextSourceType;
+    Format: TTisGridExportFormatOption;
+    Columns: record
+      VisibleOnly: Boolean;
+      Translated: Boolean;
+    end;
+  end;
+  form: TCopySpecialForm;
+begin
+  form := TCopySpecialForm.Create(self.Owner);
+  try
+    Clipboard.Open;
+    efo.EnumsToStrings(form.FormatCombo.Items, [efoCsv, efoJson]);
+    form.FormatCombo.ItemIndex := 0;
+    tst.EnumsToStrings(form.SelectionCombo.Items);
+    form.SelectionCombo.ItemIndex := 0;
+    if form.ShowModal <> mrOK then
+      exit;
+    Clipboard.Clear;
+    params.Selection := tst.CaptionToEnum(form.SelectionCombo.Text);
+    params.Format := efo.CaptionToEnum(form.FormatCombo.Text);
+    params.Columns.VisibleOnly := form.ColumnsVisibleOnlyCheckBox.Checked;
+    params.Columns.Translated := form.TranslatedColumnsCheckBox.Checked;
+    case params.Format of
+      efoCsv:
+      begin
+        buf := ContentToCsv(params.Selection, ',', params.Columns.VisibleOnly, params.Columns.Translated);
+        Clipboard.AddFormat(CF_Text, buf[1], Length(buf));
+      end;
+      efoJson:
+      begin
+        buf := ContentToJson(params.Selection, params.Columns.VisibleOnly);
+        Clipboard.AddFormat(CF_Text, buf[1], Length(buf));
+        Clipboard.AddFormat(ClipbrdJson, buf[1], Length(buf));
+      end;
+    else
+      raise Exception.Create('Format not enabled to copy from it.');
+    end;
+  finally
+    Clipboard.Close;
+    form.Free;
   end;
 end;
 
@@ -2666,12 +2721,14 @@ begin
   Until not FileExists(Result);
 end;
 
-function TSOGrid.ContentToCsv(Source: TVSTTextSourceType; const Separator: String):Utf8String;
+function TSOGrid.ContentToCsv(aSource: TVSTTextSourceType;
+  const aSeparator: string; aColumnsVisibleOnly: Boolean;
+  aColumnsTranslated: Boolean): RawUtf8;
 var
   values,Row,Rows,value:ISuperObject;
   i:Integer;
 begin
-  if Source in [tstAll,tstInitialized,tstVisible] then
+  if aSource in [tstAll,tstInitialized,tstVisible] then
     Rows := Data
   else
     Rows := SelectedRows;
@@ -2682,16 +2739,21 @@ begin
 
   for i:=0 to Header.Columns.Count-1 do
   begin
-    if coVisible in Header.Columns[i].Options then
-      values.AsArray.Add('"'+UTF8Decode(TSOGridColumn(Header.Columns[i]).Text)+'"');
+    if (coVisible in Header.Columns[i].Options) or (not aColumnsVisibleOnly) then
+    begin
+      if aColumnsTranslated then
+        values.AsArray.Add('"'+UTF8Decode(TSOGridColumn(Header.Columns[i]).Text)+'"')
+      else
+        values.AsArray.Add('"'+UTF8Decode(TSOGridColumn(Header.Columns[i]).PropertyName)+'"');
+    end;
   end;
-  Result := Result+Join(Separator,values)+LineEnding;
+  Result := Result+Join(aSeparator,values)+LineEnding;
   for row in rows do
   begin
     values := TSuperObject.Create(stArray);
     for i:=0 to Header.Columns.Count-1 do
     begin
-      if coVisible in Header.Columns[i].Options then
+      if (coVisible in Header.Columns[i].Options) or (not aColumnsVisibleOnly) then
       begin
         value := Row[TSOGridColumn(Header.Columns[i]).PropertyName];
         if (value<>Nil) and not ObjectIsNull((value)) then
@@ -2705,11 +2767,12 @@ begin
           values.AsArray.Add('""');
       end;
     end;
-    Result := Result+Join(Separator,values)+LineEnding;
+    Result := Result+Join(aSeparator,values)+LineEnding;
   end;
 end;
 
-function TSOGrid.ContentToJson(aSource: TVSTTextSourceType): RawUtf8;
+function TSOGrid.ContentToJson(aSource: TVSTTextSourceType;
+  aColumnsVisibleOnly: Boolean): RawUtf8;
 var
   json: RawUtf8;
   rows: PDocVariantData;
@@ -2726,7 +2789,7 @@ begin
   for c := 0 to Header.Columns.Count-1 do
   begin
     col := TSOGridColumn(Header.Columns[c]);
-    if (coVisible in col.Options) then
+    if ((coVisible in col.Options) or not aColumnsVisibleOnly) then
       cols.AddItemText(col.PropertyName);
   end;
   res.Clear;

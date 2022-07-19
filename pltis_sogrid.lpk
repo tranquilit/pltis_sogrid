@@ -27,7 +27,7 @@
     </CompilerOptions>
     <Description Value="Virtual SuperObject Grid Components"/>
     <Version Minor="31"/>
-    <Files Count="6">
+    <Files Count="9">
       <Item1>
         <Filename Value="source\sogrid_register.pas"/>
         <HasRegisterProc Value="True"/>
@@ -53,6 +53,18 @@
         <Filename Value="sogridcommon.pas"/>
         <UnitName Value="sogridcommon"/>
       </Item6>
+      <Item7>
+        <Filename Value="source\ucopyspecial.lfm"/>
+        <Type Value="LFM"/>
+      </Item7>
+      <Item8>
+        <Filename Value="source\ucopyspecial.lrj"/>
+        <Type Value="Text"/>
+      </Item8>
+      <Item9>
+        <Filename Value="source\ucopyspecial.pas"/>
+        <UnitName Value="ucopyspecial"/>
+      </Item9>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>
