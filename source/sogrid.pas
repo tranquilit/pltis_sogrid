@@ -190,6 +190,20 @@ type
     function EnumToFilter(const aValue: TTisGridExportFormatOption): string;
   end;
 
+  TTisGridTextSourceTypes = set of TVSTTextSourceType;
+
+  /// adapter for TVSTTextSourceType
+  TTisGridTextSourceTypeAdapter = object
+    /// convert enum to caption
+    function EnumToCaption(const aValue: TVSTTextSourceType): string;
+    /// convert caption to enum
+    // - if aValue not found, it will return the first element
+    function CaptionToEnum(const aValue: string): TVSTTextSourceType;
+    /// convert all enums to strings
+    // - you can customize elements using aCustom
+    procedure EnumsToStrings(aDest: TStrings; const aCustom: TTisGridTextSourceTypes = [tstAll, tstSelected]);
+  end;
+
   TSOGridGetText = procedure(Sender: TBaseVirtualTree; Node: PVirtualNode;
     RowData, CellData: ISuperObject; Column: TColumnIndex; TextType: TVSTTextType;
     var CellText: string) of object;
@@ -664,19 +678,6 @@ implementation
 
 uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms,
     variants,tisstrings,sogrideditor;
-
-var
-  cGridExportFormatOptions: array[TTisGridExportFormatOption] of record
-    Caption: string;
-    Extension: string;
-    Filter: string;
-  end = (
-    (Caption: 'RTF'; Extension: '.rtf'; Filter: 'RTF (*.rtf)|*.rtf'),
-    (Caption: 'HTML'; Extension: '.html'; Filter: 'HTML (*.html)|*.html'),
-    (Caption: 'Text'; Extension: '.text'; Filter: 'Text (*.txt)|*.txt'),
-    (Caption: 'CSV'; Extension: '.csv'; Filter: 'CSV (*.csv)|*.csv'),
-    (Caption: 'JSON'; Extension: '.json'; Filter: 'JSON (*.json)|*.json')
-  );
 
 type
   TSOItemData = record
@@ -3057,10 +3058,23 @@ end;
 
 { TTisGridExportFormatOptionAdapter }
 
+const
+  GRID_EXPORT_FORMAT_OPTIONS: array[TTisGridExportFormatOption] of record
+    Caption: string;
+    Extension: string;
+    Filter: string;
+  end = (
+    (Caption: 'RTF'; Extension: '.rtf'; Filter: 'RTF (*.rtf)|*.rtf'),
+    (Caption: 'HTML'; Extension: '.html'; Filter: 'HTML (*.html)|*.html'),
+    (Caption: 'Text'; Extension: '.text'; Filter: 'Text (*.txt)|*.txt'),
+    (Caption: 'CSV'; Extension: '.csv'; Filter: 'CSV (*.csv)|*.csv'),
+    (Caption: 'JSON'; Extension: '.json'; Filter: 'JSON (*.json)|*.json')
+  );
+
 function TTisGridExportFormatOptionAdapter.EnumToCaption(
   const aValue: TTisGridExportFormatOption): string;
 begin
-  result := cGridExportFormatOptions[aValue].Caption;
+  result := GRID_EXPORT_FORMAT_OPTIONS[aValue].Caption;
 end;
 
 function TTisGridExportFormatOptionAdapter.CaptionToEnum(const aValue: string): TTisGridExportFormatOption;
@@ -3068,8 +3082,8 @@ var
   i: TTisGridExportFormatOption;
 begin
   result := low(TTisGridExportFormatOption);
-  for i := low(cGridExportFormatOptions) to high(cGridExportFormatOptions) do
-    if cGridExportFormatOptions[i].Caption = aValue then
+  for i := low(GRID_EXPORT_FORMAT_OPTIONS) to high(GRID_EXPORT_FORMAT_OPTIONS) do
+    if GRID_EXPORT_FORMAT_OPTIONS[i].Caption = aValue then
     begin
       result := i;
       exit;
@@ -3092,8 +3106,8 @@ var
   i: TTisGridExportFormatOption;
 begin
   result := low(TTisGridExportFormatOption);
-  for i := low(cGridExportFormatOptions) to high(cGridExportFormatOptions) do
-    if cGridExportFormatOptions[i].Extension = aValue then
+  for i := low(GRID_EXPORT_FORMAT_OPTIONS) to high(GRID_EXPORT_FORMAT_OPTIONS) do
+    if GRID_EXPORT_FORMAT_OPTIONS[i].Extension = aValue then
     begin
       result := i;
       exit;
@@ -3103,7 +3117,50 @@ end;
 function TTisGridExportFormatOptionAdapter.EnumToFilter(
   const aValue: TTisGridExportFormatOption): string;
 begin
-  result := cGridExportFormatOptions[aValue].Filter;
+  result := GRID_EXPORT_FORMAT_OPTIONS[aValue].Filter;
+end;
+
+{ TTisGridTextSourceTypeAdapter }
+
+const
+  GRID_TEXT_SOURCE_TYPES: array[TVSTTextSourceType] of record
+    Caption: string;
+  end = (
+    (Caption: 'All'),
+    (Caption: 'Initialized'),
+    (Caption: 'Selected'),
+    (Caption: 'CutCopySet'),
+    (Caption: 'Visible'),
+    (Caption: 'Checked')
+  );
+
+function TTisGridTextSourceTypeAdapter.EnumToCaption(
+  const aValue: TVSTTextSourceType): string;
+begin
+  result := GRID_TEXT_SOURCE_TYPES[aValue].Caption;
+end;
+
+function TTisGridTextSourceTypeAdapter.CaptionToEnum(const aValue: string): TVSTTextSourceType;
+var
+  i: TVSTTextSourceType;
+begin
+  result := low(TVSTTextSourceType);
+  for i := low(GRID_TEXT_SOURCE_TYPES) to high(GRID_TEXT_SOURCE_TYPES) do
+    if GRID_TEXT_SOURCE_TYPES[i].Caption = aValue then
+    begin
+      result := i;
+      exit;
+    end;
+end;
+
+procedure TTisGridTextSourceTypeAdapter.EnumsToStrings(aDest: TStrings;
+  const aCustom: TTisGridTextSourceTypes);
+var
+  i: TVSTTextSourceType;
+begin
+  for i := low(TVSTTextSourceType) to high(TVSTTextSourceType) do
+    if i in aCustom then
+      aDest.Append(EnumToCaption(i));
 end;
 
 { TWidgetHelper }
