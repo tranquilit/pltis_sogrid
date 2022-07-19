@@ -17,7 +17,7 @@ uses
   StdCtrls;
 
 type
-  TCopySpecialForm = class(TForm)
+  TVisCopySpecial = class(TForm)
     BitBtn1: TBitBtn;
     BitBtn2: TBitBtn;
     PanBottom: TPanel;

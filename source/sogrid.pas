@@ -2170,9 +2170,9 @@ var
       Translated: Boolean;
     end;
   end;
-  form: TCopySpecialForm;
+  form: TVisCopySpecial;
 begin
-  form := TCopySpecialForm.Create(self.Owner);
+  form := TVisCopySpecial.Create(self.Owner);
   try
     Clipboard.Open;
     efo.EnumsToStrings(form.FormatCombo.Items, [efoCsv, efoJson]);

@@ -1,4 +1,4 @@
-object CopySpecialForm: TCopySpecialForm
+object VisCopySpecial: TVisCopySpecial
   Left = 552
   Height = 182
   Top = 369
