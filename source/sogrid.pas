@@ -239,15 +239,6 @@ type
     fExportFormatOptions: TTisGridExportFormatOptions;
     fPopupOrigEvent: TNotifyEvent; // it saves the original OnPopup event, if an external Popup instance was setted
     fDefaultSettings: ISuperObject; // all default settings after load component
-    HMUndo, HMRevert: HMENU;
-    HMFind, HMFindNext, HMReplace: HMENU;
-    HMCut, HMCopy, HMCopyCell, HMCopySpecial, HMPast, HMFindReplace: HMENU;
-    HMInsert, HMDelete, HMSelAll: HMENU;
-    HMExport, HMPrint: HMENU;
-    HMCollAll, HMExpAll: HMENU;
-    HMCustomize: HMENU;
-    HMAdvancedCustomize: HMENU;
-
     function FocusedPropertyName: String;
     function GetData: ISuperObject;
     function GetFocusedColumnObject: TSOGridColumn;
@@ -1641,7 +1632,7 @@ procedure TSOGrid.DoPopupMenu(aSender: TObject);
         PopupMenu.Items.Delete(i);
   end;
 
-  function _AddItem(ACaption: string; AShortcut: TShortCut; AEvent: TNotifyEvent): HMENU;
+  procedure _AddItem(ACaption: string; AShortcut: TShortCut; AEvent: TNotifyEvent);
   var
     AMI: TMenuItem;
   begin
@@ -1659,7 +1650,6 @@ procedure TSOGrid.DoPopupMenu(aSender: TObject);
       end;
       PopupMenu.Items.Add(AMI);
     end;
-    Result := AMI.Handle;
   end;
 
 begin
@@ -1670,31 +1660,31 @@ begin
   _RemoveAutoItems;
   if Assigned(fPopupOrigEvent) then
     fPopupOrigEvent(self);
-  HMFind := _AddItem(GSConst_Find, ShortCut(Ord('F'), [ssCtrl]), @DoFindText);
-  HMFindNext := _AddItem(GSConst_FindNext, VK_F3, @DoFindNext);
-  {HMFindReplace := _AddItem(GSConst_FindReplace, ShortCut(Ord('H'), [ssCtrl]),
+  _AddItem(GSConst_Find, ShortCut(Ord('F'), [ssCtrl]), @DoFindText);
+  _AddItem(GSConst_FindNext, VK_F3, @DoFindNext);
+  {_AddItem(GSConst_FindReplace, ShortCut(Ord('H'), [ssCtrl]),
     @DoFindReplace);}
   _AddItem('-', 0, nil);
   if (not (toReadOnly in TreeOptions.MiscOptions)) and Assigned(FOnCutToClipBoard) then
-    HMCut := _AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), @DoCutToClipBoard);
-  HMCopy := _AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), @DoCopyToClipBoard);
-  HMCopyCell := _AddItem(GSConst_CopyCell, ShortCut(Ord('C'), [ssCtrl,ssShift]), @DoCopyCellToClipBoard);
+    _AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), @DoCutToClipBoard);
+  _AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), @DoCopyToClipBoard);
+  _AddItem(GSConst_CopyCell, ShortCut(Ord('C'), [ssCtrl,ssShift]), @DoCopyCellToClipBoard);
   if AllowDataExport then
-    HMCopySpecial := _AddItem(GSConst_CopySpecial, ShortCut(Ord('S'), [ssCtrl,ssShift]), @DoCopySpecialToClipboard);
+    _AddItem(GSConst_CopySpecial, ShortCut(Ord('S'), [ssCtrl,ssShift]), @DoCopySpecialToClipboard);
   if not (toReadOnly in TreeOptions.MiscOptions) and ((toEditable in TreeOptions.MiscOptions) or Assigned(FOnBeforePaste))  then
-    HMPast := _AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), @DoPaste);
+    _AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), @DoPaste);
   _AddItem('-', 0, nil);
   if not (toReadOnly in TreeOptions.MiscOptions) or Assigned(FOnNodesDelete) then
-    HMDelete := _AddItem(GSConst_DeleteRows, ShortCut(VK_DELETE, [ssCtrl]), @DoDeleteRows);
+    _AddItem(GSConst_DeleteRows, ShortCut(VK_DELETE, [ssCtrl]), @DoDeleteRows);
   if toMultiSelect in TreeOptions.SelectionOptions then
-    HMSelAll := _AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), @DoSelectAllRows);
+    _AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), @DoSelectAllRows);
   _AddItem('-', 0, nil);
   if AllowDataExport then
   begin
     if (toMultiSelect in TreeOptions.SelectionOptions) then
-      HMExport := _AddItem(GSConst_ExportSelected, 0, @DoExport)
+      _AddItem(GSConst_ExportSelected, 0, @DoExport)
     else
-      HMExport := _AddItem(GSConst_ExportAll, 0, @DoExport);
+      _AddItem(GSConst_ExportAll, 0, @DoExport);
   end;
   {if (HMPrint = 0) then
     HMPrint := _AddItem(GSConst_Print, ShortCut(Ord('P'), [ssCtrl]), @DoPrint);
@@ -1704,9 +1694,9 @@ begin
   HMCollAll := _AddItem(GSConst_CollapseAll, Shortcut(Ord('R'), [ssCtrl, ssShift]),
     @DoCollapseAll);}
   _AddItem('-', 0, nil);
-  HMCustomize := _AddItem(GSConst_CustomizeColumns, 0, @DoCustomizeColumns);
+  _AddItem(GSConst_CustomizeColumns, 0, @DoCustomizeColumns);
   if (csDesigning in ComponentState) or ShowAdvancedColumnsCustomize then
-    HMAdvancedCustomize := _AddItem(GSConst_AdvancedCustomizeColumns, 0, @DoAdvancedCustomizeColumns);
+    _AddItem(GSConst_AdvancedCustomizeColumns, 0, @DoAdvancedCustomizeColumns);
 end;
 
 destructor TSOGrid.Destroy;
