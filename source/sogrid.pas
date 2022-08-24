@@ -851,7 +851,8 @@ begin
           ColIdx := ColPos
         else
           ColIdx := Columns.ColumnFromPosition(ColPos);
-
+        if ColIdx = NoColumn then
+          break;
         with Columns[ColIdx] as TSOGridColumn do
         begin
           if coVisible in Options then
