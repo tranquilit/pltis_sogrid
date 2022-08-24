@@ -237,8 +237,8 @@ type
 
     FDefaultPopupMenu: TPopupMenu;
     fExportFormatOptions: TTisGridExportFormatOptions;
+    fPopupOrigEvent: TNotifyEvent; // it saves the original OnPopup event, if an external Popup instance was setted
     fDefaultSettings: ISuperObject; // all default settings after load component
-    FMenuFilled: boolean;
     HMUndo, HMRevert: HMENU;
     HMFind, HMFindNext, HMReplace: HMENU;
     HMCut, HMCopy, HMCopyCell, HMCopySpecial, HMPast, HMFindReplace: HMENU;
@@ -300,9 +300,8 @@ type
       override;
 
     //Gestion menu standard
-    procedure FillMenu(LocalMenu: TPopupMenu);
-    procedure DoEnter; override;
-    procedure DoExit; override;
+    procedure SetupPopupMenu; virtual;
+    procedure DoPopupMenu(aSender: TObject);
 
     procedure PrepareCell(var PaintInfo: TVTPaintInfo;
       WindowOrgX, MaxWidth: integer); override;
@@ -1332,6 +1331,8 @@ end;
 procedure TSOGrid.Loaded;
 begin
   inherited Loaded;
+  if not (csDesigning in ComponentState) then
+    SetupPopupMenu;
   fDefaultSettings := GetSettings;
 end;
 
@@ -1619,16 +1620,34 @@ begin
 end;
 
 
-procedure TSOGrid.FillMenu(LocalMenu: TPopupMenu);
+procedure TSOGrid.SetupPopupMenu;
+begin
+  if not Assigned(PopupMenu) then
+    PopupMenu := TPopupMenu.Create(self)
+  else
+    fPopupOrigEvent := PopupMenu.OnPopup;
+  PopupMenu.OnPopup := @DoPopupMenu;
+end;
 
-  function AddItem(ACaption: string; AShortcut: TShortCut; AEvent: TNotifyEvent): HMENU;
+procedure TSOGrid.DoPopupMenu(aSender: TObject);
+
+  procedure _RemoveAutoItems;
+  var
+    i: Integer;
+  begin
+    for i := PopupMenu.Items.Count-1 downto 0 do
+      if PopupMenu.Items[i].Tag = 250 then
+        PopupMenu.Items.Delete(i);
+  end;
+
+  function _AddItem(ACaption: string; AShortcut: TShortCut; AEvent: TNotifyEvent): HMENU;
   var
     AMI: TMenuItem;
   begin
-    AMI := LocalMenu.Items.Find(ACaption);
+    AMI := PopupMenu.Items.Find(ACaption);
     if AMI = Nil then
     begin
-      AMI := TMenuItem.Create(LocalMenu);
+      AMI := TMenuItem.Create(PopupMenu);
       with AMI do
       begin
         Caption := ACaption;
@@ -1637,83 +1656,57 @@ procedure TSOGrid.FillMenu(LocalMenu: TPopupMenu);
         // to delete them
         Tag := 250;
       end;
-      LocalMenu.Items.Add(AMI);
+      PopupMenu.Items.Add(AMI);
     end;
     Result := AMI.Handle;
   end;
 
 begin
-  if not FMenuFilled then
-    try
-
-      if (LocalMenu.Items.Count > 0) then
-        AddItem('-', 0, nil);
-
-      HMFind := AddItem(GSConst_Find, ShortCut(Ord('F'), [ssCtrl]), @DoFindText);
-      HMFindNext := AddItem(GSConst_FindNext, VK_F3, @DoFindNext);
-      {HMFindReplace := AddItem(GSConst_FindReplace, ShortCut(Ord('H'), [ssCtrl]),
-        @DoFindReplace);}
-      AddItem('-', 0, nil);
-      if (not (toReadOnly in TreeOptions.MiscOptions)) and Assigned(FOnCutToClipBoard) then
-        HMCut := AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), @DoCutToClipBoard);
-      HMCopy := AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), @DoCopyToClipBoard);
-      HMCopyCell := AddItem(GSConst_CopyCell, ShortCut(Ord('C'), [ssCtrl,ssShift]), @DoCopyCellToClipBoard);
-      if AllowDataExport then
-        HMCopySpecial := AddItem(GSConst_CopySpecial, ShortCut(Ord('S'), [ssCtrl,ssShift]), @DoCopySpecialToClipboard);
-      if not (toReadOnly in TreeOptions.MiscOptions) and ((toEditable in TreeOptions.MiscOptions) or Assigned(FOnBeforePaste))  then
-        HMPast := AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), @DoPaste);
-      AddItem('-', 0, nil);
-      if not (toReadOnly in TreeOptions.MiscOptions) or Assigned(FOnNodesDelete) then
-        HMDelete := AddItem(GSConst_DeleteRows, ShortCut(VK_DELETE, [ssCtrl]), @DoDeleteRows);
-      if toMultiSelect in TreeOptions.SelectionOptions then
-        HMSelAll := AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), @DoSelectAllRows);
-      AddItem('-', 0, nil);
-      if AllowDataExport then
-      begin
-        if (toMultiSelect in TreeOptions.SelectionOptions) then
-          HMExport := AddItem(GSConst_ExportSelected, 0, @DoExport)
-        else
-          HMExport := AddItem(GSConst_ExportAll, 0, @DoExport);
-      end;
-      {if (HMPrint = 0) then
-        HMPrint := AddItem(GSConst_Print, ShortCut(Ord('P'), [ssCtrl]), @DoPrint);
-      AddItem('-', 0, nil);
-      HMExpAll := AddItem(GSConst_ExpandAll, Shortcut(Ord('E'), [ssCtrl, ssShift]),
-        @DoExpandAll);
-      HMCollAll := AddItem(GSConst_CollapseAll, Shortcut(Ord('R'), [ssCtrl, ssShift]),
-        @DoCollapseAll);}
-      AddItem('-', 0, nil);
-      HMCustomize := AddItem(GSConst_CustomizeColumns, 0, @DoCustomizeColumns);
-    finally
-      FMenuFilled := True;
-    end;
-    if (csDesigning in ComponentState) or ShowAdvancedColumnsCustomize then
-      HMAdvancedCustomize := AddItem(GSConst_AdvancedCustomizeColumns, 0, @DoAdvancedCustomizeColumns);
-end;
-
-procedure TSOGrid.DoEnter;
-begin
-  if (PopupMenu = nil) then
-    PopupMenu := TPopupMenu.Create(Self);
-  FillMenu(PopupMenu);
-  inherited DoEnter;
-end;
-
-procedure TSOGrid.DoExit;
-var
-  i: Integer;
-begin
-  // Remove auto items.
-  if (PopupMenu <> nil) then
+  if PopupMenu = nil then
+    exit;
+  if (PopupMenu.Items.Count > 0) then
+    _AddItem('-', 0, nil);
+  _RemoveAutoItems;
+  if Assigned(fPopupOrigEvent) then
+    fPopupOrigEvent(self);
+  HMFind := _AddItem(GSConst_Find, ShortCut(Ord('F'), [ssCtrl]), @DoFindText);
+  HMFindNext := _AddItem(GSConst_FindNext, VK_F3, @DoFindNext);
+  {HMFindReplace := _AddItem(GSConst_FindReplace, ShortCut(Ord('H'), [ssCtrl]),
+    @DoFindReplace);}
+  _AddItem('-', 0, nil);
+  if (not (toReadOnly in TreeOptions.MiscOptions)) and Assigned(FOnCutToClipBoard) then
+    HMCut := _AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), @DoCutToClipBoard);
+  HMCopy := _AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), @DoCopyToClipBoard);
+  HMCopyCell := _AddItem(GSConst_CopyCell, ShortCut(Ord('C'), [ssCtrl,ssShift]), @DoCopyCellToClipBoard);
+  if AllowDataExport then
+    HMCopySpecial := _AddItem(GSConst_CopySpecial, ShortCut(Ord('S'), [ssCtrl,ssShift]), @DoCopySpecialToClipboard);
+  if not (toReadOnly in TreeOptions.MiscOptions) and ((toEditable in TreeOptions.MiscOptions) or Assigned(FOnBeforePaste))  then
+    HMPast := _AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), @DoPaste);
+  _AddItem('-', 0, nil);
+  if not (toReadOnly in TreeOptions.MiscOptions) or Assigned(FOnNodesDelete) then
+    HMDelete := _AddItem(GSConst_DeleteRows, ShortCut(VK_DELETE, [ssCtrl]), @DoDeleteRows);
+  if toMultiSelect in TreeOptions.SelectionOptions then
+    HMSelAll := _AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), @DoSelectAllRows);
+  _AddItem('-', 0, nil);
+  if AllowDataExport then
   begin
-    for i:=PopupMenu.Items.Count-1 downto 0 do
-      if PopupMenu.Items[i].Tag=250 then
-        PopupMenu.Items.Delete(i);
-    FMenuFilled := False;
+    if (toMultiSelect in TreeOptions.SelectionOptions) then
+      HMExport := _AddItem(GSConst_ExportSelected, 0, @DoExport)
+    else
+      HMExport := _AddItem(GSConst_ExportAll, 0, @DoExport);
   end;
-  inherited DoExit;
+  {if (HMPrint = 0) then
+    HMPrint := _AddItem(GSConst_Print, ShortCut(Ord('P'), [ssCtrl]), @DoPrint);
+  _AddItem('-', 0, nil);
+  HMExpAll := _AddItem(GSConst_ExpandAll, Shortcut(Ord('E'), [ssCtrl, ssShift]),
+    @DoExpandAll);
+  HMCollAll := _AddItem(GSConst_CollapseAll, Shortcut(Ord('R'), [ssCtrl, ssShift]),
+    @DoCollapseAll);}
+  _AddItem('-', 0, nil);
+  HMCustomize := _AddItem(GSConst_CustomizeColumns, 0, @DoCustomizeColumns);
+  if (csDesigning in ComponentState) or ShowAdvancedColumnsCustomize then
+    HMAdvancedCustomize := _AddItem(GSConst_AdvancedCustomizeColumns, 0, @DoAdvancedCustomizeColumns);
 end;
-
 
 destructor TSOGrid.Destroy;
 begin
