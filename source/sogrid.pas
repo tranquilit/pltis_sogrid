@@ -237,7 +237,6 @@ type
 
     FDefaultPopupMenu: TPopupMenu;
     fExportFormatOptions: TTisGridExportFormatOptions;
-    fPopupOrigEvent: TNotifyEvent; // it saves the original OnPopup event, if an external Popup instance was setted
     fDefaultSettings: ISuperObject; // all default settings after load component
     function FocusedPropertyName: String;
     function GetData: ISuperObject;
@@ -291,8 +290,8 @@ type
       override;
 
     //Gestion menu standard
-    procedure SetupPopupMenu; virtual;
-    procedure DoPopupMenu(aSender: TObject);
+    procedure FillPopupMenu; virtual;
+    procedure CleanPopupMenu; virtual;
 
     procedure PrepareCell(var PaintInfo: TVTPaintInfo;
       WindowOrgX, MaxWidth: integer); override;
@@ -348,6 +347,10 @@ type
       const AXProportion, AYProportion: Double); override;
 
     procedure DoChange(Node: PVirtualNode); override;
+    procedure DoEnter; override;
+    procedure DoExit; override;
+  public
+    const POPUP_ITEM_TAG = 250;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -1323,8 +1326,6 @@ end;
 procedure TSOGrid.Loaded;
 begin
   inherited Loaded;
-  if not (csDesigning in ComponentState) then
-    SetupPopupMenu;
   fDefaultSettings := GetSettings;
 end;
 
@@ -1611,55 +1612,34 @@ begin
 
 end;
 
-
-procedure TSOGrid.SetupPopupMenu;
-begin
-  if not Assigned(PopupMenu) then
-    PopupMenu := TPopupMenu.Create(self)
-  else
-    fPopupOrigEvent := PopupMenu.OnPopup;
-  PopupMenu.OnPopup := @DoPopupMenu;
-end;
-
-procedure TSOGrid.DoPopupMenu(aSender: TObject);
-
-  procedure _RemoveAutoItems;
-  var
-    i: Integer;
-  begin
-    for i := PopupMenu.Items.Count-1 downto 0 do
-      if PopupMenu.Items[i].Tag = 250 then
-        PopupMenu.Items.Delete(i);
-  end;
+procedure TSOGrid.FillPopupMenu;
 
   procedure _AddItem(ACaption: string; AShortcut: TShortCut; AEvent: TNotifyEvent);
   var
-    AMI: TMenuItem;
+    vMenuItem: TMenuItem;
   begin
-    AMI := PopupMenu.Items.Find(ACaption);
-    if AMI = Nil then
+    vMenuItem := PopupMenu.Items.Find(ACaption);
+    if vMenuItem = Nil then
     begin
-      AMI := TMenuItem.Create(PopupMenu);
-      with AMI do
+      vMenuItem := TMenuItem.Create(PopupMenu);
+      with vMenuItem do
       begin
         Caption := ACaption;
         ShortCut := AShortcut;
         OnClick := AEvent;
-        // to delete them
-        Tag := 250;
+        Tag := POPUP_ITEM_TAG;
       end;
-      PopupMenu.Items.Add(AMI);
+      PopupMenu.Items.Add(vMenuItem);
     end;
   end;
 
 begin
-  if PopupMenu = nil then
-    exit;
-  if (PopupMenu.Items.Count > 0) then
+  if not Assigned(PopupMenu) then
+    PopupMenu := TPopupMenu.Create(self);
+  if Assigned(PopupMenu.OnPopup) then
+    PopupMenu.OnPopup(PopupMenu);
+  if PopupMenu.Items.Count > 0 then
     _AddItem('-', 0, nil);
-  _RemoveAutoItems;
-  if Assigned(fPopupOrigEvent) then
-    fPopupOrigEvent(self);
   _AddItem(GSConst_Find, ShortCut(Ord('F'), [ssCtrl]), @DoFindText);
   _AddItem(GSConst_FindNext, VK_F3, @DoFindNext);
   {_AddItem(GSConst_FindReplace, ShortCut(Ord('H'), [ssCtrl]),
@@ -1697,6 +1677,15 @@ begin
   _AddItem(GSConst_CustomizeColumns, 0, @DoCustomizeColumns);
   if (csDesigning in ComponentState) or ShowAdvancedColumnsCustomize then
     _AddItem(GSConst_AdvancedCustomizeColumns, 0, @DoAdvancedCustomizeColumns);
+end;
+
+procedure TSOGrid.CleanPopupMenu;
+var
+  i: Integer;
+begin
+  for i := PopupMenu.Items.Count-1 downto 0 do
+    if PopupMenu.Items[i].Tag = POPUP_ITEM_TAG then
+      PopupMenu.Items.Delete(i);
 end;
 
 destructor TSOGrid.Destroy;
@@ -1792,6 +1781,18 @@ begin
   inherited DoChange(Node);
   if Assigned(FSelectedAndTotalLabel) then
     SetSelectedAndTotalLabel(FSelectedAndTotalLabel);
+end;
+
+procedure TSOGrid.DoEnter;
+begin
+  inherited DoEnter;
+  FillPopupMenu;
+end;
+
+procedure TSOGrid.DoExit;
+begin
+  CleanPopupMenu;
+  inherited DoExit;
 end;
 
 procedure TSOGrid.FixDesignFontsPPI(const ADesignTimePPI: Integer);
