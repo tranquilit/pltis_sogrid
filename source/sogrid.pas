@@ -289,8 +289,13 @@ type
     function DoCompare(Node1, Node2: PVirtualNode; Column: TColumnIndex): integer;
       override;
 
-    //Gestion menu standard
+    /// fill the popup menu with items in runtime when grid gets focus, for deal with the data and grid itself
+    // - each item will use the POPUP_ITEM_TAG public constant as its Tag value
+    // - it is called in DoEnter
     procedure FillPopupMenu; virtual;
+    /// clean the popup when lost focus, removing items inserted before
+    // - each item that has the POPUP_ITEM_TAG public constant as its Tag value, will be removed
+    // - it is called in DoExit
     procedure CleanPopupMenu; virtual;
 
     procedure PrepareCell(var PaintInfo: TVTPaintInfo;
@@ -1636,6 +1641,7 @@ procedure TSOGrid.FillPopupMenu;
 begin
   if not Assigned(PopupMenu) then
     PopupMenu := TPopupMenu.Create(self);
+  // fire the original user event, if it exists, for customize its items
   if Assigned(PopupMenu.OnPopup) then
     PopupMenu.OnPopup(PopupMenu);
   if PopupMenu.Items.Count > 0 then
