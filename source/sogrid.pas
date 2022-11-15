@@ -3103,6 +3103,7 @@ begin
   if vDoc <> nil then
     vCur := vDoc.S[vCol.PropertyName];
   vNew := fControl.GetValue;
+  vAborted := False;
   fGrid.DoEditValidated(vCol, vCur, vNew, vAborted);
   try
     if vAborted then
