@@ -208,6 +208,12 @@ type
     RowData, CellData: ISuperObject; Column: TColumnIndex; TextType: TVSTTextType;
     var CellText: string) of object;
 
+  /// event that allow to validate the new value from user input
+  // - aCurValue is the current value for the aColumn
+  // - use it for check/change the aNewValue argument, before assign it, and/or abort the process
+  TOnGridEditValidated = procedure(aSender: TSOGrid; aColumn: TSOGridColumn;
+    const aCurValue: Variant; var aNewValue: Variant; var aAbort: Boolean) of object;
+
   { TSOGrid }
   TSOGrid = class(TCustomVirtualStringTree,ISODataView)
   private
@@ -238,6 +244,7 @@ type
     FDefaultPopupMenu: TPopupMenu;
     fExportFormatOptions: TTisGridExportFormatOptions;
     fDefaultSettings: ISuperObject; // all default settings after load component
+    fOnEditValidated: TOnGridEditValidated;
     function FocusedPropertyName: String;
     function GetData: ISuperObject;
     function GetFocusedColumnObject: TSOGridColumn;
@@ -354,6 +361,8 @@ type
     procedure DoChange(Node: PVirtualNode); override;
     procedure DoEnter; override;
     procedure DoExit; override;
+    procedure DoEditValidated(const aColumn: TSOGridColumn; const aCurValue: Variant;
+      var aNewValue: Variant; var aAbort: Boolean); virtual;
   public
     const POPUP_ITEM_TAG = 250;
   public
@@ -421,6 +430,7 @@ type
     procedure LoadSettingsFromIni(inifilename: string);
 
     function FindColumnByPropertyName(propertyname: string): TSOGridColumn;
+    function FindColumnByIndex(const aIndex: TColumnIndex): TSOGridColumn;
 
     //Ajouter les colonnes en s'inspirant du contenu Data
     procedure CreateColumnsFromData(FitWidth,AppendMissingAsHidden: Boolean);
@@ -465,6 +475,8 @@ type
     property GridSettings: String read GetGridSettings write SetGridSettings stored False;
     property ExportFormatOptions: TTisGridExportFormatOptions
       read fExportFormatOptions write fExportFormatOptions default DefaultExportFormatOptions;
+    property OnEditValidated: TOnGridEditValidated
+      read fOnEditValidated write fOnEditValidated;
     //inherited properties
     property Action;
     property Align;
@@ -1136,6 +1148,14 @@ begin
   end;
 end;
 
+function TSOGrid.FindColumnByIndex(const aIndex: TColumnIndex): TSOGridColumn;
+begin
+  if aIndex = NoColumn then
+    result := nil
+  else
+    result := TSOGridColumn(Header.Columns[aIndex]);
+end;
+
 procedure TSOGrid.CreateColumnsFromData(FitWidth,AppendMissingAsHidden: Boolean);
 var
   values,prop,Row,propname:ISuperObject;
@@ -1799,6 +1819,13 @@ procedure TSOGrid.DoExit;
 begin
   CleanPopupMenu;
   inherited DoExit;
+end;
+
+procedure TSOGrid.DoEditValidated(const aColumn: TSOGridColumn;
+  const aCurValue: Variant; var aNewValue: Variant; var aAbort: Boolean);
+begin
+  if Assigned(fOnEditValidated) then
+    fOnEditValidated(self, aColumn, aCurValue, aNewValue, aAbort);
 end;
 
 procedure TSOGrid.FixDesignFontsPPI(const ADesignTimePPI: Integer);
@@ -3062,10 +3089,31 @@ begin
 end;
 
 function TSOStringEditLink.EndEdit: Boolean; stdcall;
+var
+  vCol: TSOGridColumn;
+  vDoc: ISuperObject;
+  vCur, vNew: Variant;
+  vAborted: Boolean;
 begin
   result := True;
+  vDoc := nil;
+  vCur := nil;
+  vCol := fGrid.FindColumnByIndex(fColumn);
+  vDoc := fGrid.GetNodeSOData(fNode);
+  if vDoc <> nil then
+    vCur := vDoc.S[vCol.PropertyName];
+  vNew := fControl.GetValue;
+  fGrid.DoEditValidated(vCol, vCur, vNew, vAborted);
   try
-    fGrid.Text[fNode, fColumn] := VarToStr(fControl.GetValue);
+    if vAborted then
+      exit;
+    if VarIsNull(vNew) then
+      vDoc.O[vCol.PropertyName] := NULL
+    else
+    begin
+      fGrid.Text[fNode, fColumn] := VarToStr(vNew);
+      vDoc.S[vCol.PropertyName] := VarToStr(vNew);
+    end;
   finally
     FreeAndNil(fControl); // for do not perform any event from it
     fGrid.InvalidateNode(fNode);
