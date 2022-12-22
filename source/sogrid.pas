@@ -687,9 +687,11 @@ type
     GSConst_HideAllColumns = 'Hide all columns';
     GSConst_RestoreDefaultColumns = 'Restore default columns';
 
+procedure Translate(const aDirectory, aLang: string);
+
 implementation
 
-uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms,
+uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms, LCLTranslator,
     variants,tisstrings,sogrideditor, ucopyspecial;
 
 type
@@ -698,6 +700,15 @@ type
     JSONChildren: ISuperObject;
   end;
   PSOItemData = ^TSOItemData;
+
+procedure Translate(const aDirectory, aLang: string);
+var
+  vDir: TFileName;
+begin
+  vDir := IncludeTrailingPathDelimiter(aDirectory);
+  TranslateUnitResourceStringsEx(
+    aLang, vDir, 'sogrid.po', 'sogrid');
+end;
 
 { TSOGridColumn }
 
