@@ -361,6 +361,7 @@ type
     procedure DoChange(Node: PVirtualNode); override;
     procedure DoEnter; override;
     procedure DoExit; override;
+    procedure DoContextPopup(aMousePos: TPoint; var aHandled: Boolean); override;
     procedure DoEditValidated(const aColumn: TSOGridColumn; const aCurValue: Variant;
       var aNewValue: Variant; var aAbort: Boolean); virtual;
   public
@@ -1830,6 +1831,15 @@ procedure TSOGrid.DoExit;
 begin
   CleanPopupMenu;
   inherited DoExit;
+end;
+
+procedure TSOGrid.DoContextPopup(aMousePos: TPoint; var aHandled: Boolean);
+begin
+  // - it is needed to Clean/FillPopupMenu first/again,
+  // as some Captions translation should be done before show up
+  CleanPopupMenu;
+  FillPopupMenu;
+  inherited DoContextPopup(aMousePos, aHandled);
 end;
 
 procedure TSOGrid.DoEditValidated(const aColumn: TSOGridColumn;
