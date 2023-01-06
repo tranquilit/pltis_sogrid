@@ -2526,7 +2526,7 @@ begin
   if Focused and
     (vsSelected in PaintInfo.Node^.States) and (PaintInfo.Node = FocusedNode) and
     (PaintInfo.column = FocusedColumn) then
-    PaintInfo.Canvas.Font.Color := clWhite;
+    PaintInfo.Canvas.Font.Color := clWindow;
   inherited;
 end;
 
@@ -2534,11 +2534,13 @@ procedure TSOGrid.DoBeforeItemErase(ACanvas: TCanvas; Node: PVirtualNode;
   const ItemRect: TRect; var AColor: TColor; var EraseAction: TItemEraseAction);
 begin
   inherited DoBeforeItemErase(Canvas, Node, ItemRect, AColor, EraseAction);
+  {$ifdef windows}
   if FZebraPaint and (Node<>Nil) and Odd(Node^.Index) then
   begin
-      AColor := $00EDF0F1;
-      EraseAction := eaColor;
+    AColor := $00EDF0F1;
+    EraseAction := eaColor;
   end;
+  {$endif}
 end;
 
 function TSOGrid.FindText(Txt: string): PVirtualNode;
