@@ -312,8 +312,8 @@ type
     procedure DoBeforeCellPaint(ACanvas: TCanvas; Node: PVirtualNode;
       Column: TColumnIndex; CellPaintMode: TVTCellPaintMode; CellRect: TRect;
       var ContentRect: TRect); override;
-    procedure DoTextDrawing(var PaintInfo: TVTPaintInfo; const AText: string;
-      CellRect: TRect; DrawFormat: cardinal); override;
+    procedure DoTextDrawing(var aPaintInfo: TVTPaintInfo; const aText: string;
+      aCellRect: TRect; aDrawFormat: cardinal); override;
 
     procedure DoBeforeItemErase(ACanvas: TCanvas; Node: PVirtualNode;
       const ItemRect: TRect; var AColor: TColor;
@@ -2519,14 +2519,15 @@ begin
   inherited;
 end;
 
-procedure TSOGrid.DoTextDrawing(var PaintInfo: TVTPaintInfo;
-  const AText: string; CellRect: TRect; DrawFormat: cardinal);
+procedure TSOGrid.DoTextDrawing(var aPaintInfo: TVTPaintInfo;
+  const aText: string; aCellRect: TRect; aDrawFormat: cardinal);
 begin
   //Pour affichage lignes multiselect en gris clair avec cellule focused en bleu
-  if Focused and
-    (vsSelected in PaintInfo.Node^.States) and (PaintInfo.Node = FocusedNode) and
-    (PaintInfo.column = FocusedColumn) then
-    PaintInfo.Canvas.Font.Color := clWindow;
+  if (Focused or not (toHideSelection in TreeOptions.PaintOptions) or (toPopupMode in TreeOptions.PaintOptions))  and
+    (vsSelected in aPaintInfo.Node^.States) and
+    (aPaintInfo.Node = FocusedNode) and
+    (aPaintInfo.Column = FocusedColumn) then
+    aPaintInfo.Canvas.Font.Color := Colors.SelectionTextColor;
   inherited;
 end;
 
