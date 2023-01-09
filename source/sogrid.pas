@@ -309,9 +309,9 @@ type
       WindowOrgX, MaxWidth: integer); override;
 
     //gestion affichage multiselection
-    procedure DoBeforeCellPaint(ACanvas: TCanvas; Node: PVirtualNode;
-      Column: TColumnIndex; CellPaintMode: TVTCellPaintMode; CellRect: TRect;
-      var ContentRect: TRect); override;
+    procedure DoBeforeCellPaint(aCanvas: TCanvas; aNode: PVirtualNode;
+      aColumn: TColumnIndex; aCellPaintMode: TVTCellPaintMode;
+  aCellRect: TRect; var aContentRect: TRect); override;
     procedure DoTextDrawing(var aPaintInfo: TVTPaintInfo; const aText: string;
       aCellRect: TRect; aDrawFormat: cardinal); override;
 
@@ -2481,42 +2481,31 @@ begin
   inherited PrepareCell(PaintInfo, WindowOrgX, MaxWidth);
 end;
 
-procedure TSOGrid.DoBeforeCellPaint(ACanvas: TCanvas; Node: PVirtualNode;
-  Column: TColumnIndex; CellPaintMode: TVTCellPaintMode; CellRect: TRect;
-  var ContentRect: TRect);
+procedure TSOGrid.DoBeforeCellPaint(aCanvas: TCanvas; aNode: PVirtualNode;
+  aColumn: TColumnIndex; aCellPaintMode: TVTCellPaintMode; aCellRect: TRect;
+  var aContentRect: TRect);
 begin
-  //Pour affichage lignes multiselect en gris clair avec cellule focused en bleu
-  if (CellPaintMode = cpmPaint) and (toMultiSelect in TreeOptions.SelectionOptions) and
-    (vsSelected in Node^.States) then
+  if aCellPaintMode = cpmPaint then
   begin
-    if not Focused or (column <> FocusedColumn) or (Node <> FocusedNode) then
+    if Focused or not (toHideSelection in TreeOptions.PaintOptions) or (toPopupMode in TreeOptions.PaintOptions) then
     begin
-      ACanvas.Brush.Color := clLtGray;
-      ACanvas.FillRect(CellRect);
-    end
-    else
-    if (column = FocusedColumn) and (Node=FocusedNode) and Focused then
-    begin
-      ACanvas.Brush.Color := Colors.SelectionRectangleBlendColor;
-      ACanvas.FillRect(CellRect);
-    end;
-  end
-  else
-  if (CellPaintMode = cpmPaint) and not (toMultiSelect in TreeOptions.SelectionOptions) and
-     (Node = FocusedNode) then
-  begin
-    if (column <> FocusedColumn) then
-    begin
-      ACanvas.Brush.Color := clLtGray;
-      ACanvas.FillRect(CellRect);
-    end
-    else
-    begin
-      ACanvas.Brush.Color := Colors.SelectionRectangleBlendColor;
-      ACanvas.FillRect(CellRect);
+      if (vsSelected in aNode^.States) then
+      begin
+        if (aColumn <> FocusedColumn) or (aNode <> FocusedNode) then
+        begin
+          aCanvas.Brush.Color := Colors.UnfocusedSelectionColor;
+          aCanvas.FillRect(aCellRect);
+        end
+        else
+        if (aColumn = FocusedColumn) and (aNode = FocusedNode)  then
+        begin
+          aCanvas.Brush.Color := Colors.FocusedSelectionColor;
+          aCanvas.FillRect(aCellRect);
+        end;
+      end;
     end;
   end;
-  inherited;
+  inherited DoBeforeCellPaint(aCanvas, aNode, aColumn, aCellPaintMode, aCellRect, aContentRect);
 end;
 
 procedure TSOGrid.DoTextDrawing(var aPaintInfo: TVTPaintInfo;
