@@ -229,6 +229,7 @@ type
     FTextFound: boolean;
     FindDlg: TFindDialog;
     FZebraPaint: Boolean;
+    fZebraLightness: Byte;
     ReplaceDialog: TReplaceDialog;
 
     FColumnToFind: integer;
@@ -315,9 +316,8 @@ type
     procedure DoTextDrawing(var aPaintInfo: TVTPaintInfo; const aText: string;
       aCellRect: TRect; aDrawFormat: cardinal); override;
 
-    procedure DoBeforeItemErase(ACanvas: TCanvas; Node: PVirtualNode;
-      const ItemRect: TRect; var AColor: TColor;
-      var EraseAction: TItemEraseAction); override;
+    procedure DoBeforeItemErase(aCanvas: TCanvas; aNode: PVirtualNode;
+      const aItemRect: TRect; var aColor: TColor; var aEraseAction: TItemEraseAction); override;
 
     function FindText(Txt: string): PVirtualNode;
     procedure FindDlgFind(Sender: TObject);
@@ -692,8 +692,8 @@ procedure Translate(const aDirectory, aLang: string);
 
 implementation
 
-uses soutils, soclipbrd, base64, IniFiles,LCLIntf,messages,forms, LCLTranslator,
-    variants,tisstrings,sogrideditor, ucopyspecial;
+uses soutils, soclipbrd, base64, IniFiles, LCLIntf, messages, forms,
+  LCLTranslator, GraphUtil, variants, tisstrings, sogrideditor, ucopyspecial;
 
 type
   TSOItemData = record
@@ -1609,6 +1609,7 @@ end;
 constructor TSOGrid.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  fZebraLightness := 225;
   DefaultText := '';
   SetLength(FKeyFieldsList,0);
 
@@ -2485,24 +2486,35 @@ procedure TSOGrid.DoBeforeCellPaint(aCanvas: TCanvas; aNode: PVirtualNode;
   aColumn: TColumnIndex; aCellPaintMode: TVTCellPaintMode; aCellRect: TRect;
   var aContentRect: TRect);
 begin
-  if aCellPaintMode = cpmPaint then
+  //Pour affichage lignes multiselect en gris clair avec cellule focused en bleu
+  if (aCellPaintMode = cpmPaint) and (toMultiSelect in TreeOptions.SelectionOptions) and
+    (vsSelected in aNode^.States) then
   begin
-    if Focused or not (toHideSelection in TreeOptions.PaintOptions) or (toPopupMode in TreeOptions.PaintOptions) then
+    if not Focused or (aColumn <> FocusedColumn) or (aNode <> FocusedNode) then
     begin
-      if (vsSelected in aNode^.States) then
-      begin
-        if (aColumn <> FocusedColumn) or (aNode <> FocusedNode) then
-        begin
-          aCanvas.Brush.Color := Colors.UnfocusedSelectionColor;
-          aCanvas.FillRect(aCellRect);
-        end
-        else
-        if (aColumn = FocusedColumn) and (aNode = FocusedNode)  then
-        begin
-          aCanvas.Brush.Color := Colors.FocusedSelectionColor;
-          aCanvas.FillRect(aCellRect);
-        end;
-      end;
+      aCanvas.Brush.Color := clLtGray;
+      aCanvas.FillRect(aCellRect);
+    end
+    else
+    if (aColumn = FocusedColumn) and (aNode = FocusedNode) and Focused then
+    begin
+      aCanvas.Brush.Color := Colors.SelectionRectangleBlendColor;
+      aCanvas.FillRect(aCellRect);
+    end;
+  end
+  else
+  if (aCellPaintMode = cpmPaint) and not (toMultiSelect in TreeOptions.SelectionOptions) and
+     (aNode = FocusedNode) then
+  begin
+    if (aColumn <> FocusedColumn) then
+    begin
+      aCanvas.Brush.Color := clLtGray;
+      aCanvas.FillRect(aCellRect);
+    end
+    else
+    begin
+      aCanvas.Brush.Color := Colors.SelectionRectangleBlendColor;
+      aCanvas.FillRect(aCellRect);
     end;
   end;
   inherited DoBeforeCellPaint(aCanvas, aNode, aColumn, aCellPaintMode, aCellRect, aContentRect);
@@ -2510,27 +2522,40 @@ end;
 
 procedure TSOGrid.DoTextDrawing(var aPaintInfo: TVTPaintInfo;
   const aText: string; aCellRect: TRect; aDrawFormat: cardinal);
+const
+  cDark = 255;
+var
+  vHue, vSaturation, vLightness: Byte;
 begin
-  //Pour affichage lignes multiselect en gris clair avec cellule focused en bleu
+  // to display multiselect rows in light gray with focused cell in blue
   if (Focused or not (toHideSelection in TreeOptions.PaintOptions) or (toPopupMode in TreeOptions.PaintOptions))  and
     (vsSelected in aPaintInfo.Node^.States) and
     (aPaintInfo.Node = FocusedNode) and
     (aPaintInfo.Column = FocusedColumn) then
-    aPaintInfo.Canvas.Font.Color := Colors.SelectionTextColor;
-  inherited;
+    aPaintInfo.Canvas.Font.Color := Colors.SelectionTextColor
+  else
+  begin
+    ColorToHLS(aPaintInfo.Canvas.Brush.Color, vHue, vLightness, vSaturation);
+    aPaintInfo.Canvas.Font.Color := HLStoColor(vHue, cDark - vLightness, vSaturation);
+  end;
+  inherited DoTextDrawing(aPaintInfo, aText, aCellRect, aDrawFormat);
 end;
 
-procedure TSOGrid.DoBeforeItemErase(ACanvas: TCanvas; Node: PVirtualNode;
-  const ItemRect: TRect; var AColor: TColor; var EraseAction: TItemEraseAction);
+procedure TSOGrid.DoBeforeItemErase(aCanvas: TCanvas; aNode: PVirtualNode;
+  const aItemRect: TRect; var aColor: TColor; var aEraseAction: TItemEraseAction);
+var
+  vHue, vSaturation, vLightness: Byte;
 begin
-  inherited DoBeforeItemErase(Canvas, Node, ItemRect, AColor, EraseAction);
-  {$ifdef windows}
-  if FZebraPaint and (Node<>Nil) and Odd(Node^.Index) then
+  if fZebraPaint and (aNode <> nil) and Odd(aNode^.Index) then
   begin
-    AColor := $00EDF0F1;
-    EraseAction := eaColor;
+    ColorToHLS(aColor, vHue, vLightness, vSaturation);
+    if vLightness < fZebraLightness then
+      aColor := HLStoColor(vHue, vLightness - fZebraLightness, vSaturation)
+    else
+      aColor := HLStoColor(vHue, vLightness + fZebraLightness, vSaturation);
+    aEraseAction := eaColor;
   end;
-  {$endif}
+  inherited DoBeforeItemErase(aCanvas, aNode, aItemRect, aColor, aEraseAction);
 end;
 
 function TSOGrid.FindText(Txt: string): PVirtualNode;
