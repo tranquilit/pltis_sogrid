@@ -1609,7 +1609,7 @@ end;
 constructor TSOGrid.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  fZebraLightness := 225;
+  fZebraLightness := 250;
   DefaultText := '';
   SetLength(FKeyFieldsList,0);
 
