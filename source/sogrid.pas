@@ -2529,14 +2529,19 @@ var
 begin
   // to display multiselect rows in light gray with focused cell in blue
   if (Focused or not (toHideSelection in TreeOptions.PaintOptions) or (toPopupMode in TreeOptions.PaintOptions))  and
-    (vsSelected in aPaintInfo.Node^.States) and
-    (aPaintInfo.Node = FocusedNode) and
-    (aPaintInfo.Column = FocusedColumn) then
+        (vsSelected in aPaintInfo.Node^.States) and
+        (aPaintInfo.Node = FocusedNode) and
+        (aPaintInfo.Column = FocusedColumn) then
     aPaintInfo.Canvas.Font.Color := Colors.SelectionTextColor
   else
   begin
     ColorToHLS(aPaintInfo.Canvas.Brush.Color, vHue, vLightness, vSaturation);
-    aPaintInfo.Canvas.Font.Color := HLStoColor(vHue, cDark - vLightness, vSaturation);
+    if vLightness>128 then
+      aPaintInfo.Canvas.Font.Color := clBlack
+    else
+      aPaintInfo.Canvas.Font.Color := clWhite;
+
+    //aPaintInfo.Canvas.Font.Color := HLStoColor(vHue, cDark - vLightness, 255);
   end;
   inherited DoTextDrawing(aPaintInfo, aText, aCellRect, aDrawFormat);
 end;
@@ -2560,6 +2565,7 @@ end;
 
 function TSOGrid.FindText(Txt: string): PVirtualNode;
 begin
+  Result := Nil;
   TextToFind := Txt;
   FStartSearchNode := nil;
   TextFound := False;
