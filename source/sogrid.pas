@@ -71,7 +71,6 @@ type
   TSOHeaderPopupMenu = class(TPopupMenu)
   private
     FOptions: TSOHeaderPopupOptions;
-
     FOnAddHeaderPopupItem: TAddHeaderPopupItemEvent;
     FOnColumnChange: TColumnChangeEvent;
   protected
@@ -82,10 +81,9 @@ type
     procedure OnMenuHideAllClick(Sender: TObject);
     procedure OnMenuRestoreClick(Sender: TObject);
   public
-    procedure Popup(x, y: Integer); override;
+    procedure FillPopupMenu;
   published
     property Options: TSOHeaderPopupOptions read FOptions write FOptions default [];
-
     property OnAddHeaderPopupItem: TAddHeaderPopupItemEvent read FOnAddHeaderPopupItem write FOnAddHeaderPopupItem;
     property OnColumnChange: TColumnChangeEvent read FOnColumnChange write FOnColumnChange;
   end;
@@ -361,7 +359,10 @@ type
     procedure DoChange(Node: PVirtualNode); override;
     procedure DoEnter; override;
     procedure DoExit; override;
+    /// called before open a context menu
+    // - it will call Clean/FillPopupMenu, as some Captions translation should be done before show up
     procedure DoContextPopup(aMousePos: TPoint; var aHandled: Boolean); override;
+    procedure DoHeaderMouseDown(aButton: TMouseButton; aShift: TShiftState; aX, aY: Integer); override;
     procedure DoEditValidated(const aColumn: TSOGridColumn; const aCurValue: Variant;
       var aNewValue: Variant; var aAbort: Boolean); virtual;
   public
@@ -834,19 +835,15 @@ begin
   TSOGrid(PopupComponent).RestoreSettings;
 end;
 
-procedure TSOHeaderPopupMenu.Popup(x, y: Integer);
-
+procedure TSOHeaderPopupMenu.FillPopupMenu;
 var
   I: Integer;
   ColPos: TColumnPosition;
   ColIdx: TColumnIndex;
-
   NewMenuItem: TSOMenuItem;
   Cmd: TAddPopupItemType;
-
   VisibleCounter: Cardinal;
   VisibleItem: TSOMenuItem;
-
 begin
   if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
   begin
@@ -928,8 +925,6 @@ begin
         VisibleItem.Enabled := False;
     end;
   end;
-
-  inherited;
 end;
 
 { TTisGridControl }
@@ -1836,11 +1831,30 @@ end;
 
 procedure TSOGrid.DoContextPopup(aMousePos: TPoint; var aHandled: Boolean);
 begin
-  // - it is needed to Clean/FillPopupMenu first/again,
-  // as some Captions translation should be done before show up
+  // on MacOS and Linux DoContextPopup is called even when user clicks on Header
+  // - this will prevent not call PopupMenu from grid, instead using Header.PopupMenu
+  if Header.InHeader(aMousePos) then
+  begin
+    aHandled := True;
+    exit;
+  end;
   CleanPopupMenu;
   FillPopupMenu;
   inherited DoContextPopup(aMousePos, aHandled);
+end;
+
+procedure TSOGrid.DoHeaderMouseDown(aButton: TMouseButton; aShift: TShiftState;
+  aX, aY: Integer);
+begin
+  if not Assigned(Header.PopupMenu) then
+    Header.PopupMenu := TSOHeaderPopupMenu.Create(self);
+  if Header.PopupMenu is TSOHeaderPopupMenu then
+    with Header.PopupMenu as TSOHeaderPopupMenu do
+    begin
+      Header.PopupMenu.PopupComponent := self;
+      FillPopupMenu;
+    end;
+  inherited DoHeaderMouseUp(aButton, aShift, aX, aY);
 end;
 
 procedure TSOGrid.DoEditValidated(const aColumn: TSOGridColumn;
