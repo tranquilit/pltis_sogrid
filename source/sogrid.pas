@@ -1169,12 +1169,13 @@ var
   col : TSOGridColumn;
   i:Integer;
   NewColStartIdx:Integer;
+  NewCol : Boolean;
 begin
   NewColStartIdx := NoColumn;
   BeginUpdate;
   try
     values := TSuperObject.Create(stArray);
-
+    NewCol := False;
     for row in data do
     begin
       for propname in row.AsObject.GetNames do
@@ -1183,6 +1184,7 @@ begin
         if col = Nil then
         begin
           begin
+            NewCol := True;
             col :=Header.Columns.Add as TSOGridColumn;
             NewColStartIdx:=col.Index;
             col.Text:=UTF8Encode(propname.AsString);
@@ -1207,8 +1209,10 @@ begin
       end;
     end;
   finally
-    if FitWidth and (NewColStartIdx<>NoColumn)  then
+    if FitWidth and (NewColStartIdx<>NoColumn) then
         Header.AutoFitColumns(False,smaUseColumnOption,NewColStartIdx);
+    if NewCol and (Header.Columns.Count = 1) then
+      Header.Columns[0].Width := 100;
     EndUpdate;
   end;
 end;
