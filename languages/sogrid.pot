@@ -115,6 +115,10 @@ msgstr ""
 msgid "Show all columns"
 msgstr ""
 
+#: sogrid.gsconst_showhidecolumns
+msgid "Show/hide columns"
+msgstr ""
+
 #: sogrid.gsconst_undolastupdate
 msgid "Undo last change"
 msgstr ""

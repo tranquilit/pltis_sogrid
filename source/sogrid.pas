@@ -685,6 +685,7 @@ type
     GSConst_CollapseAll = 'Collapse all';
     GSConst_CustomizeColumns = 'Customize columns...';
     GSConst_AdvancedCustomizeColumns = 'Advanced customize of table...';
+    GSConst_ShowHideColumns = 'Show/hide columns';
     GSConst_ShowAllColumns = 'Show all columns';
     GSConst_HideAllColumns = 'Hide all columns';
     GSConst_RestoreDefaultColumns = 'Restore default columns';
@@ -840,7 +841,7 @@ var
   I: Integer;
   ColPos: TColumnPosition;
   ColIdx: TColumnIndex;
-  NewMenuItem: TSOMenuItem;
+  NewMenuItem, vShowHideMenuItem: TSOMenuItem;
   Cmd: TAddPopupItemType;
   VisibleCounter: Cardinal;
   VisibleItem: TSOMenuItem;
@@ -855,9 +856,12 @@ begin
       Items[I].Free;
     end;
 
-    // Add column menu items.
     with TVirtualTreeCast(PopupComponent).Header do
     begin
+      // add subitem "show/hide columns"
+      vShowHideMenuItem := TSOMenuItem.Create(Self);
+      vShowHideMenuItem.Caption := GSConst_ShowHideColumns;
+      Items.Add(vShowHideMenuItem);
       if hoShowImages in Options then
         Self.Images := Images
       else
@@ -892,14 +896,10 @@ begin
             else
               if coVisible in Options then
                 VisibleItem := NewMenuItem;
-            Items.Add(NewMenuItem);
+            vShowHideMenuItem.Add(NewMenuItem);
           end;
         end;
       end;
-
-      NewMenuItem := TSOMenuItem.Create(Self);
-      NewMenuItem.Caption := '-';
-      Items.Add(NewMenuItem);
 
       NewMenuItem := TSOMenuItem.Create(Self);
       NewMenuItem.Tag := -1;

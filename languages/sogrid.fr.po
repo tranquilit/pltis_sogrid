@@ -115,6 +115,10 @@ msgstr "Sélectionner toutes les lignes"
 msgid "Show all columns"
 msgstr "Montrer toutes les colonnes"
 
+#: sogrid.gsconst_showhidecolumns
+msgid "Show/hide columns"
+msgstr "Afficher/masquer les colonnes"
+
 #: sogrid.gsconst_undolastupdate
 msgid "Undo last change"
 msgstr "Annuler la dernière modification"
