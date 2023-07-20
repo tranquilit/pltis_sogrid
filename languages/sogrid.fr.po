@@ -70,6 +70,14 @@ msgstr "Rechercher le suivant"
 msgid "Find and replace..."
 msgstr "Rechercher et remplacer..."
 
+#: sogrid.gsconst_gridfilterclear
+msgid "Clear filter"
+msgstr "Effacer le filtre"
+
+#: sogrid.gsconst_gridfilterclearall
+msgid "Clear all filters"
+msgstr "Effacer tous les filtres"
+
 #: sogrid.gsconst_hideallcolumns
 msgid "Hide all columns"
 msgstr "Cacher toutes les colonnes"

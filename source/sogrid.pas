@@ -20,6 +20,7 @@ uses
   mormot.core.base,
   mormot.core.variants,
   mormot.core.unicode,
+  mormot.core.rtti,
   sogridcommon;
 
 type
@@ -33,17 +34,61 @@ type
 
   TSOCanPasteEvent = function(Sender: TSOGrid;Row:ISuperObject):boolean of object;
 
+  /// filter options for header popup menu
+  TTisGridFilterOptions = class(TPersistent)
+  private
+    fGrid: TSOGrid;
+    fFilters: TDocVariantData;
+    fCaseInsensitive: Boolean;
+    fClearAterLoadingData: Boolean;
+    fDisplayedCount: Integer;
+    fEnabled: Boolean;
+  protected const
+    DefaultDisplayedCount = 10;
+    DefaultEnabled = False;
+    DefaultCaseInsensitive = False;
+    DefaultClearAterLoadingData = False;
+    MARK_ARROW = ' ↓';
+  protected
+    /// clear MARK_ARROW mark of all header columns
+    procedure ClearHeaderArrows;
+  public
+    constructor Create(aGrid: TSOGrid); reintroduce;
+    procedure AssignTo(aDest: TPersistent); override;
+    /// check if a filter exists
+    function FilterExists(const aPropertyName: RawUtf8; const aValue: string): Boolean;
+    /// apply all filters in all columns
+    procedure ApplyFilters;
+    /// clear all filters
+    procedure ClearFilters;
+    property Filters: TDocVariantData read fFilters;
+  published
+    property CaseInsensitive: Boolean read fCaseInsensitive write fCaseInsensitive default DefaultCaseInsensitive;
+    /// used after call Grid.LoadData
+    // - if it is TRUE, it will call ClearFilters, otherwise it will call ApplyFilters
+    property ClearAterLoadingData: Boolean read fClearAterLoadingData write fClearAterLoadingData default DefaultClearAterLoadingData;
+    /// how many menu items will be used to show filters
+    property DisplayedCount: Integer read fDisplayedCount write fDisplayedCount default DefaultDisplayedCount;
+    /// if FALSE, none filter menu item will be created
+    property Enabled: Boolean read fEnabled write fEnabled default DefaultEnabled;
+  end;
+
   { TSOGridColumn }
   TSOGridColumn = class(TVirtualTreeColumn)
   private
+    fAllowFilter: Boolean;
     FPropertyName: string;
     procedure SetPropertyName(const Value: string);
     function GetTitle: TCaption;
     procedure SetTitle(AValue: TCaption);
+  protected const
+    DefaultAllowFilter = True;
   public
     constructor Create(aCollection: TCollection); override;
     procedure Assign(Source: TPersistent); override;
   published
+    /// allow use filter for this column, if Grid.FilterOptions.Enable is TRUE
+    property AllowFilter: Boolean read fAllowFilter write fAllowFilter default DefaultAllowFilter;
     property Text: TCaption read GetTitle write SetTitle;
     property PropertyName: string read FPropertyName write SetPropertyName;
   end;
@@ -80,6 +125,8 @@ type
     procedure OnMenuShowAllClick(Sender: TObject);
     procedure OnMenuHideAllClick(Sender: TObject);
     procedure OnMenuRestoreClick(Sender: TObject);
+    procedure OnMenuFilterClick(aSender: TObject);
+    procedure OnMenuFilterClearClick(aSender: TObject);
   public
     procedure FillPopupMenu;
   published
@@ -212,6 +259,10 @@ type
   TOnGridEditValidated = procedure(aSender: TSOGrid; aColumn: TSOGridColumn;
     const aCurValue: Variant; var aNewValue: Variant; var aAbort: Boolean) of object;
 
+  /// event that allows change aNode.States after it was changed
+  // - use it to force showing (or not) some node
+  TOnGridNodeFiltering = procedure(aSender: TSOGrid; aNode: PVirtualNode) of object;
+
   { TSOGrid }
   TSOGrid = class(TCustomVirtualStringTree,ISODataView)
   private
@@ -242,8 +293,10 @@ type
 
     FDefaultPopupMenu: TPopupMenu;
     fExportFormatOptions: TTisGridExportFormatOptions;
+    fFilterOptions: TTisGridFilterOptions;
     fDefaultSettings: ISuperObject; // all default settings after load component
     fOnEditValidated: TOnGridEditValidated;
+    fOnNodeFiltering: TOnGridNodeFiltering;
     function FocusedPropertyName: String;
     function GetData: ISuperObject;
     function GetFocusedColumnObject: TSOGridColumn;
@@ -365,6 +418,7 @@ type
     procedure DoHeaderMouseDown(aButton: TMouseButton; aShift: TShiftState; aX, aY: Integer); override;
     procedure DoEditValidated(const aColumn: TSOGridColumn; const aCurValue: Variant;
       var aNewValue: Variant; var aAbort: Boolean); virtual;
+    procedure DoNodeFiltering(aNode: PVirtualNode); virtual;
   public
     const POPUP_ITEM_TAG = 250;
   public
@@ -477,6 +531,7 @@ type
     property GridSettings: String read GetGridSettings write SetGridSettings stored False;
     property ExportFormatOptions: TTisGridExportFormatOptions
       read fExportFormatOptions write fExportFormatOptions default DefaultExportFormatOptions;
+    property FilterOptions: TTisGridFilterOptions read fFilterOptions write fFilterOptions;
     property OnEditValidated: TOnGridEditValidated
       read fOnEditValidated write fOnEditValidated;
     //inherited properties
@@ -689,6 +744,8 @@ type
     GSConst_ShowAllColumns = 'Show all columns';
     GSConst_HideAllColumns = 'Hide all columns';
     GSConst_RestoreDefaultColumns = 'Restore default columns';
+    GSConst_GridFilterClear = 'Clear filter';
+    GSConst_GridFilterClearAll = 'Clear all filters';
 
 procedure Translate(const aDirectory, aLang: string);
 
@@ -711,6 +768,142 @@ begin
   vDir := IncludeTrailingPathDelimiter(aDirectory);
   TranslateUnitResourceStringsEx(
     aLang, vDir, 'sogrid.po', 'sogrid');
+end;
+
+{ TTisGridFilterOptions }
+
+procedure TTisGridFilterOptions.ClearHeaderArrows;
+var
+  v1: Integer;
+  vColumn: TVirtualTreeColumn;
+begin
+  for v1 := 0 to fGrid.Header.Columns.Count-1 do
+  begin
+    vColumn := fGrid.Header.Columns[v1];
+    vColumn.Text := StringReplace(vColumn.Text, MARK_ARROW, '', [rfReplaceAll]);
+  end;
+end;
+
+constructor TTisGridFilterOptions.Create(aGrid: TSOGrid);
+begin
+  inherited Create;
+  fGrid := aGrid;
+  fFilters.Clear;
+  fFilters.InitArray([], JSON_FAST_FLOAT);
+  fCaseInsensitive := DefaultCaseInsensitive;
+  fDisplayedCount := DefaultDisplayedCount;
+  fEnabled := DefaultEnabled;
+end;
+
+procedure TTisGridFilterOptions.AssignTo(aDest: TPersistent);
+begin
+  if aDest is TTisGridFilterOptions then
+  begin
+    with TTisGridFilterOptions(aDest) do
+    begin
+      fFilters.Clear;
+      fFilters.InitCopy(Variant(self.fFilters), JSON_[mDefault]);
+      CaseInsensitive := self.CaseInsensitive;
+      DisplayedCount := self.DisplayedCount;
+      Enabled := self.Enabled;
+    end;
+  end
+  else
+    inherited AssignTo(aDest);
+end;
+
+function TTisGridFilterOptions.FilterExists(const aPropertyName: RawUtf8;
+  const aValue: string): Boolean;
+var
+  vObj: PDocVariantData;
+  vTest: TDocVariantData;
+begin
+  result := False;
+  vTest.Clear;
+  vTest.InitFast(dvObject);
+  vTest.S[aPropertyName] := aValue;
+  for vObj in fFilters.Objects do
+  begin
+    if vObj^.Equals(vTest) then
+    begin
+      result := True;
+      break;
+    end;
+  end;
+end;
+
+procedure TTisGridFilterOptions.ApplyFilters;
+var
+  vData: ISuperObject;
+  vNode: PVirtualNode;
+  vField: TDocVariantFields;
+  v1, v2: Integer;
+  vColumn: TSOGridColumn;
+begin
+  ClearHeaderArrows;
+  vNode := fGrid.GetFirst(True);
+  while vNode <> nil do
+  begin
+    vData := fGrid.GetNodeSOData(vNode);
+    if Assigned(vData) then
+    begin
+      if fFilters.Count > 0 then
+      begin
+        for v1 := 0 to fGrid.Header.Columns.Count-1 do
+        begin
+          vColumn := fGrid.Header.Columns[v1] as TSOGridColumn;
+          // turn it invisible by default
+          Exclude(vNode^.States, vsVisible);
+          for v2 := fFilters.Count-1 downto 0 do
+          begin
+            for vField in DocVariantData(fFilters.Value[v2])^.Fields do
+              if (not fGrid.FilterOptions.CaseInsensitive and SameText(vData.S[vField.Name^], vField.Value^))
+                or (fGrid.FilterOptions.CaseInsensitive and SameStr(vData.S[vField.Name^], vField.Value^)) then
+              begin
+                Include(vNode^.States, vsVisible);
+                fGrid.DoNodeFiltering(vNode);
+                // add an MARK_ARROW in header column text, if there are filters for this column
+                if (vsVisible in vNode^.States)
+                  and (vField.Name^ = vColumn.PropertyName)
+                  and (Pos(MARK_ARROW, vColumn.Text) = 0) then
+                    vColumn.Text := vColumn.Text + MARK_ARROW;
+                break;
+              end;
+          end;
+        end;
+      end
+      else
+      begin
+        // if there is no filters, turn it visible by default
+        Include(vNode^.States, vsVisible);
+        fGrid.DoNodeFiltering(vNode);
+      end;
+    end;
+    vNode := fGrid.GetNext(vNode, True);
+  end;
+  fGrid.Invalidate;
+end;
+
+procedure TTisGridFilterOptions.ClearFilters;
+var
+  vNode: PVirtualNode;
+begin
+  // it should execute even if fFilters.IsVoid, as some header columns
+  // could have the MARK_ARROW on its Text, which may have come from Editor or Assigned from other grid
+  ClearHeaderArrows;
+  if not fFilters.IsVoid then
+  begin
+    // turn visible all nodes again
+    vNode := fGrid.GetFirst(True);
+    while vNode <> nil do
+    begin
+      Include(vNode^.States, vsVisible);
+      fGrid.DoNodeFiltering(vNode);
+      vNode := fGrid.GetNext(vNode, True);
+    end;
+    fGrid.Invalidate;
+    fFilters.Clear;
+  end;
 end;
 
 { TSOGridColumn }
@@ -738,6 +931,7 @@ constructor TSOGridColumn.Create(aCollection: TCollection);
 begin
   inherited Create(aCollection);
   Options := Options + [coWrapCaption];
+  fAllowFilter := DefaultAllowFilter;
 end;
 
 {
@@ -836,7 +1030,118 @@ begin
   TSOGrid(PopupComponent).RestoreSettings;
 end;
 
+procedure TSOHeaderPopupMenu.OnMenuFilterClick(aSender: TObject);
+var
+  vGrid: TSOGrid;
+  vItem: TMenuItem;
+  vColumn: TSOGridColumn;
+  vObj: Variant;
+begin
+  if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
+  begin
+    if PopupComponent is TSOGrid then
+    begin
+      vItem := aSender as TMenuItem;
+      vItem.Checked := not vItem.Checked;
+      vGrid := PopupComponent as TSOGrid;
+      vColumn := vGrid.FindColumnByIndex(vItem.Tag);
+      vObj := _ObjFast([vColumn.PropertyName, StringToUtf8(vItem.Caption)]);
+      if vItem.Checked then
+        vGrid.FilterOptions.Filters.AddItem(vObj)
+      else
+        vGrid.FilterOptions.Filters.DeleteByValue(vObj);
+      vGrid.FilterOptions.ApplyFilters;
+    end;
+  end;
+end;
+
+procedure TSOHeaderPopupMenu.OnMenuFilterClearClick(aSender: TObject);
+var
+  vGrid: TSOGrid;
+  vItem: TMenuItem;
+  vColumn: TSOGridColumn;
+  v1: Integer;
+  vFieldName: PRawUtf8;
+begin
+  if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
+  begin
+    if PopupComponent is TSOGrid then
+    begin
+      vGrid := PopupComponent as TSOGrid;
+      vItem := aSender as TMenuItem;
+      vColumn := vGrid.FindColumnByIndex(vItem.Tag);
+      if Assigned(vColumn) then
+      begin
+        // clear all filters for the same propertyname
+        for v1 := vGrid.FilterOptions.Filters.Count-1 downto 0 do
+        begin
+          for vFieldName in DocVariantData(vGrid.FilterOptions.Filters.Value[v1])^.FieldNames do
+            if vFieldName^ = vColumn.PropertyName then
+            begin
+              vGrid.FilterOptions.Filters.Delete(v1);
+              break;
+            end;
+        end;
+        vGrid.FilterOptions.ApplyFilters;
+      end
+      else
+        // if not found vColumn, it should clear all filters in the grid
+        vGrid.FilterOptions.ClearFilters;
+    end;
+  end;
+end;
+
 procedure TSOHeaderPopupMenu.FillPopupMenu;
+
+  procedure AddFilterItems(aGrid: TSOGrid; aColIdx: TColumnIndex);
+  var
+    vNewMenuItem: TMenuItem;
+    vCount: Integer;
+    vNode: PVirtualNode;
+    vData: ISuperObject;
+    vItem: TMenuItem;
+    vValue: string;
+    vFound: Boolean;
+    vColumn: TSOGridColumn;
+  begin
+    vCount := 0;
+    vColumn := aGrid.FindColumnByIndex(aColIdx);
+    vNode := aGrid.GetFirst(True);
+    while vNode <> nil do
+    begin
+      vData := aGrid.GetNodeSOData(vNode);
+      if Assigned(vData) then
+      begin
+        vValue := vData.S[vColumn.PropertyName];
+        vFound := False;
+        // search duplicated value
+        for vItem in Items do
+        begin
+          if (not aGrid.FilterOptions.CaseInsensitive and SameText(vItem.Caption, vValue))
+            or (aGrid.FilterOptions.CaseInsensitive and SameStr(vItem.Caption, vValue)) then
+          begin
+            vFound := True;
+            break;
+          end;
+        end;
+        // do not duplicate items
+        if not vFound then
+        begin
+          vNewMenuItem := TMenuItem.Create(Self);
+          vNewMenuItem.Tag := aColIdx; // it will be use on OnMenuFilterClick
+          vNewMenuItem.Caption := vValue;
+          vNewMenuItem.OnClick := @OnMenuFilterClick;
+          vNewMenuItem.Checked := aGrid.FilterOptions.FilterExists(vColumn.PropertyName, vValue);
+          Items.Add(vNewMenuItem);
+          Inc(vCount);
+          if vCount >= aGrid.FilterOptions.DisplayedCount then
+            exit;
+        end;
+      end;
+      vNode := aGrid.GetNext(vNode, True);
+    end;
+  end;
+
 var
   I: Integer;
   ColPos: TColumnPosition;
@@ -845,6 +1150,8 @@ var
   Cmd: TAddPopupItemType;
   VisibleCounter: Cardinal;
   VisibleItem: TSOMenuItem;
+  vMousePos: TPoint;
+  vGrid: TSOGrid;
 begin
   if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
   begin
@@ -855,9 +1162,40 @@ begin
       Dec(I);
       Items[I].Free;
     end;
-
     with TVirtualTreeCast(PopupComponent).Header do
     begin
+      // enable/disable filter
+      if PopupComponent is TSOGrid then
+      begin
+        vGrid := PopupComponent as TSOGrid;
+        RecordZero(@vMousePos, TypeInfo(TPoint));
+        GetCursorPos(vMousePos);
+        ColIdx := Columns.ColumnFromPosition(vGrid.ScreenToClient(vMousePos));
+        if (ColIdx > NoColumn)
+          and vGrid.FilterOptions.Enabled
+          and vGrid.FindColumnByIndex(ColIdx).AllowFilter then
+        begin
+          // add a item for delete filters for a column
+          NewMenuItem := TSOMenuItem.Create(Self);
+          NewMenuItem.Tag := ColIdx;
+          NewMenuItem.Caption := GSConst_GridFilterClear;
+          NewMenuItem.OnClick := @OnMenuFilterClearClick;
+          Items.Add(NewMenuItem);
+          NewMenuItem := TSOMenuItem.Create(Self);
+          NewMenuItem.Caption := '-';
+          Items.Add(NewMenuItem);
+          AddFilterItems(vGrid, ColIdx);
+          NewMenuItem := TSOMenuItem.Create(Self);
+          NewMenuItem.Caption := '-';
+          Items.Add(NewMenuItem);
+          // add a item for delete all filters
+          NewMenuItem := TSOMenuItem.Create(Self);
+          NewMenuItem.Tag := NoColumn;
+          NewMenuItem.Caption := GSConst_GridFilterClearAll;
+          NewMenuItem.OnClick := @OnMenuFilterClearClick;
+          Items.Add(NewMenuItem);
+        end;
+      end;
       // add subitem "show/hide columns"
       vShowHideMenuItem := TSOMenuItem.Create(Self);
       vShowHideMenuItem.Caption := GSConst_ShowHideColumns;
@@ -1440,6 +1778,14 @@ begin
         // restore visible focused column
         ScrollIntoView(FocusedColumn,False);
       end;
+      // should update the popup menu as some items depend on whether or not there is data
+      CleanPopupMenu;
+      FillPopupMenu;
+      // clear all filters after loading
+      if fFilterOptions.ClearAterLoadingData then
+        fFilterOptions.ClearFilters
+      else
+        fFilterOptions.ApplyFilters;
     end;
   end;
 end;
@@ -1614,6 +1960,7 @@ begin
 
   FItemDataOffset := AllocateInternalDataArea(SizeOf(TSOItemData));
   fExportFormatOptions := DefaultExportFormatOptions;
+  fFilterOptions := TTisGridFilterOptions.Create(self);
   WantTabs:=True;
   TabStop:=True;
 
@@ -1731,6 +2078,7 @@ begin
   FData := Nil;
   if Assigned(FindDlg) then
     FreeAndNil(FindDlg);
+  fFilterOptions.Free;
   inherited Destroy;
 end;
 
@@ -1866,6 +2214,12 @@ procedure TSOGrid.DoEditValidated(const aColumn: TSOGridColumn;
 begin
   if Assigned(fOnEditValidated) then
     fOnEditValidated(self, aColumn, aCurValue, aNewValue, aAbort);
+end;
+
+procedure TSOGrid.DoNodeFiltering(aNode: PVirtualNode);
+begin
+  if Assigned(fOnNodeFiltering) then
+    fOnNodeFiltering(self, aNode);
 end;
 
 procedure TSOGrid.FixDesignFontsPPI(const ADesignTimePPI: Integer);
@@ -2454,6 +2808,7 @@ begin
            col.Options:=target.Header.Columns[i].Options;
         end;
         asogrid.Settings := target.Settings;
+        asogrid.FilterOptions.Assign(target.FilterOptions);
         if ASOGrid.data = Nil then
           ASOGrid.Data := TSuperObject.Create(stArray);
         if ASOGrid.Data.AsArray.Length=0 then
@@ -2470,6 +2825,7 @@ begin
              col.Assign(asogrid.Header.Columns[i]);
           end;
           target.Settings := asogrid.Settings;
+          target.FilterOptions.Assign(asogrid.FilterOptions);
         end;
     finally
       Free;
