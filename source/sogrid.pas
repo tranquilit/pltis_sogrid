@@ -2068,9 +2068,10 @@ procedure TSOGrid.CleanPopupMenu;
 var
   i: Integer;
 begin
-  for i := PopupMenu.Items.Count-1 downto 0 do
-    if PopupMenu.Items[i].Tag = POPUP_ITEM_TAG then
-      PopupMenu.Items.Delete(i);
+  if Assigned(PopupMenu) then
+    for i := PopupMenu.Items.Count-1 downto 0 do
+      if PopupMenu.Items[i].Tag = POPUP_ITEM_TAG then
+        PopupMenu.Items.Delete(i);
 end;
 
 destructor TSOGrid.Destroy;
