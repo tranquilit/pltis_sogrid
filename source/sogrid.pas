@@ -882,28 +882,19 @@ begin
     vNode := fGrid.GetNext(vNode, True);
   end;
   fGrid.Invalidate;
+  if (fGrid.FocusedNode = nil) or not (vsVisible in fGrid.FocusedNode^.States) then
+  begin
+    fGrid.ClearSelection;
+    fGrid.FocusedNode := fGrid.GetFirstVisible;
+    fGrid.Selected[fGrid.FocusedNode] := True;
+  end;
+  fGrid.ScrollIntoView(fGrid.FocusedNode, False);
 end;
 
 procedure TTisGridFilterOptions.ClearFilters;
-var
-  vNode: PVirtualNode;
 begin
-  // it should execute even if fFilters.IsVoid, as some header columns
-  // could have the MARK_ARROW on its Text, which may have come from Editor or Assigned from other grid
-  ClearHeaderArrows;
-  if not fFilters.IsVoid then
-  begin
-    // turn visible all nodes again
-    vNode := fGrid.GetFirst(True);
-    while vNode <> nil do
-    begin
-      Include(vNode^.States, vsVisible);
-      fGrid.DoNodeFiltering(vNode);
-      vNode := fGrid.GetNext(vNode, True);
-    end;
-    fGrid.Invalidate;
-    fFilters.Clear;
-  end;
+  fFilters.Clear;
+  ApplyFilters;
 end;
 
 { TSOGridColumn }
@@ -1776,7 +1767,7 @@ begin
           break;
         end;
         // restore visible focused column
-        ScrollIntoView(FocusedColumn,False);
+        ScrollIntoView(FocusedColumn, False);
       end;
       // should update the popup menu as some items depend on whether or not there is data
       CleanPopupMenu;
