@@ -260,8 +260,8 @@ type
     const aCurValue: Variant; var aNewValue: Variant; var aAbort: Boolean) of object;
 
   /// event that allows change aNode.States after it was changed
-  // - use it to force showing (or not) some node
-  TOnGridNodeFiltering = procedure(aSender: TSOGrid; aNode: PVirtualNode) of object;
+  // - use it to force showing (or not) some node by seting aHandled=TRUE
+  TOnGridNodeFiltering = procedure(aSender: TSOGrid; aNode: PVirtualNode; var aHandled: Boolean) of object;
 
   { TSOGrid }
   TSOGrid = class(TCustomVirtualStringTree,ISODataView)
@@ -418,7 +418,7 @@ type
     procedure DoHeaderMouseDown(aButton: TMouseButton; aShift: TShiftState; aX, aY: Integer); override;
     procedure DoEditValidated(const aColumn: TSOGridColumn; const aCurValue: Variant;
       var aNewValue: Variant; var aAbort: Boolean); virtual;
-    procedure DoNodeFiltering(aNode: PVirtualNode); virtual;
+    function DoNodeFiltering(aNode: PVirtualNode): Boolean; virtual;
   public
     const POPUP_ITEM_TAG = 250;
   public
@@ -860,8 +860,8 @@ begin
               if (not fGrid.FilterOptions.CaseInsensitive and SameText(vData.S[vField.Name^], vField.Value^))
                 or (fGrid.FilterOptions.CaseInsensitive and SameStr(vData.S[vField.Name^], vField.Value^)) then
               begin
-                Include(vNode^.States, vsVisible);
-                fGrid.DoNodeFiltering(vNode);
+                if not fGrid.DoNodeFiltering(vNode) then
+                  Include(vNode^.States, vsVisible);
                 // add an MARK_ARROW in header column text, if there are filters for this column
                 if (vsVisible in vNode^.States)
                   and (vField.Name^ = vColumn.PropertyName)
@@ -874,9 +874,9 @@ begin
       end
       else
       begin
-        // if there is no filters, turn it visible by default
-        Include(vNode^.States, vsVisible);
-        fGrid.DoNodeFiltering(vNode);
+        // if did not handled and there is no filters, turn it visible by default
+        if not fGrid.DoNodeFiltering(vNode) then
+          Include(vNode^.States, vsVisible);
       end;
     end;
     vNode := fGrid.GetNext(vNode, True);
@@ -1094,6 +1094,7 @@ procedure TSOHeaderPopupMenu.FillPopupMenu;
     vValue: string;
     vFound: Boolean;
     vColumn: TSOGridColumn;
+    vHandled: Boolean;
   begin
     vCount := 0;
     vColumn := aGrid.FindColumnByIndex(aColIdx);
@@ -1105,28 +1106,33 @@ procedure TSOHeaderPopupMenu.FillPopupMenu;
       begin
         vValue := vData.S[vColumn.PropertyName];
         vFound := False;
-        // search duplicated value
-        for vItem in Items do
+        vHandled := aGrid.DoNodeFiltering(vNode);
+        // get nodes handle by user only if it continues visible
+        if not vHandled or (vHandled and (vsVisible in vNode^.States)) then
         begin
-          if (not aGrid.FilterOptions.CaseInsensitive and SameText(vItem.Caption, vValue))
-            or (aGrid.FilterOptions.CaseInsensitive and SameStr(vItem.Caption, vValue)) then
+          // search duplicated value
+          for vItem in Items do
           begin
-            vFound := True;
-            break;
+            if (not aGrid.FilterOptions.CaseInsensitive and SameText(vItem.Caption, vValue))
+              or (aGrid.FilterOptions.CaseInsensitive and SameStr(vItem.Caption, vValue)) then
+            begin
+              vFound := True;
+              break;
+            end;
           end;
-        end;
-        // do not duplicate items
-        if not vFound then
-        begin
-          vNewMenuItem := TMenuItem.Create(Self);
-          vNewMenuItem.Tag := aColIdx; // it will be use on OnMenuFilterClick
-          vNewMenuItem.Caption := vValue;
-          vNewMenuItem.OnClick := @OnMenuFilterClick;
-          vNewMenuItem.Checked := aGrid.FilterOptions.FilterExists(vColumn.PropertyName, vValue);
-          Items.Add(vNewMenuItem);
-          Inc(vCount);
-          if vCount >= aGrid.FilterOptions.DisplayedCount then
-            exit;
+          // do not duplicate items
+          if not vFound then
+          begin
+            vNewMenuItem := TMenuItem.Create(Self);
+            vNewMenuItem.Tag := aColIdx; // it will be use on OnMenuFilterClick
+            vNewMenuItem.Caption := vValue;
+            vNewMenuItem.OnClick := @OnMenuFilterClick;
+            vNewMenuItem.Checked := aGrid.FilterOptions.FilterExists(vColumn.PropertyName, vValue);
+            Items.Add(vNewMenuItem);
+            Inc(vCount);
+            if vCount >= aGrid.FilterOptions.DisplayedCount then
+              exit;
+          end;
         end;
       end;
       vNode := aGrid.GetNext(vNode, True);
@@ -2208,10 +2214,11 @@ begin
     fOnEditValidated(self, aColumn, aCurValue, aNewValue, aAbort);
 end;
 
-procedure TSOGrid.DoNodeFiltering(aNode: PVirtualNode);
+function TSOGrid.DoNodeFiltering(aNode: PVirtualNode): Boolean;
 begin
+  result := False;
   if Assigned(fOnNodeFiltering) then
-    fOnNodeFiltering(self, aNode);
+    fOnNodeFiltering(self, aNode, result);
 end;
 
 procedure TSOGrid.FixDesignFontsPPI(const ADesignTimePPI: Integer);
