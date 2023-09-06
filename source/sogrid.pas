@@ -2601,13 +2601,13 @@ begin
       efoCsv:
       begin
         buf := ContentToCsv(params.Selection, ',', params.Columns.VisibleOnly, params.Columns.Translated);
-        Clipboard.AddFormat(CF_Text, buf[1], Length(buf));
+        Clipboard.AddFormat(CF_Text, buf[1], Length(buf)+1);
       end;
       efoJson:
       begin
         buf := ContentToJson(params.Selection, params.Columns.VisibleOnly);
-        Clipboard.AddFormat(CF_Text, buf[1], Length(buf));
-        Clipboard.AddFormat(ClipbrdJson, buf[1], Length(buf));
+        Clipboard.AddFormat(CF_Text, buf[1], Length(buf)+1);
+        Clipboard.AddFormat(ClipbrdJson, buf[1], Length(buf)+1);
       end;
     else
       raise Exception.Create('Format not enabled to copy from it.');
