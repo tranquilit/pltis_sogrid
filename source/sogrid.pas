@@ -1123,7 +1123,7 @@ procedure TSOHeaderPopupMenu.FillPopupMenu;
           // do not duplicate items
           if not vFound then
           begin
-            vNewMenuItem := TMenuItem.Create(Self);
+            vNewMenuItem := TMenuItem.Create(self);
             vNewMenuItem.Tag := aColIdx; // it will be use on OnMenuFilterClick
             vNewMenuItem.Caption := vValue;
             vNewMenuItem.OnClick := @OnMenuFilterClick;
@@ -1172,25 +1172,31 @@ begin
           and vGrid.FilterOptions.Enabled
           and vGrid.FindColumnByIndex(ColIdx).AllowFilter then
         begin
-          // add a item for delete filters for a column
-          NewMenuItem := TSOMenuItem.Create(Self);
-          NewMenuItem.Tag := ColIdx;
-          NewMenuItem.Caption := GSConst_GridFilterClear;
-          NewMenuItem.OnClick := @OnMenuFilterClearClick;
-          Items.Add(NewMenuItem);
-          NewMenuItem := TSOMenuItem.Create(Self);
-          NewMenuItem.Caption := '-';
-          Items.Add(NewMenuItem);
+          // add a item for delete filters for the column, it it has filter(s) already
+          if Pos(vGrid.FilterOptions.MARK_ARROW, vGrid.FindColumnByIndex(ColIdx).Text) > 0 then
+          begin
+            NewMenuItem := TSOMenuItem.Create(Self);
+            NewMenuItem.Tag := ColIdx;
+            NewMenuItem.Caption := GSConst_GridFilterClear;
+            NewMenuItem.OnClick := @OnMenuFilterClearClick;
+            Items.Add(NewMenuItem);
+            NewMenuItem := TSOMenuItem.Create(Self);
+            NewMenuItem.Caption := '-';
+            Items.Add(NewMenuItem);
+          end;
           AddFilterItems(vGrid, ColIdx);
           NewMenuItem := TSOMenuItem.Create(Self);
           NewMenuItem.Caption := '-';
           Items.Add(NewMenuItem);
-          // add a item for delete all filters
-          NewMenuItem := TSOMenuItem.Create(Self);
-          NewMenuItem.Tag := NoColumn;
-          NewMenuItem.Caption := GSConst_GridFilterClearAll;
-          NewMenuItem.OnClick := @OnMenuFilterClearClick;
-          Items.Add(NewMenuItem);
+          if vGrid.FilterOptions.Filters.Count > 0 then
+          begin
+            // add a item for delete all filters
+            NewMenuItem := TSOMenuItem.Create(Self);
+            NewMenuItem.Tag := NoColumn;
+            NewMenuItem.Caption := GSConst_GridFilterClearAll;
+            NewMenuItem.OnClick := @OnMenuFilterClearClick;
+            Items.Add(NewMenuItem);
+          end;
         end;
       end;
       // add subitem "show/hide columns"
