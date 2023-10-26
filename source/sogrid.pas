@@ -45,7 +45,7 @@ type
     fGrid: TSOGrid;
     fFilters: TDocVariantData;
     fCaseInsensitive: Boolean;
-    fClearAterLoadingData: Boolean;
+    fClearAfterLoadingData: Boolean;
     fDisplayedCount: Integer;
     fEnabled: Boolean;
     fSort: TisGridFilterSort;
@@ -53,7 +53,7 @@ type
     DefaultDisplayedCount = 10;
     DefaultEnabled = False;
     DefaultCaseInsensitive = False;
-    DefaultClearAterLoadingData = False;
+    DefaultClearAfterLoadingData = False;
     DefaultSort = gfsMostUsedValues;
     MARK_ARROW = ' ↓';
   protected
@@ -73,7 +73,7 @@ type
     property CaseInsensitive: Boolean read fCaseInsensitive write fCaseInsensitive default DefaultCaseInsensitive;
     /// used after call Grid.LoadData
     // - if it is TRUE, it will call ClearFilters, otherwise it will call ApplyFilters
-    property ClearAterLoadingData: Boolean read fClearAterLoadingData write fClearAterLoadingData default DefaultClearAterLoadingData;
+    property ClearAfterLoadingData: Boolean read fClearAfterLoadingData write fClearAfterLoadingData default DefaultClearAfterLoadingData;
     /// how many menu items will be used to show filters
     property DisplayedCount: Integer read fDisplayedCount write fDisplayedCount default DefaultDisplayedCount;
     /// if FALSE, none filter menu item will be created
@@ -1803,7 +1803,7 @@ begin
       CleanPopupMenu;
       FillPopupMenu;
       // clear all filters after loading
-      if fFilterOptions.ClearAterLoadingData then
+      if fFilterOptions.ClearAfterLoadingData then
         fFilterOptions.ClearFilters
       else
         fFilterOptions.ApplyFilters;
