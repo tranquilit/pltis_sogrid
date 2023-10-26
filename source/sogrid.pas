@@ -21,6 +21,7 @@ uses
   mormot.core.variants,
   mormot.core.unicode,
   mormot.core.rtti,
+  mormot.core.search,
   sogridcommon;
 
 type
@@ -55,6 +56,7 @@ type
     DefaultCaseInsensitive = False;
     DefaultClearAfterLoadingData = False;
     DefaultSort = gfsMostUsedValues;
+  protected const
     MARK_ARROW = ' ↓';
   protected
     /// clear MARK_ARROW mark of all header columns
@@ -136,6 +138,7 @@ type
     procedure OnMenuRestoreClick(Sender: TObject);
     procedure OnMenuFilterClick(aSender: TObject);
     procedure OnMenuFilterClearClick(aSender: TObject);
+    procedure OnMenuFilterCustomClick(aSender: TObject);
   public
     procedure FillPopupMenu;
   published
@@ -754,6 +757,8 @@ type
     GSConst_HideAllColumns = 'Hide all columns';
     GSConst_RestoreDefaultColumns = 'Restore default columns';
     GSConst_GridFilterClear = 'Clear filter';
+    GSConst_GridFilterCustomExpression = 'Custom expression';
+    GSConst_GridFilterCustomExpressionCaption = 'Type a custom expression';
     GSConst_GridFilterClearAll = 'Clear all filters';
 
 procedure Translate(const aDirectory, aLang: string);
@@ -832,7 +837,8 @@ begin
   result := False;
   vTest.Clear;
   vTest.InitFast(dvObject);
-  vTest.S[aPropertyName] := aValue;
+  vTest.U['field'] := aPropertyName;
+  vTest.S['value'] := aValue;
   for vObj in fFilters.Objects do
   begin
     if vObj^.Equals(vTest) then
@@ -853,6 +859,7 @@ procedure TTisGridFilterOptions.ApplyFilters;
 
 var
   vData: ISuperObject;
+  vObj: PDocVariantData;
   vNode: PVirtualNode;
   vField: TDocVariantFields;
   v1: Integer;
@@ -869,31 +876,22 @@ begin
       if fFilters.Count > 0 then
       begin
         SetVisible(vNode);
-        vCaseInsensitive := fGrid.FilterOptions.CaseInsensitive;
-        for v1 := 0 to fFilters.Count-1 do
+        for vObj in fFilters.Objects do
         begin
-          for vField in DocVariantData(fFilters.Value[v1])^.Fields do
+          if not (vsVisible in vNode^.States) then
+            Continue;
+          if IsMatchs(vObj^.U['value'], vData.S[vObj^.S['field']], fGrid.FilterOptions.CaseInsensitive) then
           begin
-            if not (vsVisible in vNode^.States) then
-              Continue;
-            if (not vCaseInsensitive and SameText(vData.S[vField.Name^], vField.Value^))
-              or (vCaseInsensitive and SameStr(vData.S[vField.Name^], vField.Value^)) then
-            begin
-              if not fGrid.DoNodeFiltering(vNode) then
-                Include(vNode^.States, vsVisible);
-              vColumn := fGrid.FindColumnByPropertyName(vField.Name^);
-              // add an MARK_ARROW in header column text, if there are filters for this column
-              if (vsVisible in vNode^.States)
-                and (Pos(MARK_ARROW, vColumn.Text) = 0) then
-                  vColumn.Text := vColumn.Text + MARK_ARROW;
-            end
-            else
-            begin
-              Exclude(vNode^.States, vsVisible);
-              Break;
-            end;
-          end;
-        end
+            if not fGrid.DoNodeFiltering(vNode) then
+              Include(vNode^.States, vsVisible);
+          end
+          else
+            Exclude(vNode^.States, vsVisible);
+          vColumn := fGrid.FindColumnByPropertyName(vObj^.S['field']);
+          // add an MARK_ARROW in header column text, if there are filters for this column
+          if Pos(MARK_ARROW, vColumn.Text) = 0 then
+            vColumn.Text := vColumn.Text + MARK_ARROW;
+        end;
       end
       else
         SetVisible(vNode);
@@ -1055,7 +1053,7 @@ begin
       vItem.Checked := not vItem.Checked;
       vGrid := PopupComponent as TSOGrid;
       vColumn := vGrid.FindColumnByIndex(vItem.Tag);
-      vObj := _ObjFast([vColumn.PropertyName, StringToUtf8(vItem.Caption)]);
+      vObj := _ObjFast(['field', vColumn.PropertyName, 'value', StringToUtf8(vItem.Caption)]);
       if vItem.Checked then
         vGrid.FilterOptions.Filters.AddItem(vObj)
       else
@@ -1070,8 +1068,6 @@ var
   vGrid: TSOGrid;
   vItem: TMenuItem;
   vColumn: TSOGridColumn;
-  v1: Integer;
-  vFieldName: PRawUtf8;
 begin
   if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
   begin
@@ -1083,20 +1079,43 @@ begin
       if Assigned(vColumn) then
       begin
         // clear all filters for the same propertyname
-        for v1 := vGrid.FilterOptions.Filters.Count-1 downto 0 do
-        begin
-          for vFieldName in DocVariantData(vGrid.FilterOptions.Filters.Value[v1])^.FieldNames do
-            if vFieldName^ = vColumn.PropertyName then
-            begin
-              vGrid.FilterOptions.Filters.Delete(v1);
-              break;
-            end;
-        end;
+        with vGrid.FilterOptions do
+          while Filters.DeleteByProp('field', vColumn.PropertyName, not CaseInsensitive) do ;
         vGrid.FilterOptions.ApplyFilters;
       end
       else
         // if not found vColumn, it should clear all filters in the grid
         vGrid.FilterOptions.ClearFilters;
+    end;
+  end;
+end;
+
+procedure TSOHeaderPopupMenu.OnMenuFilterCustomClick(aSender: TObject);
+var
+  vGrid: TSOGrid;
+  vItem: TMenuItem;
+  vColumn: TSOGridColumn;
+  vObj: Variant;
+  vValue: string;
+begin
+  if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
+  begin
+    if PopupComponent is TSOGrid then
+    begin
+      vItem := aSender as TMenuItem;
+      vItem.Checked := not vItem.Checked;
+      vGrid := PopupComponent as TSOGrid;
+      vColumn := vGrid.FindColumnByIndex(vItem.Tag);
+      vValue := '';
+      if Dialogs.InputQuery(GSConst_GridFilterCustomExpression, GSConst_GridFilterCustomExpressionCaption, False, vValue) then
+      begin
+        vObj := _ObjFast(['field', vColumn.PropertyName, 'value', StringToUtf8(vValue)]);
+        if vItem.Checked then
+          vGrid.FilterOptions.Filters.AddItem(vObj)
+        else
+          vGrid.FilterOptions.Filters.DeleteByValue(vObj);
+        vGrid.FilterOptions.ApplyFilters;
+      end;
     end;
   end;
 end;
@@ -1179,7 +1198,7 @@ begin
     end;
     with TVirtualTreeCast(PopupComponent).Header do
     begin
-      // enable/disable filter
+      // enable/disable filterS
       if PopupComponent is TSOGrid then
       begin
         vGrid := PopupComponent as TSOGrid;
@@ -1206,6 +1225,11 @@ begin
           NewMenuItem := TSOMenuItem.Create(Self);
           NewMenuItem.Caption := '-';
           Items.Add(NewMenuItem);
+          NewMenuItem := TSOMenuItem.Create(Self);
+          NewMenuItem.Tag := ColIdx;
+          NewMenuItem.Caption := GSConst_GridFilterCustomExpression + '...';
+          NewMenuItem.OnClick := @OnMenuFilterCustomClick;
+          Items.Add(NewMenuItem);
           if vGrid.FilterOptions.Filters.Count > 0 then
           begin
             // add a item for delete all filters
@@ -1217,6 +1241,9 @@ begin
           end;
         end;
       end;
+      NewMenuItem := TSOMenuItem.Create(Self);
+      NewMenuItem.Caption := '-';
+      Items.Add(NewMenuItem);
       // add subitem "show/hide columns"
       vShowHideMenuItem := TSOMenuItem.Create(Self);
       vShowHideMenuItem.Caption := GSConst_ShowHideColumns;

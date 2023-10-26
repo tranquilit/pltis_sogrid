@@ -78,6 +78,14 @@ msgstr "Effacer le filtre"
 msgid "Clear all filters"
 msgstr "Effacer tous les filtres"
 
+#: sogrid.gsconst_gridfiltercustomexpression
+msgid "Custom expression"
+msgstr "Expression personnalisée"
+
+#: sogrid.gsconst_gridfiltercustomexpressioncaption
+msgid "Type a custom expression"
+msgstr "Tapez une expression personnalisée"
+
 #: sogrid.gsconst_hideallcolumns
 msgid "Hide all columns"
 msgstr "Cacher toutes les colonnes"
