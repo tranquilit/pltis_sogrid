@@ -59,6 +59,8 @@ type
   protected const
     MARK_ARROW = ' ↓';
   protected
+    class var fMruFilters: TDocVariantData;
+    class procedure InitClass;
     /// clear MARK_ARROW mark of all header columns
     procedure ClearHeaderArrows;
   public
@@ -70,6 +72,8 @@ type
     procedure ApplyFilters;
     /// clear all filters
     procedure ClearFilters;
+    procedure AddMruFilter(const aFieldName, aValue: RawUtf8);
+    function MruFiltersAsArrayOfString(const aFieldName: RawUtf8): TStringArray;
     property Filters: TDocVariantData read fFilters;
   published
     property CaseInsensitive: Boolean read fCaseInsensitive write fCaseInsensitive default DefaultCaseInsensitive;
@@ -786,6 +790,11 @@ end;
 
 { TTisGridFilterOptions }
 
+class procedure TTisGridFilterOptions.InitClass;
+begin
+  fMruFilters.InitArray([], JSON_FAST_FLOAT);
+end;
+
 procedure TTisGridFilterOptions.ClearHeaderArrows;
 var
   v1: Integer;
@@ -913,6 +922,42 @@ procedure TTisGridFilterOptions.ClearFilters;
 begin
   fFilters.Clear;
   ApplyFilters;
+end;
+
+procedure TTisGridFilterOptions.AddMruFilter(const aFieldName, aValue: RawUtf8);
+var
+  vObj: PDocVariantData;
+  vNewObj: Variant;
+  vStr: string;
+begin
+  vStr := Utf8ToString(aValue);
+  for vObj in fMruFilters.Objects do
+  begin
+    if vObj^.U['field'] = aFieldName then
+    begin
+      if (fCaseInsensitive and SameStr(vObj^.S['value'], vStr))
+        or (not fCaseInsensitive and SameText(vObj^.S['value'], vStr)) then
+        Exit;
+    end;
+  end;
+  vNewObj := _ObjFast(['field', aFieldName, 'value', aValue]);
+  fMruFilters.AddItem(vNewObj);
+end;
+
+function TTisGridFilterOptions.MruFiltersAsArrayOfString(
+  const aFieldName: RawUtf8): TStringArray;
+var
+  vObj: PDocVariantData;
+begin
+  SetLength(result, 0);
+  for vObj in fMruFilters.Objects do
+  begin
+    if vObj^.U['field'] = aFieldName then
+    begin
+      SetLength(result, Length(result) + 1);
+      result[Length(result)-1] := vObj^.S['value'];
+    end;
+  end;
 end;
 
 { TSOGridColumn }
@@ -1111,9 +1156,12 @@ begin
       vItem.Checked := not vItem.Checked;
       vGrid := PopupComponent as TSOGrid;
       vColumn := vGrid.FindColumnByIndex(vItem.Tag);
-      vValue := '';
-      if Dialogs.InputQuery(GSConst_GridFilterCustomExpression, GSConst_GridFilterCustomExpressionCaption, False, vValue) then
+      vValue := Dialogs.InputComboEx(
+        GSConst_GridFilterCustomExpression, GSConst_GridFilterCustomExpressionCaption,
+        vGrid.FilterOptions.MruFiltersAsArrayOfString(vColumn.PropertyName), True);
+      if Trim(vValue) <> '' then
       begin
+        vGrid.FilterOptions.AddMruFilter(vColumn.PropertyName, vValue);
         vObj := _ObjFast(['field', vColumn.PropertyName, 'value', StringToUtf8(vValue), 'custom', True]);
         if vItem.Checked then
           vGrid.FilterOptions.Filters.AddItem(vObj)
@@ -3776,5 +3824,7 @@ begin
   end;
 end;
 
+initialization
+  TTisGridFilterOptions.InitClass;
 
 end.
