@@ -86,6 +86,10 @@ msgstr ""
 msgid "Type a custom expression"
 msgstr ""
 
+#: sogrid.gsconst_gridfiltercustomexpressionremove
+msgid "Remove custom expression"
+msgstr ""
+
 #: sogrid.gsconst_hideallcolumns
 msgid "Hide all columns"
 msgstr ""

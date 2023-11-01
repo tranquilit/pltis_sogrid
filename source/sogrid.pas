@@ -73,6 +73,7 @@ type
     /// clear all filters
     procedure ClearFilters;
     procedure AddMruFilter(const aFieldName, aValue: RawUtf8);
+    procedure RemoveMruFilter(const aFieldName, aValue: RawUtf8);
     function MruFiltersAsArrayOfString(const aFieldName: RawUtf8): TStringArray;
     property Filters: TDocVariantData read fFilters;
   published
@@ -143,6 +144,7 @@ type
     procedure OnMenuFilterClick(aSender: TObject);
     procedure OnMenuFilterClearClick(aSender: TObject);
     procedure OnMenuFilterCustomClick(aSender: TObject);
+    procedure OnMenuFilterRemoveCustomClick(aSender: TObject);
   public
     procedure FillPopupMenu;
   published
@@ -763,6 +765,7 @@ type
     GSConst_GridFilterClear = 'Clear filter';
     GSConst_GridFilterCustomExpression = 'Custom expression';
     GSConst_GridFilterCustomExpressionCaption = 'Type a custom expression';
+    GSConst_GridFilterCustomExpressionRemove = 'Remove custom expression';
     GSConst_GridFilterClearAll = 'Clear all filters';
 
 procedure Translate(const aDirectory, aLang: string);
@@ -943,6 +946,11 @@ begin
   end;
   vNewObj := _ObjFast(['field', aFieldName, 'value', aValue]);
   fMruFilters.AddItem(vNewObj);
+end;
+
+procedure TTisGridFilterOptions.RemoveMruFilter(const aFieldName, aValue: RawUtf8);
+begin
+  fMruFilters.DeleteByValue(_ObjFast(['field', aFieldName, 'value', aValue]), fCaseInsensitive);
 end;
 
 function TTisGridFilterOptions.MruFiltersAsArrayOfString(
@@ -1174,6 +1182,26 @@ begin
   end;
 end;
 
+procedure TSOHeaderPopupMenu.OnMenuFilterRemoveCustomClick(aSender: TObject);
+var
+  vGrid: TSOGrid;
+  vItem: TMenuItem;
+  vColumn: TSOGridColumn;
+begin
+  if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
+  begin
+    if PopupComponent is TSOGrid then
+    begin
+      vItem := aSender as TMenuItem;
+      vItem.Checked := not vItem.Checked;
+      vGrid := PopupComponent as TSOGrid;
+      vColumn := vGrid.FindColumnByIndex(vItem.Tag);
+      vGrid.FilterOptions.RemoveMruFilter(vColumn.PropertyName, StringToUtf8(vItem.Caption));
+      OnMenuFilterClick(aSender); // should remove it from filters too
+    end;
+  end;
+end;
+
 procedure TSOHeaderPopupMenu.FillPopupMenu;
 
   procedure AddFilterItems(aGrid: TSOGrid; aColIdx: TColumnIndex);
@@ -1243,6 +1271,36 @@ procedure TSOHeaderPopupMenu.FillPopupMenu;
     end;
   end;
 
+  procedure AddCustomExpressionsToRemoveItems(aGrid: TSOGrid; aColIdx: TColumnIndex);
+  var
+    vColumn: TSOGridColumn;
+    vObj: PDocVariantData;
+    vParentMenuItem, vNewMenuItem: TMenuItem;
+  begin
+    if aGrid.FilterOptions.fMruFilters.IsVoid then
+      Exit;
+    vParentMenuItem := nil;
+    vColumn := aGrid.FindColumnByIndex(aColIdx);
+    for vObj in aGrid.FilterOptions.fMruFilters.Objects do
+    begin
+      if vObj^.U['field'] = vColumn.PropertyName then
+      begin
+        if not Assigned(vParentMenuItem) then
+        begin
+          vParentMenuItem := TSOMenuItem.Create(Self);
+          vParentMenuItem.Tag := NoColumn;
+          vParentMenuItem.Caption := GSConst_GridFilterCustomExpressionRemove;
+          Items.Add(vParentMenuItem);
+        end;
+        vNewMenuItem := TSOMenuItem.Create(self);
+        vNewMenuItem.Tag := aColIdx; // it will be use on OnMenuFilterClick
+        vNewMenuItem.Caption := vObj^.U['value'];
+        vNewMenuItem.OnClick := @OnMenuFilterRemoveCustomClick;
+        vParentMenuItem.Add(vNewMenuItem);
+      end;
+    end;
+  end;
+
 var
   I: Integer;
   ColPos: TColumnPosition;
@@ -1294,12 +1352,14 @@ begin
           NewMenuItem := TSOMenuItem.Create(Self);
           NewMenuItem.Caption := '-';
           Items.Add(NewMenuItem);
-          // add the custom filter
+          // add the custom expression menu item
           NewMenuItem := TSOMenuItem.Create(Self);
           NewMenuItem.Tag := ColIdx;
           NewMenuItem.Caption := GSConst_GridFilterCustomExpression + '...';
           NewMenuItem.OnClick := @OnMenuFilterCustomClick;
           Items.Add(NewMenuItem);
+          // add a remove custom expression menu items
+          AddCustomExpressionsToRemoveItems(vGrid, ColIdx);
           // add an item to delete all filters
           NewMenuItem := TSOMenuItem.Create(Self);
           NewMenuItem.Tag := NoColumn;
