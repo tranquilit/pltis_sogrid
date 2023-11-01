@@ -1272,6 +1272,7 @@ begin
         GetCursorPos(vMousePos);
         ColIdx := Columns.ColumnFromPosition(vGrid.ScreenToClient(vMousePos));
         if (ColIdx > NoColumn)
+          and (vGrid.Data.AsArray.Length > 0)
           and vGrid.FilterOptions.Enabled
           and vGrid.FindColumnByIndex(ColIdx).AllowFilter then
         begin
@@ -1288,28 +1289,28 @@ begin
             Items.Add(NewMenuItem);
           end;
           AddFilterItems(vGrid, ColIdx);
+          // add a divisor
           NewMenuItem := TSOMenuItem.Create(Self);
           NewMenuItem.Caption := '-';
           Items.Add(NewMenuItem);
+          // add the custom filter
           NewMenuItem := TSOMenuItem.Create(Self);
           NewMenuItem.Tag := ColIdx;
           NewMenuItem.Caption := GSConst_GridFilterCustomExpression + '...';
           NewMenuItem.OnClick := @OnMenuFilterCustomClick;
           Items.Add(NewMenuItem);
-          if vGrid.FilterOptions.Filters.Count > 0 then
-          begin
-            // add a item for delete all filters
-            NewMenuItem := TSOMenuItem.Create(Self);
-            NewMenuItem.Tag := NoColumn;
-            NewMenuItem.Caption := GSConst_GridFilterClearAll;
-            NewMenuItem.OnClick := @OnMenuFilterClearClick;
-            Items.Add(NewMenuItem);
-          end;
+          // add an item to delete all filters
+          NewMenuItem := TSOMenuItem.Create(Self);
+          NewMenuItem.Tag := NoColumn;
+          NewMenuItem.Caption := GSConst_GridFilterClearAll;
+          NewMenuItem.OnClick := @OnMenuFilterClearClick;
+          Items.Add(NewMenuItem);
+          // add a divisor
+          NewMenuItem := TSOMenuItem.Create(Self);
+          NewMenuItem.Caption := '-';
+          Items.Add(NewMenuItem);
         end;
       end;
-      NewMenuItem := TSOMenuItem.Create(Self);
-      NewMenuItem.Caption := '-';
-      Items.Add(NewMenuItem);
       // add subitem "show/hide columns"
       vShowHideMenuItem := TSOMenuItem.Create(Self);
       vShowHideMenuItem.Caption := GSConst_ShowHideColumns;
