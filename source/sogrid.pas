@@ -814,7 +814,6 @@ constructor TTisGridFilterOptions.Create(aGrid: TSOGrid);
 begin
   inherited Create;
   fGrid := aGrid;
-  fFilters.Clear;
   fFilters.InitArray([], JSON_FAST_FLOAT);
   fCaseInsensitive := DefaultCaseInsensitive;
   fDisplayedCount := DefaultDisplayedCount;
@@ -848,7 +847,6 @@ var
   vTest: TDocVariantData;
 begin
   result := False;
-  vTest.Clear;
   vTest.InitFast(dvObject);
   vTest.U['field'] := aFieldName;
   vTest.S['value'] := aValue;
@@ -1218,7 +1216,6 @@ procedure TSOHeaderPopupMenu.FillPopupMenu;
     vCount := 0;
     vColumn := aGrid.FindColumnByIndex(aColIdx);
     vNode := aGrid.GetFirstVisible;
-    vTable.Clear;
     vTable.InitFast;
     while vNode <> nil do
     begin
@@ -3406,7 +3403,7 @@ begin
     if ((coVisible in col.Options) or not aColumnsVisibleOnly) then
       cols.AddItemText(col.PropertyName);
   end;
-  res.Clear;
+  res.InitFast();
   rows^.Reduce(cols.ToRawUtf8DynArray, False, res);
   result := res.ToJson;
 end;
