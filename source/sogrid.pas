@@ -22,6 +22,7 @@ uses
   mormot.core.unicode,
   mormot.core.rtti,
   mormot.core.search,
+  mormot.core.os,
   sogridcommon;
 
 type
@@ -1756,9 +1757,10 @@ end;
 procedure TSOGrid.SetSettings(AValue: ISuperObject);
 var
   gridcol: TSOGridColumn;
-  prop, column, columns: ISuperObject;
+  prop, column, columns, vFilter: ISuperObject;
   propname : String;
-
+  i: Integer;
+  vLock: TLightLock;
 begin
   if (AValue <> nil) and (AValue.AsObject <> Nil)  then
   begin
@@ -1788,6 +1790,31 @@ begin
             else
               gridcol.Options := gridcol.Options - [coVisible];
         end;
+      end;
+    end;
+    if Assigned(AValue.A['filters']) then
+    begin
+      FilterOptions.Filters.Reset;
+      for i := 0 to AValue.A['filters'].Length-1 do
+      begin
+        vFilter := AValue.A['filters'].O[i];
+        FilterOptions.Filters.AddItem(_ObjFast(['field', vFilter.S['field'], 'value', vFilter.S['value']]));
+      end;
+      FilterOptions.ApplyFilters;
+    end;
+    if Assigned(AValue.A['mrufilters']) then
+    begin
+      vLock.Init;
+      try
+        vLock.Lock;
+        FilterOptions.fMruFilters.Reset;
+        for i := 0 to AValue.A['mrufilters'].Length-1 do
+        begin
+          vFilter := AValue.A['mrufilters'].O[i];
+          FilterOptions.fMruFilters.AddItem(_ObjFast(['field', vFilter.S['field'], 'value', vFilter.S['value']]));
+        end;
+      finally
+        vLock.UnLock;
       end;
     end;
     if AValue.AsObject.Find('sortcolumn', prop) then
@@ -2072,6 +2099,7 @@ function TSOGrid.GetSettings: ISuperObject;
 var
   i: integer;
   col: ISuperObject;
+  vObj: PDocVariantData;
 begin
   Result := TSuperObject.Create;
   Result.I['sortcolumn'] := Header.SortColumn;
@@ -2088,6 +2116,18 @@ begin
     col.I['position'] := Header.Columns[i].Position;
     col.I['width'] := Header.Columns[i].Width;
     col.B['visible'] := (coVisible in Header.Columns[i].Options);
+  end;
+  if not FilterOptions.Filters.IsVoid then
+  begin
+    Result['filters'] := TSuperObject.Create(stArray);
+    for vObj in FilterOptions.Filters.Objects do
+      Result.A['filters'].Add(SO(['field', vObj^.S['field'], 'value', vObj^.S['value']]));
+  end;
+  if not FilterOptions.fMruFilters.IsVoid then
+  begin
+    Result['mrufilters'] := TSuperObject.Create(stArray);
+    for vObj in FilterOptions.fMruFilters.Objects do
+      Result.A['mrufilters'].Add(SO(['field', vObj^.S['field'], 'value', vObj^.S['value']]));
   end;
 end;
 
