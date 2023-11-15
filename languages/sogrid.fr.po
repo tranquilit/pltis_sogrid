@@ -90,6 +90,10 @@ msgstr "Tapez une expression personnalisée"
 msgid "Remove custom expression"
 msgstr "Supprimer l'expression personnalisée"
 
+#: sogrid.gsconst_gridfilterenabled
+msgid "Enable AutoFilter"
+msgstr "Activer le filtre automatique"
+
 #: sogrid.gsconst_hideallcolumns
 msgid "Hide all columns"
 msgstr "Cacher toutes les colonnes"

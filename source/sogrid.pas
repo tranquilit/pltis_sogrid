@@ -147,6 +147,7 @@ type
     FOptions: TSOHeaderPopupOptions;
     FOnAddHeaderPopupItem: TAddHeaderPopupItemEvent;
     FOnColumnChange: TColumnChangeEvent;
+    fFilterEnabled: Boolean;
   protected
     procedure DoAddHeaderPopupItem(const Column: TColumnIndex; out Cmd: TAddPopupItemType); virtual;
     procedure DoColumnChange(Column: TColumnIndex; Visible: Boolean); virtual;
@@ -154,6 +155,7 @@ type
     procedure OnMenuShowAllClick(Sender: TObject);
     procedure OnMenuHideAllClick(Sender: TObject);
     procedure OnMenuRestoreClick(Sender: TObject);
+    procedure OnMenuFilterEnableClick(aSender: TObject);
     procedure OnMenuFilterClick(aSender: TObject);
     procedure OnMenuFilterClearClick(aSender: TObject);
     procedure OnMenuFilterCustomClick(aSender: TObject);
@@ -780,6 +782,7 @@ type
     GSConst_GridFilterCustomExpressionCaption = 'Type a custom expression';
     GSConst_GridFilterCustomExpressionRemove = 'Remove custom expression';
     GSConst_GridFilterClearAll = 'Clear all filters';
+    GSConst_GridFilterEnabled = 'Enable AutoFilter';
 
 procedure Translate(const aDirectory, aLang: string);
 
@@ -1129,6 +1132,22 @@ begin
   TSOGrid(PopupComponent).RestoreSettings;
 end;
 
+procedure TSOHeaderPopupMenu.OnMenuFilterEnableClick(aSender: TObject);
+var
+  vGrid: TSOGrid;
+begin
+  fFilterEnabled := not fFilterEnabled;
+  if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
+  begin
+    if PopupComponent is TSOGrid then
+    begin
+      vGrid := PopupComponent as TSOGrid;
+      if not fFilterEnabled then
+        vGrid.FilterOptions.ClearFilters;
+    end;
+  end;
+end;
+
 procedure TSOHeaderPopupMenu.OnMenuFilterClick(aSender: TObject);
 var
   vGrid: TSOGrid;
@@ -1357,12 +1376,26 @@ begin
       if PopupComponent is TSOGrid then
       begin
         vGrid := PopupComponent as TSOGrid;
+        if vGrid.FilterOptions.Enabled then
+        begin
+          // add a divisor
+          NewMenuItem := TSOMenuItem.Create(Self);
+          NewMenuItem.Caption := GSConst_GridFilterEnabled;
+          NewMenuItem.OnClick := @OnMenuFilterEnableClick;
+          NewMenuItem.Checked := fFilterEnabled;
+          Items.Add(NewMenuItem);
+          // add a divisor
+          NewMenuItem := TSOMenuItem.Create(Self);
+          NewMenuItem.Caption := '-';
+          Items.Add(NewMenuItem);
+        end;
         RecordZero(@vMousePos, TypeInfo(TPoint));
         GetCursorPos(vMousePos);
         ColIdx := Columns.ColumnFromPosition(vGrid.ScreenToClient(vMousePos));
         if (ColIdx > NoColumn)
           and (vGrid.Data.AsArray.Length > 0)
           and vGrid.FilterOptions.Enabled
+          and fFilterEnabled
           and vGrid.FindColumnByIndex(ColIdx).AllowFilter then
         begin
           // add a item for delete filters for the column, if it has filter(s) already
