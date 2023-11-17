@@ -928,7 +928,7 @@ begin
             vPropertyName := vColumn.PropertyName;
           if vPropertyName = vColumn.PropertyName then
           begin
-            if IsMatch(vObj^.U['value'], vData.U[vObj^.U['field']], fGrid.FilterOptions.CaseInsensitive) then
+            if IsMatch(vObj^.U['value'], vData.S[vObj^.U['field']], fGrid.FilterOptions.CaseInsensitive) then
               SetNodeVisible(vNode, True)
           end
           else
