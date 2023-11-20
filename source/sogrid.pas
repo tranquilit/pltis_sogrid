@@ -901,6 +901,27 @@ procedure TTisGridFilterOptions.ApplyFilters;
     end;
   end;
 
+  function IsMatching(const aPattern, aText: RawUtf8): Boolean;
+  var
+    vJson: TDocVariantData;
+    vItem: PVariant;
+  begin
+    result := False;
+    if vJson.InitJson(aText, JSON_FAST_FLOAT) and (vJson.Kind = dvArray) then
+    begin
+      for vItem in vJson.Items do
+      begin
+        if IsMatch(aPattern, VariantToUtf8(vItem^), fGrid.FilterOptions.CaseInsensitive) then
+        begin
+          result := True;
+          Break;
+        end;
+      end;
+    end
+    else if IsMatch(aPattern, aText, fGrid.FilterOptions.CaseInsensitive) then
+      result := True;
+  end;
+
 var
   vData: ISuperObject;
   vObj: PDocVariantData;
@@ -929,14 +950,14 @@ begin
             vPropertyName := vColumn.PropertyName;
           if vPropertyName = vColumn.PropertyName then
           begin
-            if IsMatch(vObj^.U['value'], vData.S[vObj^.U['field']], fGrid.FilterOptions.CaseInsensitive) then
+            if IsMatching(vObj^.U['value'], vData.S[vObj^.U['field']]) then
               SetNodeVisible(vNode, True)
           end
           else
           begin
             if vsVisible in vNode^.States then
             begin
-              if IsMatch(vObj^.U['value'], vData.S[vObj^.U['field']], fGrid.FilterOptions.CaseInsensitive) then
+              if IsMatching(vObj^.U['value'], vData.S[vObj^.U['field']]) then
                 SetNodeVisible(vNode, True)
               else
                 SetNodeVisible(vNode, False);
@@ -1287,7 +1308,7 @@ procedure TSOHeaderPopupMenu.FillPopupMenu;
         begin
           for vItem in vJson.Items do
           begin
-            vValue := '*' + VariantToUtf8(vItem^) + '*';
+            vValue := VariantToUtf8(vItem^);
             vIndex := vFilters.SearchItemByProp(vColumn.PropertyName, vValue, not aGrid.FilterOptions.CaseInsensitive);
             if vIndex >= 0 then
               with _Safe(vFilters.Value[vIndex])^ do
