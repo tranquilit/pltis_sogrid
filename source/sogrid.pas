@@ -780,7 +780,7 @@ type
     GSConst_RestoreDefaultColumns = 'Restore default columns';
     GSConst_GridFilterClear = 'Clear filter';
     GSConst_GridFilterCustomExpression = 'Custom expression';
-    GSConst_GridFilterCustomExpressionCaption = 'Type a custom expression';
+    GSConst_GridFilterCustomExpressionCaption = 'Type a custom expression:'#13'(you can add "*" at the beginning and/or end for partial match)';
     GSConst_GridFilterCustomExpressionRemove = 'Remove custom expression';
     GSConst_GridFilterClearAll = 'Clear all filters';
     GSConst_GridFilterEnabled = 'Enable AutoFilter';

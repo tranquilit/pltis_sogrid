@@ -83,8 +83,12 @@ msgid "Custom expression"
 msgstr "Expression personnalisée"
 
 #: sogrid.gsconst_gridfiltercustomexpressioncaption
-msgid "Type a custom expression"
-msgstr "Tapez une expression personnalisée"
+msgid ""
+"Type a custom expression:\n"
+"(you can add \"*\" at the beginning and/or end for partial match)"
+msgstr ""
+"Tapez une expression personnalisée :\n"
+"(vous pouvez ajouter \"*\" au début et/ou à la fin pour une correspondance partielle)"
 
 #: sogrid.gsconst_gridfiltercustomexpressionremove
 msgid "Remove custom expression"
