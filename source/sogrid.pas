@@ -1283,7 +1283,7 @@ end;
 
 procedure TSOHeaderPopupMenu.FillPopupMenu;
 
-  procedure AddFilterItems(aGrid: TSOGrid; aColIdx: TColumnIndex);
+  procedure AddAutoFiltersItems(aGrid: TSOGrid; aColIdx: TColumnIndex);
   var
     vNewMenuItem: TMenuItem;
     vCount, vIndex: Integer;
@@ -1438,7 +1438,7 @@ begin
         GetCursorPos(vMousePos);
         ColIdx := Columns.ColumnFromPosition(vGrid.ScreenToClient(vMousePos));
         if (ColIdx > NoColumn)
-          and (vGrid.Data.AsArray.Length > 0)
+          and (Assigned(vGrid.Data) and (vGrid.Data.AsArray.Length > 0))
           and vGrid.FilterOptions.Enabled
           and vGrid.FilterOptions.ShowAutoFilters
           and vGrid.FindColumnByIndex(ColIdx).AllowFilter then
@@ -1455,7 +1455,7 @@ begin
             NewMenuItem.Caption := '-';
             Items.Add(NewMenuItem);
           end;
-          AddFilterItems(vGrid, ColIdx);
+          AddAutoFiltersItems(vGrid, ColIdx);
           // add a divisor
           NewMenuItem := TSOMenuItem.Create(Self);
           NewMenuItem.Caption := '-';
@@ -2964,8 +2964,9 @@ begin
     FOnNodesDelete(self,todelete);
   end
   else
-    if Dialogs.MessageDlg(GSConst_Confirmation, Format(GSConst_ConfDeleteRow,[SelectedCount]),
-        mtConfirmation, mbYesNoCancel, 0) = mrYes then
+  begin
+    if Assigned(Data)
+      and (Dialogs.MessageDlg(GSConst_Confirmation, Format(GSConst_ConfDeleteRow,[SelectedCount]), mtConfirmation, mbYesNoCancel, 0) = mrYes) then
     begin
       todelete := SelectedRows;
       newFocusedNode := Nil;
@@ -2994,6 +2995,7 @@ begin
         Selected[FocusedNode] := True;
       end;
     end;
+  end;
 end;
 
 procedure TSOGrid.PasteRows(Rows: ISuperObject);
