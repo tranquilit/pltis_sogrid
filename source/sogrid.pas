@@ -53,6 +53,7 @@ type
     fEnabled: Boolean;
     fMaxCaptionLength: Integer;
     fSort: TisGridFilterSort;
+    fShowAutoFilters: Boolean;
   protected const
     DefaultDisplayedCount = 10;
     DefaultEnabled = False;
@@ -87,7 +88,10 @@ type
     procedure AddMruFilter(const aFieldName, aValue: RawUtf8);
     procedure RemoveMruFilter(const aFieldName, aValue: RawUtf8);
     function GetMruFiltersAsArrayOfString(const aFieldName: RawUtf8): TStringArray;
+    /// filter table
     property Filters: TDocVariantData read fFilters;
+    /// enable and show auto filters for user
+    property ShowAutoFilters: Boolean read fShowAutoFilters write fShowAutoFilters;
   published
     property CaseInsensitive: Boolean read fCaseInsensitive write fCaseInsensitive default DefaultCaseInsensitive;
     /// used after call Grid.LoadData
@@ -95,7 +99,7 @@ type
     property ClearAfterLoadingData: Boolean read fClearAfterLoadingData write fClearAfterLoadingData default DefaultClearAfterLoadingData;
     /// how many menu items will be used to show filters
     property DisplayedCount: Integer read fDisplayedCount write fDisplayedCount default DefaultDisplayedCount;
-    /// if FALSE, none filter menu item will be created
+    /// enable the use of filters
     property Enabled: Boolean read fEnabled write fEnabled default DefaultEnabled;
     /// it determines the max length a menu item caption can be
     property MaxCaptionLength: Integer read fMaxCaptionLength write fMaxCaptionLength default DefaultMaxCaptionLength;
@@ -148,7 +152,6 @@ type
     FOptions: TSOHeaderPopupOptions;
     FOnAddHeaderPopupItem: TAddHeaderPopupItemEvent;
     FOnColumnChange: TColumnChangeEvent;
-    fFilterEnabled: Boolean;
   protected
     procedure DoAddHeaderPopupItem(const Column: TColumnIndex; out Cmd: TAddPopupItemType); virtual;
     procedure DoColumnChange(Column: TColumnIndex; Visible: Boolean); virtual;
@@ -1158,13 +1161,13 @@ procedure TSOHeaderPopupMenu.OnMenuFilterEnableClick(aSender: TObject);
 var
   vGrid: TSOGrid;
 begin
-  fFilterEnabled := not fFilterEnabled;
   if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
   begin
     if PopupComponent is TSOGrid then
     begin
       vGrid := PopupComponent as TSOGrid;
-      if not fFilterEnabled then
+      vGrid.FilterOptions.ShowAutoFilters := not vGrid.FilterOptions.ShowAutoFilters;
+      if not vGrid.FilterOptions.ShowAutoFilters then
         vGrid.FilterOptions.ClearFilters;
     end;
   end;
@@ -1424,7 +1427,7 @@ begin
           NewMenuItem := TSOMenuItem.Create(Self);
           NewMenuItem.Caption := GSConst_GridFilterEnabled;
           NewMenuItem.OnClick := @OnMenuFilterEnableClick;
-          NewMenuItem.Checked := fFilterEnabled;
+          NewMenuItem.Checked := vGrid.FilterOptions.ShowAutoFilters;
           Items.Add(NewMenuItem);
           // add a divisor
           NewMenuItem := TSOMenuItem.Create(Self);
@@ -1437,7 +1440,7 @@ begin
         if (ColIdx > NoColumn)
           and (vGrid.Data.AsArray.Length > 0)
           and vGrid.FilterOptions.Enabled
-          and fFilterEnabled
+          and vGrid.FilterOptions.ShowAutoFilters
           and vGrid.FindColumnByIndex(ColIdx).AllowFilter then
         begin
           // add a item for delete filters for the column, if it has filter(s) already
