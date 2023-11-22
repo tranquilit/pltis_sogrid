@@ -473,7 +473,7 @@ type
     property FocusedRow:ISuperObject read GetFocusedRow write SetFocusedRow;
     function CheckedRows: ISuperObject;
 
-    procedure SetFocusedRowNoClearSelection(AValue: ISuperObject);
+    procedure SetFocusedRowNoClearSelection(AValue: ISuperObject; EnsureScrollIntoView: Boolean=False);
 
     function GetCellData(N: PVirtualNode; FieldName: string;
       Default: ISuperObject = nil): ISuperObject;
@@ -983,7 +983,7 @@ begin
     fGrid.FocusedNode := fGrid.GetFirstVisible;
     fGrid.Selected[fGrid.FocusedNode] := True;
   end;
-  fGrid.ScrollIntoView(fGrid.FocusedNode, False);
+  //fGrid.ScrollIntoView(fGrid.FocusedNode, False);
 end;
 
 procedure TTisGridFilterOptions.ClearFilters;
@@ -2152,7 +2152,7 @@ begin
     Settings := SO(DecodeStringBase64(AValue));
 end;
 
-procedure TSOGrid.SetFocusedRowNoClearSelection(AValue: ISuperObject);
+procedure TSOGrid.SetFocusedRowNoClearSelection(AValue: ISuperObject; EnsureScrollIntoView: Boolean);
 var
   ANodes:TNodeArray;
 begin
@@ -2165,7 +2165,9 @@ begin
     begin
       FocusedNode:=ANodes[0];
       Selected[ANodes[0]] := True;
-      ScrollIntoView(FocusedNode,False);
+      // This is slow when there are many rows
+      if EnsureScrollIntoView then
+        ScrollIntoView(FocusedNode,False);
     end;
   end;
 end;
