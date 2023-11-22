@@ -968,7 +968,10 @@ begin
           end;
           // add an MARK_ARROW in header column text, if there are filters for this column
           if Pos(MARK_ARROW, vColumn.Text) = 0 then
+          begin
             vColumn.Text := vColumn.Text + MARK_ARROW;
+            fShowAutoFilters := True;
+          end;
         end;
       end
       else
