@@ -83,6 +83,7 @@ type
     procedure seLabelAngleChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
   private
     fSavedDataPoints: TStrings;
     fSaveMarks: record
@@ -225,6 +226,11 @@ end;
 procedure TVisGridChartForm.FormDestroy(Sender: TObject);
 begin
   fSavedDataPoints.Free;
+end;
+
+procedure TVisGridChartForm.FormShow(Sender: TObject);
+begin
+  seWordsChange(seWords);
 end;
 
 procedure TVisGridChartForm.seWordsChange(Sender: TObject);
