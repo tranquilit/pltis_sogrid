@@ -3096,7 +3096,7 @@ end;
 
 procedure TSOGrid.DoSelectAllRows(Sender: TObject);
 begin
-  SelectAll(False);
+  SelectAll(True);
 end;
 
 procedure TSOGrid.DoPrint(Sender: TObject);
