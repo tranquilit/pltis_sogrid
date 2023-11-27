@@ -1148,17 +1148,23 @@ end;
 procedure TSOHeaderPopupMenu.OnMenuHideAllClick(Sender: TObject);
 var
   i: Integer;
+  vGrid: TSOGrid;
 begin
   if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
   begin
-    with TVirtualTreeCast(PopupComponent).Header.Columns do
+    if PopupComponent is TSOGrid then
     begin
-      for i := 0 to Count-1 do
-      if coVisible in Items[i].Options then
+      vGrid := PopupComponent as TSOGrid;
+      with vGrid.Header.Columns do
       begin
-        Items[i].Options := Items[i].Options - [coVisible];
-        DoColumnChange(i, False);
+        for i := 0 to Count-1 do
+        if coVisible in Items[i].Options then
+        begin
+          Items[i].Options := Items[i].Options - [coVisible];
+          DoColumnChange(i, False);
+        end;
       end;
+      vGrid.Invalidate; // needed it, at least for MacOS
     end;
   end;
 end;
