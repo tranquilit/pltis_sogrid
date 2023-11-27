@@ -24,6 +24,7 @@ uses
   mormot.core.search,
   mormot.core.os,
   mormot.core.text,
+  ugridchart,
   sogridcommon;
 
 type
@@ -110,17 +111,21 @@ type
   { TSOGridColumn }
   TSOGridColumn = class(TVirtualTreeColumn)
   private
+    fAllowChart: Boolean;
     fAllowFilter: Boolean;
     FPropertyName: string;
     procedure SetPropertyName(const Value: string);
     function GetTitle: TCaption;
     procedure SetTitle(AValue: TCaption);
   protected const
+    DefaultAllowChart = True;
     DefaultAllowFilter = True;
   public
     constructor Create(aCollection: TCollection); override;
     procedure Assign(Source: TPersistent); override;
   published
+    /// allow to show a chart for this column
+    property AllowChart: Boolean read fAllowChart write fAllowChart default DefaultAllowChart;
     /// allow use filter for this column, if Grid.FilterOptions.Enable is TRUE
     property AllowFilter: Boolean read fAllowFilter write fAllowFilter default DefaultAllowFilter;
     property Text: TCaption read GetTitle write SetTitle;
@@ -159,6 +164,7 @@ type
     procedure OnMenuShowAllClick(Sender: TObject);
     procedure OnMenuHideAllClick(Sender: TObject);
     procedure OnMenuRestoreClick(Sender: TObject);
+    procedure OnMenuShowChart(aSender: TObject);
     procedure OnMenuFilterEnableClick(aSender: TObject);
     procedure OnMenuFilterClick(aSender: TObject);
     procedure OnMenuFilterClearClick(aSender: TObject);
@@ -787,6 +793,7 @@ type
     GSConst_GridFilterCustomExpressionRemove = 'Remove custom expression';
     GSConst_GridFilterClearAll = 'Clear all filters';
     GSConst_GridFilterEnabled = 'Enable AutoFilter';
+    GSConst_GridChartShow = 'Show chart';
 
 procedure Translate(const aDirectory, aLang: string);
 
@@ -1061,6 +1068,7 @@ constructor TSOGridColumn.Create(aCollection: TCollection);
 begin
   inherited Create(aCollection);
   Options := Options + [coWrapCaption];
+  fAllowChart := DefaultAllowChart;
   fAllowFilter := DefaultAllowFilter;
 end;
 
@@ -1158,6 +1166,50 @@ end;
 procedure TSOHeaderPopupMenu.OnMenuRestoreClick(Sender: TObject);
 begin
   TSOGrid(PopupComponent).RestoreSettings;
+end;
+
+procedure TSOHeaderPopupMenu.OnMenuShowChart(aSender: TObject);
+var
+  vGrid: TSOGrid;
+  vColumn: TSOGridColumn;
+  vItem: TMenuItem;
+  vObj: PDocVariantData;
+  vLabels: TDocVariantData;
+  vIndex: Integer;
+  vValue: RawUtf8;
+  vRow: ISuperObject;
+begin
+  if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
+  begin
+    if PopupComponent is TSOGrid then
+    begin
+      vItem := aSender as TMenuItem;
+      vGrid := PopupComponent as TSOGrid;
+      vLabels.InitFast;
+      with TVisGridChartForm.Create(Owner) do
+      try
+        ListChartSource.Clear;
+        vColumn := vGrid.FindColumnByIndex(vItem.Tag);
+        if vGrid.SelectedCount = 1 then
+          vGrid.SelectAll(True);
+        for vRow in vGrid.SelectedRows do
+        begin
+          vValue := StringToUtf8(vRow.S[vColumn.PropertyName]);
+          vIndex := vLabels.SearchItemByProp('field', vValue, not vGrid.FilterOptions.CaseInsensitive);
+          if vIndex >= 0 then
+            with _Safe(vLabels.Value[vIndex])^ do
+              I['count'] := I['count'] + 1
+          else
+            vLabels.AddItem(_ObjFast(['field', vValue, 'count', 1]));
+        end;
+        for vObj in vLabels.Objects do
+          ListChartSource.Add(0, vObj^.D['count'], vObj^.S['field']);
+        ShowModal;
+      finally
+        Free;
+      end;
+    end;
+  end;
 end;
 
 procedure TSOHeaderPopupMenu.OnMenuFilterEnableClick(aSender: TObject);
@@ -1345,7 +1397,7 @@ procedure TSOHeaderPopupMenu.FillPopupMenu;
     for vObj in vFilters.Objects do
     begin
       vNewMenuItem := TSOMenuItem.Create(self);
-      vNewMenuItem.Tag := aColIdx; // it will be use on OnMenuFilterClick
+      vNewMenuItem.Tag := aColIdx; // it will be use to locate the column by its index
       vNewMenuItem.Caption := vObj^.S[vColumn.PropertyName];
       vNewMenuItem.OnClick := @OnMenuFilterClick;
       vNewMenuItem.Checked := aGrid.FilterOptions.FilterExists(vColumn.PropertyName, vObj^.S[vColumn.PropertyName]);
@@ -1360,7 +1412,7 @@ procedure TSOHeaderPopupMenu.FillPopupMenu;
       if vObj^.U['field'] <> vColumn.PropertyName then
         Continue;
       vNewMenuItem := TSOMenuItem.Create(self);
-      vNewMenuItem.Tag := aColIdx; // it will be use on OnMenuFilterClick
+      vNewMenuItem.Tag := aColIdx; // it will be use to locate the column by its index
       vNewMenuItem.Caption := vObj^.U['value'];
       vNewMenuItem.OnClick := @OnMenuFilterClick;
       vNewMenuItem.Checked := aGrid.FilterOptions.FilterExists(vColumn.PropertyName, vObj^.U['value']);
@@ -1390,7 +1442,7 @@ procedure TSOHeaderPopupMenu.FillPopupMenu;
           Items.Add(vParentMenuItem);
         end;
         vNewMenuItem := TSOMenuItem.Create(self);
-        vNewMenuItem.Tag := aColIdx; // it will be use on OnMenuFilterClick
+        vNewMenuItem.Tag := aColIdx; // it will be use to locate the column by its index
         vNewMenuItem.Caption := vObj^.U['value'];
         vNewMenuItem.OnClick := @OnMenuFilterRemoveCustomClick;
         vParentMenuItem.Add(vNewMenuItem);
@@ -1408,6 +1460,7 @@ var
   VisibleItem: TSOMenuItem;
   vMousePos: TPoint;
   vGrid: TSOGrid;
+  vColumn: TSOGridColumn;
 begin
   if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
   begin
@@ -1440,17 +1493,18 @@ begin
         RecordZero(@vMousePos, TypeInfo(TPoint));
         GetCursorPos(vMousePos);
         ColIdx := Columns.ColumnFromPosition(vGrid.ScreenToClient(vMousePos));
+        vColumn := vGrid.FindColumnByIndex(ColIdx);
         if (ColIdx > NoColumn)
           and (Assigned(vGrid.Data) and (vGrid.Data.AsArray.Length > 0))
           and vGrid.FilterOptions.Enabled
           and vGrid.FilterOptions.ShowAutoFilters
-          and vGrid.FindColumnByIndex(ColIdx).AllowFilter then
+          and vColumn.AllowFilter then
         begin
           // add a item for delete filters for the column, if it has filter(s) already
           if Pos(vGrid.FilterOptions.MARK_ARROW, vGrid.FindColumnByIndex(ColIdx).Text) > 0 then
           begin
             NewMenuItem := TSOMenuItem.Create(Self);
-            NewMenuItem.Tag := ColIdx;
+            NewMenuItem.Tag := ColIdx; // it will be use to locate the column by its index
             NewMenuItem.Caption := GSConst_GridFilterClear;
             NewMenuItem.OnClick := @OnMenuFilterClearClick;
             Items.Add(NewMenuItem);
@@ -1465,7 +1519,7 @@ begin
           Items.Add(NewMenuItem);
           // add the custom expression menu item
           NewMenuItem := TSOMenuItem.Create(Self);
-          NewMenuItem.Tag := ColIdx;
+          NewMenuItem.Tag := ColIdx; // it will be use to locate the column by its index
           NewMenuItem.Caption := GSConst_GridFilterCustomExpression + '...';
           NewMenuItem.OnClick := @OnMenuFilterCustomClick;
           Items.Add(NewMenuItem);
@@ -1482,72 +1536,85 @@ begin
           NewMenuItem.Caption := '-';
           Items.Add(NewMenuItem);
         end;
-      end;
-      // add subitem "show/hide columns"
-      vShowHideMenuItem := TSOMenuItem.Create(Self);
-      vShowHideMenuItem.Caption := GSConst_ShowHideColumns;
-      Items.Add(vShowHideMenuItem);
-      if hoShowImages in Options then
-        Self.Images := Images
-      else
-        // Remove a possible reference to image list of another tree previously assigned.
-        Self.Images := nil;
-      VisibleItem := nil;
-      VisibleCounter := 0;
-      for ColPos := 0 to Columns.Count - 1 do
-      begin
-        if poOriginalOrder in FOptions then
-          ColIdx := ColPos
+        // add subitem "show/hide columns"
+        vShowHideMenuItem := TSOMenuItem.Create(Self);
+        vShowHideMenuItem.Caption := GSConst_ShowHideColumns;
+        Items.Add(vShowHideMenuItem);
+        if hoShowImages in Options then
+          Self.Images := Images
         else
-          ColIdx := Columns.ColumnFromPosition(ColPos);
-        if ColIdx = NoColumn then
-          break;
-        with Columns[ColIdx] as TSOGridColumn do
+          // Remove a possible reference to image list of another tree previously assigned.
+          Self.Images := nil;
+        VisibleItem := nil;
+        VisibleCounter := 0;
+        for ColPos := 0 to Columns.Count - 1 do
         begin
-          if coVisible in Options then
-            Inc(VisibleCounter);
-          DoAddHeaderPopupItem(ColIdx, Cmd);
-          if Cmd <> apHidden then
+          if poOriginalOrder in FOptions then
+            ColIdx := ColPos
+          else
+            ColIdx := Columns.ColumnFromPosition(ColPos);
+          if ColIdx = NoColumn then
+            break;
+          with Columns[ColIdx] as TSOGridColumn do
           begin
-            NewMenuItem := TSOMenuItem.Create(Self);
-            NewMenuItem.Tag := ColIdx;
-            NewMenuItem.Caption := Text+' ('+PropertyName+')';
-            NewMenuItem.Hint := Hint;
-            NewMenuItem.ImageIndex := ImageIndex;
-            NewMenuItem.Checked := coVisible in Options;
-            NewMenuItem.OnClick := @OnMenuItemClick;
-            if Cmd = apDisabled then
-              NewMenuItem.Enabled := False
-            else
-              if coVisible in Options then
-                VisibleItem := NewMenuItem;
-            vShowHideMenuItem.Add(NewMenuItem);
+            if coVisible in Options then
+              Inc(VisibleCounter);
+            DoAddHeaderPopupItem(ColIdx, Cmd);
+            if Cmd <> apHidden then
+            begin
+              NewMenuItem := TSOMenuItem.Create(Self);
+              NewMenuItem.Tag := ColIdx; // it will be use to locate the column by its index
+              NewMenuItem.Caption := Text+' ('+PropertyName+')';
+              NewMenuItem.Hint := Hint;
+              NewMenuItem.ImageIndex := ImageIndex;
+              NewMenuItem.Checked := coVisible in Options;
+              NewMenuItem.OnClick := @OnMenuItemClick;
+              if Cmd = apDisabled then
+                NewMenuItem.Enabled := False
+              else
+                if coVisible in Options then
+                  VisibleItem := NewMenuItem;
+              vShowHideMenuItem.Add(NewMenuItem);
+            end;
           end;
         end;
+
+        NewMenuItem := TSOMenuItem.Create(Self);
+        NewMenuItem.Tag := -1;
+        NewMenuItem.Caption := GSConst_ShowAllColumns;
+        NewMenuItem.OnClick := @OnMenuShowAllClick;
+        Items.Add(NewMenuItem);
+
+        NewMenuItem := TSOMenuItem.Create(Self);
+        NewMenuItem.Tag := -2;
+        NewMenuItem.Caption := GSConst_HideAllColumns;
+        NewMenuItem.OnClick := @OnMenuHideAllClick;
+        Items.Add(NewMenuItem);
+
+        // restore default columns
+
+        NewMenuItem := TSOMenuItem.Create(Self);
+        NewMenuItem.Tag := -3;
+        NewMenuItem.Caption := GSConst_RestoreDefaultColumns;
+        NewMenuItem.OnClick := @OnMenuRestoreClick;
+        Items.Add(NewMenuItem);
+        // Conditionally disable menu item of last enabled column.
+        if (VisibleCounter = 1) and (VisibleItem <> nil) and not (poAllowHideAll in FOptions) then
+          VisibleItem.Enabled := False;
+        // chart
+        if Assigned(vColumn) and vColumn.AllowChart and (vGrid.SelectedCount > 0) then
+        begin
+          // add a divisor
+          NewMenuItem := TSOMenuItem.Create(Self);
+          NewMenuItem.Caption := '-';
+          Items.Add(NewMenuItem);
+          NewMenuItem := TSOMenuItem.Create(Self);
+          NewMenuItem.Tag := vColumn.Index;
+          NewMenuItem.Caption := GSConst_GridChartShow;
+          NewMenuItem.OnClick := @OnMenuShowChart;
+          Items.Add(NewMenuItem);
+        end;
       end;
-
-      NewMenuItem := TSOMenuItem.Create(Self);
-      NewMenuItem.Tag := -1;
-      NewMenuItem.Caption := GSConst_ShowAllColumns;
-      NewMenuItem.OnClick := @OnMenuShowAllClick;
-      Items.Add(NewMenuItem);
-
-      NewMenuItem := TSOMenuItem.Create(Self);
-      NewMenuItem.Tag := -2;
-      NewMenuItem.Caption := GSConst_HideAllColumns;
-      NewMenuItem.OnClick := @OnMenuHideAllClick;
-      Items.Add(NewMenuItem);
-
-      // restore default columns
-
-      NewMenuItem := TSOMenuItem.Create(Self);
-      NewMenuItem.Tag := -3;
-      NewMenuItem.Caption := GSConst_RestoreDefaultColumns;
-      NewMenuItem.OnClick := @OnMenuRestoreClick;
-      Items.Add(NewMenuItem);
-      // Conditionally disable menu item of last enabled column.
-      if (VisibleCounter = 1) and (VisibleItem <> nil) and not (poAllowHideAll in FOptions) then
-        VisibleItem.Enabled := False;
     end;
   end;
 end;

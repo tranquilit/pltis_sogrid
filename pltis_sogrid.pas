@@ -9,7 +9,7 @@ interface
 
 uses
   sogrid_register, sogrid, sogrideditor, sogridcommon, ucopyspecial, 
-  LazarusPackageIntf;
+  ugridchart, LazarusPackageIntf;
 
 implementation
 
