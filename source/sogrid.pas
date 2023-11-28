@@ -307,7 +307,8 @@ type
   TOnGridNodeFiltering = procedure(aSender: TSOGrid; aNode: PVirtualNode; var aHandled: Boolean) of object;
 
   /// event that allows changing the chart's source values before sending to it
-  TOnGridBeforeAddingChartSource = procedure(aSender: TSOGrid; var aX, aY: Double; var aLabel: string; var aColor: TColor) of object;
+  TOnGridBeforeAddingChartSource = procedure(aSender: TSOGrid; aColumn: TSOGridColumn;
+    var aX, aY: Double; var aLabel: string; var aColor: TColor) of object;
 
   { TSOGrid }
   TSOGrid = class(TCustomVirtualStringTree,ISODataView)
@@ -467,8 +468,8 @@ type
     procedure DoEditValidated(const aColumn: TSOGridColumn; const aCurValue: Variant;
       var aNewValue: Variant; var aAbort: Boolean); virtual;
     function DoNodeFiltering(aNode: PVirtualNode): Boolean; virtual;
-    procedure DoBeforeAddingChartSource(var aX, aY: Double; var aLabel: string;
-      var aColor: TColor); virtual;
+    procedure DoBeforeAddingChartSource(aColumn: TSOGridColumn; var aX, aY: Double;
+      var aLabel: string; var aColor: TColor); virtual;
   public
     const POPUP_ITEM_TAG = 250;
   public
@@ -2587,11 +2588,11 @@ begin
     fOnNodeFiltering(self, aNode, result);
 end;
 
-procedure TSOGrid.DoBeforeAddingChartSource(var aX, aY: Double;
-  var aLabel: string; var aColor: TColor);
+procedure TSOGrid.DoBeforeAddingChartSource(aColumn: TSOGridColumn;
+  var aX, aY: Double; var aLabel: string; var aColor: TColor);
 begin
   if Assigned(fOnBeforeAddingChartSource) then
-    fOnBeforeAddingChartSource(self, aX, aY, aLabel, aColor);
+    fOnBeforeAddingChartSource(self, aColumn, aX, aY, aLabel, aColor);
 end;
 
 procedure TSOGrid.FixDesignFontsPPI(const ADesignTimePPI: Integer);
@@ -3143,7 +3144,7 @@ begin
         vDefY := vObj^.D['count'];
         vDefLabel := vObj^.S['field'];
         vDefColor := Darkened(RGBToColor(Random(256), Random(256), Random(256)));
-        DoBeforeAddingChartSource(vDefX, vDefY, vDefLabel, vDefColor);
+        DoBeforeAddingChartSource(vColumn, vDefX, vDefY, vDefLabel, vDefColor);
         ListChartSource.Add(vDefX, vDefY, vDefLabel, vDefColor);
       end;
       ShowModal;
