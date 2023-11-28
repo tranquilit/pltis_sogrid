@@ -17,6 +17,7 @@ uses
   Classes, Controls, ComCtrls, VirtualTrees, math, SysUtils,
   SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages,StdCtrls,
   Types, DefaultTranslator,
+  TAChartUtils,
   mormot.core.base,
   mormot.core.variants,
   mormot.core.unicode,
@@ -305,6 +306,9 @@ type
   // - use it to force showing (or not) some node by seting aHandled=TRUE
   TOnGridNodeFiltering = procedure(aSender: TSOGrid; aNode: PVirtualNode; var aHandled: Boolean) of object;
 
+  /// event that allows changing the chart's source values before sending to it
+  TOnGridBeforeAddingChartSource = procedure(aSender: TSOGrid; var aX, aY: Double; var aLabel: string; var aColor: TColor) of object;
+
   { TSOGrid }
   TSOGrid = class(TCustomVirtualStringTree,ISODataView)
   private
@@ -339,6 +343,7 @@ type
     fDefaultSettings: ISuperObject; // all default settings after load component
     fOnEditValidated: TOnGridEditValidated;
     fOnNodeFiltering: TOnGridNodeFiltering;
+    fOnBeforeAddingChartSource: TOnGridBeforeAddingChartSource;
     function FocusedPropertyName: String;
     function GetData: ISuperObject;
     function GetFocusedColumnObject: TSOGridColumn;
@@ -462,6 +467,8 @@ type
     procedure DoEditValidated(const aColumn: TSOGridColumn; const aCurValue: Variant;
       var aNewValue: Variant; var aAbort: Boolean); virtual;
     function DoNodeFiltering(aNode: PVirtualNode): Boolean; virtual;
+    procedure DoBeforeAddingChartSource(var aX, aY: Double; var aLabel: string;
+      var aColor: TColor); virtual;
   public
     const POPUP_ITEM_TAG = 250;
   public
@@ -577,6 +584,11 @@ type
     property FilterOptions: TTisGridFilterOptions read fFilterOptions write fFilterOptions;
     property OnEditValidated: TOnGridEditValidated
       read fOnEditValidated write fOnEditValidated;
+    /// event that allows change aNode.States after it was changed
+    // - use it to force showing (or not) some node
+    property OnNodeFiltering: TOnGridNodeFiltering read fOnNodeFiltering write fOnNodeFiltering;
+    /// event that allows changing the chart's source values before sending to it
+    property OnBeforeAddingChartSource: TOnGridBeforeAddingChartSource read fOnBeforeAddingChartSource write fOnBeforeAddingChartSource;
     //inherited properties
     property Action;
     property Align;
@@ -2575,6 +2587,13 @@ begin
     fOnNodeFiltering(self, aNode, result);
 end;
 
+procedure TSOGrid.DoBeforeAddingChartSource(var aX, aY: Double;
+  var aLabel: string; var aColor: TColor);
+begin
+  if Assigned(fOnBeforeAddingChartSource) then
+    fOnBeforeAddingChartSource(self, aX, aY, aLabel, aColor);
+end;
+
 procedure TSOGrid.FixDesignFontsPPI(const ADesignTimePPI: Integer);
 begin
   inherited FixDesignFontsPPI(ADesignTimePPI);
@@ -3071,12 +3090,30 @@ begin
 end;
 
 procedure TSOGrid.DoShowChart(aSender: TObject);
+
+  function Darkened(aValue: TColor): TColor;
+  var
+    r, g, b: Byte;
+  begin
+    r := GetRValue(aValue);
+    g := GetGValue(aValue);
+    b := GetBValue(aValue);
+    result := RGB(
+      r - MulDiv(r, 15, 100),
+      g - MulDiv(g, 15, 100),
+      b - MulDiv(b, 15, 100)
+    );
+  end;
+
 var
   vColumn: TSOGridColumn;
   vObj: PDocVariantData;
   vLabels: TDocVariantData;
   vIndex: Integer;
   vValue: RawUtf8;
+  vDefX, vDefY: Double;
+  vDefLabel: string;
+  vDefColor: TColor;
   vRow: ISuperObject;
 begin
   vColumn := FocusedColumnObject;
@@ -3099,8 +3136,16 @@ begin
         else
           vLabels.AddItem(_ObjFast(['field', vValue, 'count', 1]));
       end;
+      Randomize;
       for vObj in vLabels.Objects do
-        ListChartSource.Add(0, vObj^.D['count'], vObj^.S['field']);
+      begin
+        vDefX := 0;
+        vDefY := vObj^.D['count'];
+        vDefLabel := vObj^.S['field'];
+        vDefColor := Darkened(RGBToColor(Random(256), Random(256), Random(256)));
+        DoBeforeAddingChartSource(vDefX, vDefY, vDefLabel, vDefColor);
+        ListChartSource.Add(vDefX, vDefY, vDefLabel, vDefColor);
+      end;
       ShowModal;
     finally
       Free;
