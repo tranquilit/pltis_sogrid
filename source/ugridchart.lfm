@@ -47,10 +47,8 @@ object VisGridChartForm: TVisGridChartForm
           end>
         Foot.Brush.Color = clBtnFace
         Foot.Font.Color = clBlue
-        Title.Alignment = taLeftJustify
-        Title.Brush.Color = clNone
-        Title.Font.Color = clBlue
-        Title.Text.Strings = (
+        Frame.Visible = Falser
+
           '  Click on a slice to explode/unexplode it'
         )
         Title.Visible = True
@@ -59,6 +57,8 @@ object VisGridChartForm: TVisGridChartForm
         Color = clDefault
         OnMouseDown = ChartPieMouseDown
         object ChartPiePieSeries1: TPieSeries
+          EdgePen.Color = clWhite
+          EdgePen.Width = 3
           DepthBrightnessDelta = -32
           Exploded = True
           Marks.Distance = 40
