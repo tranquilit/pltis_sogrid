@@ -30,6 +30,9 @@ uses
   TATools;
 
 type
+
+  { TVisGridChartForm }
+
   TVisGridChartForm = class(TForm)
     cbMarkAttachment: TComboBox;
     cmbOrientation: TComboBox;
