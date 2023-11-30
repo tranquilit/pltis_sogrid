@@ -1469,14 +1469,14 @@ begin
         GetCursorPos(vMousePos);
         ColIdx := Columns.ColumnFromPosition(vGrid.ScreenToClient(vMousePos));
         vColumn := vGrid.FindColumnByIndex(ColIdx);
-        if (ColIdx > NoColumn)
+        if Assigned(vColumn)
           and (Assigned(vGrid.Data) and (vGrid.Data.AsArray.Length > 0))
           and vGrid.FilterOptions.Enabled
           and vGrid.FilterOptions.ShowAutoFilters
           and vColumn.AllowFilter then
         begin
           // add a item for delete filters for the column, if it has filter(s) already
-          if Pos(vGrid.FilterOptions.MARK_ARROW, vGrid.FindColumnByIndex(ColIdx).Text) > 0 then
+          if Pos(vGrid.FilterOptions.MARK_ARROW, vColumn.Text) > 0 then
           begin
             NewMenuItem := TSOMenuItem.Create(Self);
             NewMenuItem.Tag := ColIdx; // it will be use to locate the column by its index
@@ -1811,10 +1811,10 @@ end;
 
 function TSOGrid.FindColumnByIndex(const aIndex: TColumnIndex): TSOGridColumn;
 begin
-  if aIndex = NoColumn then
-    result := nil
+  if Header.Columns.IsValidColumn(aIndex) then
+    result := TSOGridColumn(Header.Columns[aIndex])
   else
-    result := TSOGridColumn(Header.Columns[aIndex]);
+    result := nil;
 end;
 
 procedure TSOGrid.CreateColumnsFromData(FitWidth,AppendMissingAsHidden: Boolean);
