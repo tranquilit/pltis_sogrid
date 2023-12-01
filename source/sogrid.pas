@@ -2068,7 +2068,7 @@ begin
     BeginUpdate;
     try
       if Length(FKeyFieldsList) > 0 then
-        ASelected := ExtractFields(SelectedRows,FKeyFieldsList)
+        ASelected := SOReduce(SelectedRows,FKeyFieldsList)
       else
         ASelected := Nil;
       AFocused := FocusedRow;
