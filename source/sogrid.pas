@@ -479,6 +479,9 @@ type
   public
     const POPUP_ITEM_TAG = 250;
   public
+    /// default callback for naming all charts
+    // - use this callback to set a global algorithm for all grids and its charts
+    class var OnDefaultChartNaming: TOnGridChartNaming;
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
@@ -2606,6 +2609,8 @@ end;
 function TSOGrid.DoChartNaming(aColumn: TSOGridColumn): string;
 begin
   result := '';
+  if Assigned(OnDefaultChartNaming) then
+    OnDefaultChartNaming(self, aColumn, result);
   if Assigned(fOnChartNaming) then
     fOnChartNaming(self, aColumn, result);
 end;
