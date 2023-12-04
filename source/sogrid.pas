@@ -3179,7 +3179,10 @@ begin
       for vIndex := 0 to Header.Columns.Count - 1 do
       begin
         with Header.Columns[vIndex] as TSOGridColumn do
-          PieValuesCombo.Items.Add(Text + ' (' + Utf8ToString(PropertyName) + ')');
+        begin
+          if coVisible in Options then
+            PieValuesCombo.Items.Add(Text + ' (' + Utf8ToString(PropertyName) + ')');
+        end;
       end;
       ShowModal;
     finally
