@@ -310,6 +310,9 @@ type
   TOnGridBeforeAddingChartSource = procedure(aSender: TSOGrid; aColumn: TSOGridColumn;
     var aX, aY: Double; var aLabel: string; var aColor: TColor) of object;
 
+  /// event that allows naming the chart's name
+  TOnGridChartNaming = procedure(aSender: TSOGrid; aColumn: TSOGridColumn; var aChartName: string) of object;
+
   { TSOGrid }
   TSOGrid = class(TCustomVirtualStringTree,ISODataView)
   private
@@ -345,6 +348,7 @@ type
     fOnEditValidated: TOnGridEditValidated;
     fOnNodeFiltering: TOnGridNodeFiltering;
     fOnBeforeAddingChartSource: TOnGridBeforeAddingChartSource;
+    fOnChartNaming: TOnGridChartNaming;
     function FocusedPropertyName: String;
     function GetData: ISuperObject;
     function GetFocusedColumnObject: TSOGridColumn;
@@ -470,6 +474,7 @@ type
     function DoNodeFiltering(aNode: PVirtualNode): Boolean; virtual;
     procedure DoBeforeAddingChartSource(aColumn: TSOGridColumn; var aX, aY: Double;
       var aLabel: string; var aColor: TColor); virtual;
+    function DoChartNaming(aColumn: TSOGridColumn): string; virtual;
     procedure DoFillChartSource(aSender: TVisGridChartForm); virtual;
   public
     const POPUP_ITEM_TAG = 250;
@@ -591,6 +596,8 @@ type
     property OnNodeFiltering: TOnGridNodeFiltering read fOnNodeFiltering write fOnNodeFiltering;
     /// event that allows changing the chart's source values before sending to it
     property OnBeforeAddingChartSource: TOnGridBeforeAddingChartSource read fOnBeforeAddingChartSource write fOnBeforeAddingChartSource;
+    /// event that allows naming the chart's name
+    property OnChartNaming: TOnGridChartNaming read fOnChartNaming write fOnChartNaming;
     //inherited properties
     property Action;
     property Align;
@@ -2596,6 +2603,13 @@ begin
     fOnBeforeAddingChartSource(self, aColumn, aX, aY, aLabel, aColor);
 end;
 
+function TSOGrid.DoChartNaming(aColumn: TSOGridColumn): string;
+begin
+  result := '';
+  if Assigned(fOnChartNaming) then
+    fOnChartNaming(self, aColumn, result);
+end;
+
 procedure TSOGrid.DoFillChartSource(aSender: TVisGridChartForm);
 
   function Darkened(aValue: TColor): TColor;
@@ -3174,6 +3188,7 @@ begin
       // if one or none rows selected, assume that all (visible) rows have to be shown in the char
       if SelectedCount <= 1 then
         SelectAll(True);
+      PieTitleEdit.Text := DoChartNaming(vColumn);
       OnFillSource := @DoFillChartSource;
       // add columns
       for vIndex := 0 to Header.Columns.Count - 1 do
