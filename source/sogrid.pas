@@ -470,6 +470,7 @@ type
     function DoNodeFiltering(aNode: PVirtualNode): Boolean; virtual;
     procedure DoBeforeAddingChartSource(aColumn: TSOGridColumn; var aX, aY: Double;
       var aLabel: string; var aColor: TColor); virtual;
+    procedure DoFillChartSource(aSender: TVisGridChartForm); virtual;
   public
     const POPUP_ITEM_TAG = 250;
   public
@@ -2595,6 +2596,76 @@ begin
     fOnBeforeAddingChartSource(self, aColumn, aX, aY, aLabel, aColor);
 end;
 
+procedure TSOGrid.DoFillChartSource(aSender: TVisGridChartForm);
+
+  function Darkened(aValue: TColor): TColor;
+  var
+    r, g, b: Byte;
+  begin
+    r := GetRValue(aValue);
+    g := GetGValue(aValue);
+    b := GetBValue(aValue);
+    result := RGB(
+      r - MulDiv(r, 15, 100),
+      g - MulDiv(g, 15, 100),
+      b - MulDiv(b, 15, 100)
+    );
+  end;
+
+  function Compute(aRow: ISuperObject): Double;
+  var
+    vIndex: Integer;
+  begin
+    result := 1;
+    if aSender.PieValuesCombo.ItemIndex > 0 then // -1 or 0 is the same as empty
+    begin
+      vIndex := aSender.PieValuesCombo.ItemIndex - 1;
+      if Header.Columns.IsValidColumn(vIndex) then
+      begin
+        result := aRow.GetD(FindColumnByIndex(vIndex).PropertyName);
+        if result = 0 then
+          result := 1;
+      end;
+    end;
+  end;
+
+var
+  vColumn: TSOGridColumn;
+  vObj: PDocVariantData;
+  vLabels: TDocVariantData;
+  vIndex: Integer;
+  vDefX, vDefY: Double;
+  vDefLabel: string;
+  vDefColor: TColor;
+  vValue: RawUtf8;
+  vRow: ISuperObject;
+begin
+  vLabels.InitFast;
+  vColumn := FocusedColumnObject;
+  for vRow in SelectedRows do
+  begin
+    vValue := vRow.S[vColumn.PropertyName];
+    vIndex := vLabels.SearchItemByProp('field', vValue, not FilterOptions.CaseInsensitive);
+    if vIndex >= 0 then
+    begin
+      with _Safe(vLabels.Value[vIndex])^ do
+        D['count'] := D['count'] + Compute(vRow);
+    end
+    else
+      vLabels.AddItem(_ObjFast(['field', vValue, 'count', Compute(vRow)]));
+  end;
+  Randomize;
+  for vObj in vLabels.Objects do
+  begin
+    vDefX := 0;
+    vDefY := vObj^.D['count'];
+    vDefLabel := vObj^.S['field'];
+    vDefColor := Darkened(RGBToColor(Random(256), Random(256), Random(256)));
+    DoBeforeAddingChartSource(vColumn, vDefX, vDefY, vDefLabel, vDefColor);
+    aSender.ListChartSource.Add(vDefX, vDefY, vDefLabel, vDefColor);
+  end;
+end;
+
 procedure TSOGrid.FixDesignFontsPPI(const ADesignTimePPI: Integer);
 begin
   inherited FixDesignFontsPPI(ADesignTimePPI);
@@ -3091,61 +3162,24 @@ begin
 end;
 
 procedure TSOGrid.DoShowChart(aSender: TObject);
-
-  function Darkened(aValue: TColor): TColor;
-  var
-    r, g, b: Byte;
-  begin
-    r := GetRValue(aValue);
-    g := GetGValue(aValue);
-    b := GetBValue(aValue);
-    result := RGB(
-      r - MulDiv(r, 15, 100),
-      g - MulDiv(g, 15, 100),
-      b - MulDiv(b, 15, 100)
-    );
-  end;
-
 var
   vColumn: TSOGridColumn;
-  vObj: PDocVariantData;
-  vLabels: TDocVariantData;
   vIndex: Integer;
-  vValue: RawUtf8;
-  vDefX, vDefY: Double;
-  vDefLabel: string;
-  vDefColor: TColor;
-  vRow: ISuperObject;
 begin
   vColumn := FocusedColumnObject;
   if Assigned(vColumn) and vColumn.AllowChart then
   begin
-    vLabels.InitFast;
     with TVisGridChartForm.Create(Owner) do
     try
-      ListChartSource.Clear;
-      // if one or none rows selected, assume that all (visible) rows have to be shown in the chart
+      // if one or none rows selected, assume that all (visible) rows have to be shown in the char
       if SelectedCount <= 1 then
         SelectAll(True);
-      for vRow in SelectedRows do
+      OnFillSource := @DoFillChartSource;
+      // add columns
+      for vIndex := 0 to Header.Columns.Count - 1 do
       begin
-        vValue := StringToUtf8(vRow.S[vColumn.PropertyName]);
-        vIndex := vLabels.SearchItemByProp('field', vValue, not FilterOptions.CaseInsensitive);
-        if vIndex >= 0 then
-          with _Safe(vLabels.Value[vIndex])^ do
-            I['count'] := I['count'] + 1
-        else
-          vLabels.AddItem(_ObjFast(['field', vValue, 'count', 1]));
-      end;
-      Randomize;
-      for vObj in vLabels.Objects do
-      begin
-        vDefX := 0;
-        vDefY := vObj^.D['count'];
-        vDefLabel := vObj^.S['field'];
-        vDefColor := Darkened(RGBToColor(Random(256), Random(256), Random(256)));
-        DoBeforeAddingChartSource(vColumn, vDefX, vDefY, vDefLabel, vDefColor);
-        ListChartSource.Add(vDefX, vDefY, vDefLabel, vDefColor);
+        with Header.Columns[vIndex] as TSOGridColumn do
+          PieValuesCombo.Items.Add(Text + ' (' + Utf8ToString(PropertyName) + ')');
       end;
       ShowModal;
     finally

@@ -19,7 +19,7 @@ uses
   Forms,
   Controls,
   Graphics,
-  Dialogs,
+  Dialogs, ActnList,
   TAGraph,
   TARadialSeries,
   TASeries,
@@ -30,14 +30,15 @@ uses
   TATools;
 
 type
+  TVisGridChartForm = class;
 
-  { TVisGridChartForm }
+  TGridFillSourceEvent = procedure(aSender: TVisGridChartForm) of object;
 
   TVisGridChartForm = class(TForm)
     cbMarkAttachment: TComboBox;
     cmbOrientation: TComboBox;
-    ChartPie: TChart;
-    ChartPiePieSeries1: TPieSeries;
+    PieChart: TChart;
+    PieChartPieSeries1: TPieSeries;
     ChartToolset1: TChartToolset;
     cbRotate: TCheckBox;
     cbMarkPositions: TComboBox;
@@ -57,8 +58,8 @@ type
     lblWords: TLabel;
     lblLabelAngle: TLabel;
     ListChartSource: TListChartSource;
-    PageControl1: TPageControl;
-    Panel1: TPanel;
+    PageControl: TPageControl;
+    PiePanel: TPanel;
     seStartAngle: TSpinEdit;
     seAngleRange: TSpinEdit;
     seWords: TSpinEdit;
@@ -66,12 +67,25 @@ type
     seInnerRadius: TSpinEdit;
     seDistance: TSpinEdit;
     tsPie: TTabSheet;
+    ActionList: TActionList;
+    PieClipboardAction: TAction;
+    PieCustomizeAction: TAction;
+    ToolBar1: TToolBar;
+    PieClipboardButton: TToolButton;
+    PieCustomizeButton: TToolButton;
+    ToolButton3: TToolButton;
+    PieCloseButton: TToolButton;
+    ToolButton1: TToolButton;
+    PieCloseAction: TAction;
+    PieTitleEdit: TEdit;
+    Label1: TLabel;
+    PieValuesCombo: TComboBox;
     procedure cbMarkAttachmentChange(Sender: TObject);
     procedure cbMarkPositionsCenteredChange(Sender: TObject);
     procedure cbMarkPositionsChange(Sender: TObject);
     procedure cbRotateChange(Sender: TObject);
     procedure cbShowLabelsChange(Sender: TObject);
-    procedure ChartPieMouseDown(Sender: TObject; {%H-}Button: TMouseButton;
+    procedure PieChartMouseDown(Sender: TObject; {%H-}Button: TMouseButton;
       {%H-}Shift: TShiftState; X, Y: Integer);
     procedure Cb3DChange(Sender: TObject);
     procedure cmbOrientationChange(Sender: TObject);
@@ -87,12 +101,22 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure PieClipboardActionExecute(Sender: TObject);
+    procedure PieCustomizeActionExecute(Sender: TObject);
+    procedure PieCloseActionExecute(Sender: TObject);
+    procedure PieTitleEditChange(Sender: TObject);
+    procedure PieValuesComboChange(Sender: TObject);
   private
     fSavedDataPoints: TStrings;
     fSaveMarks: record
       Style: TSeriesMarksStyle;
       Format: string;
     end;
+    fOnFillSource: TGridFillSourceEvent;
+  protected
+    procedure DoFillSource;
+  public
+    property OnFillSource: TGridFillSourceEvent read fOnFillSource write fOnFillSource;
   end;
 
 implementation
@@ -103,38 +127,38 @@ implementation
 
 procedure TVisGridChartForm.cbMarkAttachmentChange(Sender: TObject);
 begin
-  ChartPiePieSeries1.Marks.Attachment :=
+  PieChartPieSeries1.Marks.Attachment :=
     TChartMarkAttachment(cbMarkAttachment.ItemIndex);
 end;
 
 procedure TVisGridChartForm.cbMarkPositionsCenteredChange(Sender: TObject);
 begin
-  ChartPiePieSeries1.MarkPositionCentered := cbMarkPositionsCentered.Checked;
+  PieChartPieSeries1.MarkPositionCentered := cbMarkPositionsCentered.Checked;
 end;
 
 procedure TVisGridChartForm.cbMarkPositionsChange(Sender: TObject);
 begin
-  ChartPiePieSeries1.MarkPositions :=
+  PieChartPieSeries1.MarkPositions :=
     TPieMarkPositions(cbMarkPositions.ItemIndex);
 end;
 
 procedure TVisGridChartForm.cbRotateChange(Sender: TObject);
 begin
-  ChartPiePieSeries1.RotateLabels := cbRotate.Checked;
+  PieChartPieSeries1.RotateLabels := cbRotate.Checked;
 end;
 
 procedure TVisGridChartForm.cbShowLabelsChange(Sender: TObject);
 begin
   if cbShowLabels.Checked then
   begin
-    with ChartPiePieSeries1.Marks do
+    with PieChartPieSeries1.Marks do
     begin
       Style := fSaveMarks.Style;
       Format := fSaveMarks.Format;
     end;
   end
   else
-    ChartPiePieSeries1.Marks.Style := smsNone;
+    PieChartPieSeries1.Marks.Style := smsNone;
   seWords.Enabled := cbShowLabels.Checked;
   lblWords.Enabled := cbShowLabels.Checked;
   seLabelAngle.Enabled := cbShowLabels.Checked;
@@ -148,9 +172,9 @@ end;
 procedure TVisGridChartForm.Cb3DChange(Sender: TObject);
 begin
   if cb3D.Checked then
-    ChartPiePieSeries1.Depth := seDepth.Value
+    PieChartPieSeries1.Depth := seDepth.Value
   else
-    ChartPiePieSeries1.Depth := 0;
+    PieChartPieSeries1.Depth := 0;
   seDepth.Enabled := cb3D.Checked;
   lblDepth.Enabled := cb3D.Checked;
   seDepthBrightnessDelta.Enabled := cb3D.Checked;
@@ -162,67 +186,70 @@ end;
 
 procedure TVisGridChartForm.cmbOrientationChange(Sender: TObject);
 begin
-  ChartPiePieSeries1.Orientation := TPieOrientation(cmbOrientation.ItemIndex);
+  PieChartPieSeries1.Orientation := TPieOrientation(cmbOrientation.ItemIndex);
 end;
 
 procedure TVisGridChartForm.seDepthBrightnessDeltaChange(Sender: TObject);
 begin
-  ChartPiePieSeries1.DepthBrightnessDelta := seDepthBrightnessDelta.Value;
+  PieChartPieSeries1.DepthBrightnessDelta := seDepthBrightnessDelta.Value;
 end;
 
 procedure TVisGridChartForm.seDepthChange(Sender: TObject);
 begin
-  ChartPiePieSeries1.Depth := seDepth.Value;
+  PieChartPieSeries1.Depth := seDepth.Value;
 end;
 
 procedure TVisGridChartForm.seDistanceChange(Sender: TObject);
 begin
-  ChartPiePieSeries1.Marks.Distance := seDistance.Value;
+  PieChartPieSeries1.Marks.Distance := seDistance.Value;
 end;
 
 procedure TVisGridChartForm.seAngleRangeChange(Sender: TObject);
 begin
-  ChartPiePieSeries1.AngleRange := seAngleRange.Value;
+  PieChartPieSeries1.AngleRange := seAngleRange.Value;
 end;
 
 procedure TVisGridChartForm.seInnerRadiusChange(Sender: TObject);
 begin
-  ChartPiePieSeries1.InnerRadiusPercent := seInnerRadius.Value;
+  PieChartPieSeries1.InnerRadiusPercent := seInnerRadius.Value;
 end;
 
-procedure TVisGridChartForm.ChartPieMouseDown(
+procedure TVisGridChartForm.PieChartMouseDown(
   Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   i: Integer;
 begin
-  i := ChartPiePieSeries1.FindContainingSlice(Point(X, Y));
+  i := PieChartPieSeries1.FindContainingSlice(Point(X, Y));
   if i < 0 then exit;
   ListChartSource.SetXValue(i, 0.2 - ListChartSource[i]^.X);
-  ChartPie.Invalidate;
+  PieChart.Invalidate;
 end;
 
 procedure TVisGridChartForm.seStartAngleChange(Sender: TObject);
 begin
-  ChartPiePieSeries1.StartAngle := seStartAngle.Value;
+  PieChartPieSeries1.StartAngle := seStartAngle.Value;
 end;
 
 procedure TVisGridChartForm.seViewAngleChange(Sender: TObject);
 begin
-  ChartPiePieSeries1.ViewAngle := seViewAngle.Value;
+  PieChartPieSeries1.ViewAngle := seViewAngle.Value;
 end;
 
 procedure TVisGridChartForm.seLabelAngleChange(Sender: TObject);
 begin
-  ChartPiePieSeries1.Marks.LabelFont.Orientation := seLabelAngle.Value * 10;
+  PieChartPieSeries1.Marks.LabelFont.Orientation := seLabelAngle.Value * 10;
 end;
 
 procedure TVisGridChartForm.FormCreate(Sender: TObject);
 begin
+  PieChart.Title.Text.Text := PieTitleEdit.Text;
+  PieValuesCombo.Items.Clear;
+  PieValuesCombo.Items.Add(''); // to user be able to set default, which is to count
   fSavedDataPoints := TStringList.Create;
   with fSaveMarks do
   begin
     Style := smsCustom;
-    Format := ChartPiePieSeries1.Marks.Format;
+    Format := PieChartPieSeries1.Marks.Format;
   end;
 end;
 
@@ -233,7 +260,34 @@ end;
 
 procedure TVisGridChartForm.FormShow(Sender: TObject);
 begin
+  DoFillSource;
   seWordsChange(seWords);
+end;
+
+procedure TVisGridChartForm.PieClipboardActionExecute(Sender: TObject);
+begin
+  PieChart.CopyToClipboardBitmap;
+end;
+
+procedure TVisGridChartForm.PieCustomizeActionExecute(Sender: TObject);
+begin
+  PieCustomizeAction.Checked := not PieCustomizeAction.Checked;
+  PiePanel.Visible := PieCustomizeAction.Checked;
+end;
+
+procedure TVisGridChartForm.PieCloseActionExecute(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TVisGridChartForm.PieTitleEditChange(Sender: TObject);
+begin
+  PieChart.Title.Text.Text := PieTitleEdit.Text;
+end;
+
+procedure TVisGridChartForm.PieValuesComboChange(Sender: TObject);
+begin
+  DoFillSource;
 end;
 
 procedure TVisGridChartForm.seWordsChange(Sender: TObject);
@@ -271,8 +325,14 @@ begin
     with ListChartSource[v1]^ do
       Text := ExtractWords(Text, seWords.Value);
   end;
-  ChartPie.Invalidate;
+  PieChart.Invalidate;
+end;
+
+procedure TVisGridChartForm.DoFillSource;
+begin
+  ListChartSource.Clear;
+  if Assigned(fOnFillSource) then
+    fOnFillSource(Self);
 end;
 
 end.
-

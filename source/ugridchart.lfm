@@ -1,18 +1,18 @@
 object VisGridChartForm: TVisGridChartForm
-  Left = 366
+  Left = 186
   Height = 559
-  Top = 181
+  Top = 142
   Width = 659
   BorderIcons = [biSystemMenu, biMaximize]
   Caption = 'Chart'
   ClientHeight = 559
   ClientWidth = 659
-  Position = poOwnerFormCenter
-  LCLVersion = '3.99.0.0'
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
-  object PageControl1: TPageControl
+  Position = poOwnerFormCenter
+  LCLVersion = '2.3.0.0'
+  object PageControl: TPageControl
     Left = 0
     Height = 559
     Top = 0
@@ -23,12 +23,12 @@ object VisGridChartForm: TVisGridChartForm
     TabOrder = 0
     object tsPie: TTabSheet
       Caption = 'Pie'
-      ClientHeight = 533
+      ClientHeight = 531
       ClientWidth = 651
-      object ChartPie: TChart
+      object PieChart: TChart
         Left = 0
-        Height = 417
-        Top = 116
+        Height = 354
+        Top = 177
         Width = 651
         AxisList = <        
           item
@@ -48,59 +48,63 @@ object VisGridChartForm: TVisGridChartForm
         Foot.Brush.Color = clBtnFace
         Foot.Font.Color = clBlue
         Frame.Visible = False
-        Title.Text.Strings = (
-          ''
-        )
+        Title.Brush.Style = bsClear
+        Title.Visible = True
         Toolset = ChartToolset1
         Align = alClient
         Color = clDefault
-        OnMouseDown = ChartPieMouseDown
-        object ChartPiePieSeries1: TPieSeries
+        OnMouseDown = PieChartMouseDown
+        object PieChartPieSeries1: TPieSeries
+          Legend.Format = '%2:s %0:0.2f (%1:.2f%%)'
+          Legend.Multiplicity = lmPoint
+          Legend.Visible = False
           EdgePen.Color = clWhite
           EdgePen.Width = 3
           DepthBrightnessDelta = -32
           Exploded = True
           Marks.Distance = 40
-          Marks.Format = '%2:s %0:.9g (%1:.2f%%)'
+          Marks.Format = '<B>%2:s</B> %0:.9g (%1:.2f%%)'
           Marks.Frame.Color = clSilver
           Marks.Frame.Style = psClear
           Marks.LabelBrush.Color = clInfoBk
           Marks.LinkPen.Color = clSilver
           Marks.Style = smsCustom
+          Marks.TextFormat = tfHTML
           Source = ListChartSource
         end
       end
-      object Panel1: TPanel
+      object PiePanel: TPanel
         AnchorSideTop.Side = asrCenter
         Left = 0
-        Height = 116
-        Top = 0
+        Height = 153
+        Top = 24
         Width = 651
         Align = alTop
         Alignment = taLeftJustify
         Anchors = [akTop, akRight]
         AutoSize = True
         BevelOuter = bvNone
-        ClientHeight = 116
+        ClientHeight = 153
         ClientWidth = 651
         TabOrder = 1
+        Visible = False
         object seWords: TSpinEdit
           AnchorSideLeft.Control = lblWords
           AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = cbShowLabels
           AnchorSideTop.Side = asrCenter
           AnchorSideRight.Control = lblInnerRadius
-          Left = 216
-          Height = 21
-          Top = 6
+          Left = 222
+          Height = 23
+          Top = 35
           Width = 72
           BorderSpacing.Top = 6
           BorderSpacing.Right = 24
           MaxValue = 10
           MinValue = 1
-          TabOrder = 0
-          Value = 5
           OnChange = seWordsChange
+          TabOrder = 3
+          Value = 5
         end
         object lblWords: TLabel
           AnchorSideLeft.Control = cbMarkPositions
@@ -109,9 +113,9 @@ object VisGridChartForm: TVisGridChartForm
           AnchorSideTop.Side = asrCenter
           AnchorSideRight.Control = seWords
           Left = 151
-          Height = 13
-          Top = 10
-          Width = 57
+          Height = 15
+          Top = 39
+          Width = 63
           BorderSpacing.Left = 16
           BorderSpacing.Right = 8
           Caption = 'Label words'
@@ -122,26 +126,26 @@ object VisGridChartForm: TVisGridChartForm
           AnchorSideTop.Side = asrBottom
           AnchorSideRight.Control = seWords
           AnchorSideRight.Side = asrBottom
-          Left = 216
-          Height = 21
-          Top = 33
+          Left = 222
+          Height = 23
+          Top = 64
           Width = 72
           Anchors = [akTop, akLeft, akRight]
           BorderSpacing.Top = 6
           Increment = 5
           MaxValue = 360
           MinValue = -360
-          TabOrder = 1
           OnChange = seLabelAngleChange
+          TabOrder = 4
         end
         object lblLabelAngle: TLabel
           AnchorSideTop.Control = seLabelAngle
           AnchorSideTop.Side = asrCenter
           AnchorSideRight.Control = seLabelAngle
           Left = 154
-          Height = 13
-          Top = 37
-          Width = 54
+          Height = 15
+          Top = 68
+          Width = 60
           Anchors = [akTop, akRight]
           BorderSpacing.Right = 8
           Caption = 'Label angle'
@@ -152,14 +156,14 @@ object VisGridChartForm: TVisGridChartForm
           AnchorSideTop.Side = asrCenter
           AnchorSideRight.Side = asrBottom
           Left = 8
-          Height = 17
-          Top = 35
-          Width = 83
+          Height = 19
+          Top = 66
+          Width = 85
           BorderSpacing.Top = 6
           BorderSpacing.Bottom = 6
           Caption = 'Rotate labels'
-          TabOrder = 2
           OnChange = cbRotateChange
+          TabOrder = 2
         end
         object cbMarkPositions: TComboBox
           AnchorSideLeft.Control = cbShowLabels
@@ -168,55 +172,55 @@ object VisGridChartForm: TVisGridChartForm
           AnchorSideRight.Control = seDepthBrightnessDelta
           AnchorSideRight.Side = asrBottom
           Left = 8
-          Height = 21
-          Top = 87
+          Height = 23
+          Top = 122
           Width = 127
           AutoSize = False
           BorderSpacing.Bottom = 8
-          ItemHeight = 13
+          ItemHeight = 15
           ItemIndex = 0
           Items.Strings = (
             'Around'
             'Inside'
             'Left / right'
           )
-          Style = csDropDownList
-          TabOrder = 3
-          Text = 'Around'
           OnChange = cbMarkPositionsChange
+          Style = csDropDownList
+          TabOrder = 5
+          Text = 'Around'
         end
         object Cb3D: TCheckBox
           AnchorSideLeft.Control = lblInnerRadius
           AnchorSideTop.Control = seDepth
           AnchorSideTop.Side = asrCenter
-          Left = 317
-          Height = 17
-          Top = 62
-          Width = 33
+          Left = 327
+          Height = 19
+          Top = 95
+          Width = 32
           Caption = '3D'
-          TabOrder = 4
           OnChange = Cb3DChange
+          TabOrder = 6
         end
         object seInnerRadius: TSpinEdit
           AnchorSideLeft.Control = seDepthBrightnessDelta
           AnchorSideTop.Control = seWords
           AnchorSideRight.Side = asrBottom
-          Left = 397
-          Height = 21
-          Top = 6
+          Left = 410
+          Height = 23
+          Top = 35
           Width = 62
           BorderSpacing.Right = 8
-          TabOrder = 5
           OnChange = seInnerRadiusChange
+          TabOrder = 7
         end
         object lblInnerRadius: TLabel
           AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = lblWords
           AnchorSideRight.Control = seInnerRadius
-          Left = 317
-          Height = 13
-          Top = 10
-          Width = 72
+          Left = 327
+          Height = 15
+          Top = 39
+          Width = 75
           Anchors = [akTop, akRight]
           BorderSpacing.Right = 8
           Caption = 'Inner radius %'
@@ -227,10 +231,10 @@ object VisGridChartForm: TVisGridChartForm
           AnchorSideTop.Control = seDepth
           AnchorSideTop.Side = asrCenter
           AnchorSideRight.Control = seDepth
-          Left = 360
-          Height = 13
-          Top = 64
-          Width = 29
+          Left = 370
+          Height = 15
+          Top = 97
+          Width = 32
           Anchors = [akTop, akRight]
           BorderSpacing.Left = 12
           BorderSpacing.Right = 8
@@ -242,36 +246,36 @@ object VisGridChartForm: TVisGridChartForm
           AnchorSideTop.Control = seDistance
           AnchorSideTop.Side = asrCenter
           AnchorSideRight.Side = asrBottom
-          Left = 397
-          Height = 21
-          Top = 60
+          Left = 410
+          Height = 23
+          Top = 93
           Width = 62
           BorderSpacing.Right = 6
           Enabled = False
           MaxValue = 1000
-          TabOrder = 6
-          Value = 20
           OnChange = seDepthChange
+          TabOrder = 8
+          Value = 20
         end
         object seDepthBrightnessDelta: TSpinEdit
           AnchorSideLeft.Control = lblDepthBrightnessDelta
           AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = seDepth
           AnchorSideTop.Side = asrBottom
-          AnchorSideRight.Control = Panel1
+          AnchorSideRight.Control = PiePanel
           AnchorSideRight.Side = asrBottom
-          Left = 397
-          Height = 21
-          Top = 87
+          Left = 410
+          Height = 23
+          Top = 122
           Width = 62
           BorderSpacing.Top = 6
           BorderSpacing.Right = 6
           Enabled = False
           MaxValue = 255
           MinValue = -255
-          TabOrder = 7
-          Value = -32
           OnChange = seDepthBrightnessDeltaChange
+          TabOrder = 9
+          Value = -32
         end
         object lblDepthBrightnessDelta: TLabel
           AnchorSideLeft.Control = seDistance
@@ -279,10 +283,10 @@ object VisGridChartForm: TVisGridChartForm
           AnchorSideTop.Control = seDepthBrightnessDelta
           AnchorSideTop.Side = asrCenter
           AnchorSideRight.Control = seDepthBrightnessDelta
-          Left = 312
-          Height = 13
-          Top = 91
-          Width = 77
+          Left = 318
+          Height = 15
+          Top = 126
+          Width = 84
           Alignment = taRightJustify
           BorderSpacing.Left = 24
           BorderSpacing.Right = 8
@@ -291,30 +295,30 @@ object VisGridChartForm: TVisGridChartForm
           WordWrap = True
         end
         object cbShowLabels: TCheckBox
-          AnchorSideLeft.Control = Panel1
-          AnchorSideTop.Control = Panel1
+          AnchorSideLeft.Control = PieTitleEdit
+          AnchorSideTop.Control = PieTitleEdit
+          AnchorSideTop.Side = asrBottom
           AnchorSideRight.Control = lblWords
           Left = 8
-          Height = 17
-          Top = 8
-          Width = 76
-          BorderSpacing.Left = 8
-          BorderSpacing.Top = 8
+          Height = 19
+          Top = 37
+          Width = 80
+          BorderSpacing.Top = 6
           BorderSpacing.Right = 16
           Caption = 'Show labels'
           Checked = True
-          State = cbChecked
-          TabOrder = 8
           OnChange = cbShowLabelsChange
+          State = cbChecked
+          TabOrder = 1
         end
         object lblDistance: TLabel
           AnchorSideTop.Control = seDistance
           AnchorSideTop.Side = asrCenter
           AnchorSideRight.Control = seDistance
-          Left = 167
-          Height = 13
-          Top = 64
-          Width = 41
+          Left = 169
+          Height = 15
+          Top = 97
+          Width = 45
           Anchors = [akTop, akRight]
           BorderSpacing.Right = 8
           Caption = 'Distance'
@@ -324,16 +328,16 @@ object VisGridChartForm: TVisGridChartForm
           AnchorSideTop.Side = asrBottom
           AnchorSideRight.Control = seLabelAngle
           AnchorSideRight.Side = asrBottom
-          Left = 216
-          Height = 21
-          Top = 60
+          Left = 222
+          Height = 23
+          Top = 93
           Width = 72
           Anchors = [akTop, akRight]
           BorderSpacing.Top = 6
           MaxValue = 1000
-          TabOrder = 9
-          Value = 40
           OnChange = seDistanceChange
+          TabOrder = 10
+          Value = 40
         end
         object cbMarkAttachment: TComboBox
           AnchorSideLeft.Control = cbShowLabels
@@ -342,22 +346,22 @@ object VisGridChartForm: TVisGridChartForm
           AnchorSideRight.Control = seDistance
           AnchorSideRight.Side = asrBottom
           Left = 8
-          Height = 21
-          Top = 60
+          Height = 23
+          Top = 93
           Width = 125
           BorderSpacing.Top = 6
           BorderSpacing.Bottom = 6
-          ItemHeight = 13
+          ItemHeight = 15
           ItemIndex = 0
           Items.Strings = (
             'Default'
             'Edge'
             'Center'
           )
-          Style = csDropDownList
-          TabOrder = 10
-          Text = 'Default'
           OnChange = cbMarkAttachmentChange
+          Style = csDropDownList
+          TabOrder = 11
+          Text = 'Default'
         end
         object cbMarkPositionsCentered: TCheckBox
           AnchorSideLeft.Control = lblWords
@@ -366,22 +370,22 @@ object VisGridChartForm: TVisGridChartForm
           AnchorSideRight.Control = cbMarkPositions
           AnchorSideRight.Side = asrBottom
           Left = 151
-          Height = 17
-          Top = 89
-          Width = 134
+          Height = 19
+          Top = 124
+          Width = 145
           Caption = 'Mark positions centered'
-          TabOrder = 11
           OnChange = cbMarkPositionsCenteredChange
+          TabOrder = 12
         end
         object lblStartAngle: TLabel
           AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = seStartAngle
           AnchorSideTop.Side = asrCenter
           AnchorSideRight.Control = seStartAngle
-          Left = 336
-          Height = 13
-          Top = 37
-          Width = 53
+          Left = 346
+          Height = 15
+          Top = 68
+          Width = 56
           Anchors = [akTop, akRight]
           BorderSpacing.Right = 8
           Caption = 'Start angle'
@@ -390,15 +394,15 @@ object VisGridChartForm: TVisGridChartForm
           AnchorSideLeft.Control = seDepthBrightnessDelta
           AnchorSideTop.Control = seLabelAngle
           AnchorSideRight.Side = asrBottom
-          Left = 397
-          Height = 21
-          Top = 33
+          Left = 410
+          Height = 23
+          Top = 64
           Width = 62
           BorderSpacing.Right = 6
           MaxValue = 180
           MinValue = -180
-          TabOrder = 12
           OnChange = seStartAngleChange
+          TabOrder = 13
         end
         object seViewAngle: TSpinEdit
           AnchorSideLeft.Control = seAngleRange
@@ -406,26 +410,26 @@ object VisGridChartForm: TVisGridChartForm
           AnchorSideTop.Side = asrCenter
           AnchorSideRight.Control = cmbOrientation
           AnchorSideRight.Side = asrBottom
-          Left = 549
-          Height = 21
-          Top = 60
+          Left = 562
+          Height = 23
+          Top = 93
           Width = 62
           Anchors = [akTop, akRight]
           Enabled = False
           MaxValue = 89
-          TabOrder = 13
-          Value = 60
           OnChange = seViewAngleChange
+          TabOrder = 14
+          Value = 60
         end
         object lblViewAngle: TLabel
           AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = seViewAngle
           AnchorSideTop.Side = asrCenter
           AnchorSideRight.Control = seViewAngle
-          Left = 490
-          Height = 13
-          Top = 64
-          Width = 51
+          Left = 497
+          Height = 15
+          Top = 97
+          Width = 57
           Anchors = [akTop, akRight]
           BorderSpacing.Left = 12
           BorderSpacing.Right = 8
@@ -438,35 +442,35 @@ object VisGridChartForm: TVisGridChartForm
           AnchorSideTop.Control = cbMarkAttachment
           AnchorSideTop.Side = asrBottom
           AnchorSideRight.Side = asrBottom
-          Left = 483
-          Height = 21
-          Top = 87
+          Left = 496
+          Height = 23
+          Top = 122
           Width = 128
           AutoSize = False
           BorderSpacing.Left = 24
           BorderSpacing.Bottom = 8
           Enabled = False
-          ItemHeight = 13
+          ItemHeight = 15
           ItemIndex = 0
           Items.Strings = (
             'normal'
             'horizontal'
             'vertical'
           )
-          Style = csDropDownList
-          TabOrder = 14
-          Text = 'normal'
           OnChange = cmbOrientationChange
+          Style = csDropDownList
+          TabOrder = 15
+          Text = 'normal'
         end
         object lblAngleRange: TLabel
           AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = seAngleRange
           AnchorSideTop.Side = asrCenter
           AnchorSideRight.Control = seAngleRange
-          Left = 486
-          Height = 13
-          Top = 37
-          Width = 58
+          Left = 493
+          Height = 15
+          Top = 68
+          Width = 64
           Anchors = [akTop, akRight]
           BorderSpacing.Left = 12
           BorderSpacing.Right = 8
@@ -476,16 +480,96 @@ object VisGridChartForm: TVisGridChartForm
           AnchorSideTop.Control = seStartAngle
           AnchorSideRight.Control = cmbOrientation
           AnchorSideRight.Side = asrBottom
-          Left = 552
-          Height = 21
-          Top = 33
+          Left = 565
+          Height = 23
+          Top = 64
           Width = 59
           Anchors = [akTop, akRight]
           MaxValue = 360
           MinValue = 1
-          TabOrder = 15
-          Value = 360
           OnChange = seAngleRangeChange
+          TabOrder = 16
+          Value = 360
+        end
+        object PieTitleEdit: TEdit
+          AnchorSideLeft.Control = PiePanel
+          AnchorSideTop.Control = PiePanel
+          Left = 8
+          Height = 23
+          Top = 8
+          Width = 286
+          BorderSpacing.Left = 8
+          BorderSpacing.Top = 8
+          OnChange = PieTitleEditChange
+          TabOrder = 0
+          TextHint = 'Title'
+        end
+        object Label1: TLabel
+          AnchorSideLeft.Control = PieTitleEdit
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = PieTitleEdit
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = PieValuesCombo
+          Left = 369
+          Height = 15
+          Top = 12
+          Width = 33
+          Anchors = [akTop, akRight]
+          BorderSpacing.Right = 8
+          Caption = 'Values'
+        end
+        object PieValuesCombo: TComboBox
+          AnchorSideLeft.Control = seDepthBrightnessDelta
+          AnchorSideTop.Control = PieTitleEdit
+          Left = 410
+          Height = 23
+          Top = 8
+          Width = 214
+          BorderSpacing.Right = 8
+          ItemHeight = 15
+          OnChange = PieValuesComboChange
+          Style = csDropDownList
+          TabOrder = 17
+        end
+      end
+      object ToolBar1: TToolBar
+        Left = 0
+        Height = 24
+        Top = 0
+        Width = 651
+        Anchors = [akTop, akRight]
+        AutoSize = True
+        Caption = 'ToolBar1'
+        ShowCaptions = True
+        TabOrder = 0
+        object PieClipboardButton: TToolButton
+          Left = 1
+          Top = 2
+          Action = PieClipboardAction
+        end
+        object PieCustomizeButton: TToolButton
+          Left = 109
+          Top = 2
+          Action = PieCustomizeAction
+        end
+        object ToolButton3: TToolButton
+          Left = 104
+          Height = 22
+          Top = 2
+          Caption = 'ToolButton3'
+          Style = tbsDivider
+        end
+        object PieCloseButton: TToolButton
+          Left = 178
+          Top = 2
+          Action = PieCloseAction
+        end
+        object ToolButton1: TToolButton
+          Left = 173
+          Height = 22
+          Top = 2
+          Caption = 'ToolButton1'
+          Style = tbsDivider
         end
       end
     end
@@ -504,5 +588,21 @@ object VisGridChartForm: TVisGridChartForm
   object ChartToolset1: TChartToolset
     Left = 64
     Top = 200
+  end
+  object ActionList: TActionList
+    Left = 160
+    Top = 200
+    object PieClipboardAction: TAction
+      Caption = 'Copy to clipboard'
+      OnExecute = PieClipboardActionExecute
+    end
+    object PieCustomizeAction: TAction
+      Caption = 'Customize'
+      OnExecute = PieCustomizeActionExecute
+    end
+    object PieCloseAction: TAction
+      Caption = 'Close'
+      OnExecute = PieCloseActionExecute
+    end
   end
 end
