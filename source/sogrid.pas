@@ -2657,11 +2657,22 @@ var
   vDefLabel: string;
   vDefColor: TColor;
   vValue: RawUtf8;
-  vRow: ISuperObject;
+  vRow, vRows: ISuperObject;
+  vNode: PVirtualNode;
+
 begin
   vLabels.InitFast;
   vColumn := FocusedColumnObject;
-  for vRow in SelectedRows do
+  if not Assigned(SelectedRows) or (SelectedRows.AsArray.Length=1) then
+  begin
+    vRows := SA([]);
+    for vNode in VisibleNodes do
+      vRows.AsArray.Add(GetNodeSOData(vNode));
+  end
+  else
+    vRows := SelectedRows;
+
+  for vRow in vRows do
   begin
     vValue := vRow.S[vColumn.PropertyName];
     vIndex := vLabels.SearchItemByProp('field', vValue, not FilterOptions.CaseInsensitive);
@@ -3191,8 +3202,8 @@ begin
     with TVisGridChartForm.Create(Owner) do
     try
       // if one or none rows selected, assume that all (visible) rows have to be shown in the char
-      if SelectedCount <= 1 then
-        SelectAll(True);
+      {if SelectedCount <= 1 then
+        SelectAll(True);}
       PieTitleEdit.Text := DoChartNaming(vColumn);
       OnFillSource := @DoFillChartSource;
       // add columns
