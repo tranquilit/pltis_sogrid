@@ -14,9 +14,24 @@ uses
   {$IFDEF windows}
   Windows,
   {$ENDIF}
-  Classes, Controls, ComCtrls, VirtualTrees, math, SysUtils,
-  SuperObject, Menus, Graphics, Clipbrd, LCLType, Dialogs,LMessages,StdCtrls,
-  Types, DefaultTranslator,
+  Classes,
+  Controls,
+  ComCtrls,
+  VirtualTrees,
+  math,
+  SysUtils,
+  SuperObject,
+  Menus,
+  Graphics,
+  Clipbrd,
+  LCLType,
+  Dialogs,
+  LMessages,
+  StdCtrls,
+  Types,
+  DefaultTranslator,
+  TAGraph,
+  TASources,
   TAChartUtils,
   mormot.core.base,
   mormot.core.variants,
@@ -313,6 +328,9 @@ type
   /// event that allows naming the chart's name
   TOnGridChartNaming = procedure(aSender: TSOGrid; aColumn: TSOGridColumn; var aChartName: string) of object;
 
+  /// event that will fired if user changes something on the chart
+  TOnGridChartChange = procedure(aSender: TSOGrid; aChart: TChart; aColumn: TSOGridColumn) of object;
+
   { TSOGrid }
   TSOGrid = class(TCustomVirtualStringTree,ISODataView)
   private
@@ -349,6 +367,7 @@ type
     fOnNodeFiltering: TOnGridNodeFiltering;
     fOnBeforeAddingChartSource: TOnGridBeforeAddingChartSource;
     fOnChartNaming: TOnGridChartNaming;
+    fOnChartChange: TOnGridChartChange;
     function FocusedPropertyName: String;
     function GetData: ISuperObject;
     function GetFocusedColumnObject: TSOGridColumn;
@@ -475,7 +494,8 @@ type
     procedure DoBeforeAddingChartSource(aColumn: TSOGridColumn; var aX, aY: Double;
       var aLabel: string; var aColor: TColor); virtual;
     function DoChartNaming(aColumn: TSOGridColumn): string; virtual;
-    procedure DoFillChartSource(aSender: TVisGridChartForm); virtual;
+    procedure DoChartFillSource(aChart: TChart; aSource: TListChartSource; aValueColumnIndex: Integer); virtual;
+    procedure DoChartChange(aChart: TChart); virtual;
   public
     const POPUP_ITEM_TAG = 250;
   public
@@ -601,6 +621,8 @@ type
     property OnBeforeAddingChartSource: TOnGridBeforeAddingChartSource read fOnBeforeAddingChartSource write fOnBeforeAddingChartSource;
     /// event that allows naming the chart's name
     property OnChartNaming: TOnGridChartNaming read fOnChartNaming write fOnChartNaming;
+    /// event that will fired if user changes something on the chart
+    property OnChartChange: TOnGridChartChange read fOnChartChange write fOnChartChange;
     //inherited properties
     property Action;
     property Align;
@@ -2608,14 +2630,15 @@ end;
 
 function TSOGrid.DoChartNaming(aColumn: TSOGridColumn): string;
 begin
-  result := '';
+  result := 'Chart per ' + aColumn.Text;
   if Assigned(OnDefaultChartNaming) then
     OnDefaultChartNaming(self, aColumn, result);
   if Assigned(fOnChartNaming) then
     fOnChartNaming(self, aColumn, result);
 end;
 
-procedure TSOGrid.DoFillChartSource(aSender: TVisGridChartForm);
+procedure TSOGrid.DoChartFillSource(aChart: TChart; aSource: TListChartSource;
+  aValueColumnIndex: Integer);
 
   function Darkened(aValue: TColor): TColor;
   var
@@ -2632,19 +2655,13 @@ procedure TSOGrid.DoFillChartSource(aSender: TVisGridChartForm);
   end;
 
   function Compute(aRow: ISuperObject): Double;
-  var
-    vIndex: Integer;
   begin
     result := 1;
-    if aSender.PieValuesCombo.ItemIndex > 0 then // -1 or 0 is the same as empty
+    if Header.Columns.IsValidColumn(aValueColumnIndex) then
     begin
-      vIndex := aSender.PieValuesCombo.ItemIndex - 1;
-      if Header.Columns.IsValidColumn(vIndex) then
-      begin
-        result := aRow.GetD(FindColumnByIndex(vIndex).PropertyName);
-        if result = 0 then
-          result := 1;
-      end;
+      result := aRow.GetD(FindColumnByIndex(aValueColumnIndex).PropertyName);
+      if result = 0 then
+        result := 1;
     end;
   end;
 
@@ -2663,6 +2680,9 @@ var
 begin
   vLabels.InitFast;
   vColumn := FocusedColumnObject;
+  if Header.Columns.IsValidColumn(aValueColumnIndex) then
+    aChart.Title.Text.Text := DoChartNaming(FindColumnByIndex(aValueColumnIndex));
+  // if one or none rows selected, assume that all (visible) rows have to be shown in the chart
   if not Assigned(SelectedRows) or (SelectedRows.AsArray.Length=1) then
   begin
     vRows := SA([]);
@@ -2671,7 +2691,6 @@ begin
   end
   else
     vRows := SelectedRows;
-
   for vRow in vRows do
   begin
     vValue := vRow.S[vColumn.PropertyName];
@@ -2692,8 +2711,14 @@ begin
     vDefLabel := vObj^.S['field'];
     vDefColor := Darkened(RGBToColor(Random(256), Random(256), Random(256)));
     DoBeforeAddingChartSource(vColumn, vDefX, vDefY, vDefLabel, vDefColor);
-    aSender.ListChartSource.Add(vDefX, vDefY, vDefLabel, vDefColor);
+    aSource.Add(vDefX, vDefY, vDefLabel, vDefColor);
   end;
+end;
+
+procedure TSOGrid.DoChartChange(aChart: TChart);
+begin
+  if Assigned(fOnChartChange) then
+    fOnChartChange(self, aChart, FocusedColumnObject);
 end;
 
 procedure TSOGrid.FixDesignFontsPPI(const ADesignTimePPI: Integer);
@@ -3195,29 +3220,31 @@ procedure TSOGrid.DoShowChart(aSender: TObject);
 var
   vColumn: TSOGridColumn;
   vIndex: Integer;
+  vChartForm: TVisGridChartForm;
 begin
   vColumn := FocusedColumnObject;
   if Assigned(vColumn) and vColumn.AllowChart then
   begin
-    with TVisGridChartForm.Create(Owner) do
+    vChartForm := TVisGridChartForm.Create(Owner);
     try
-      // if one or none rows selected, assume that all (visible) rows have to be shown in the char
-      {if SelectedCount <= 1 then
-        SelectAll(True);}
-      PieTitleEdit.Text := DoChartNaming(vColumn);
-      OnFillSource := @DoFillChartSource;
+      for vIndex := 0 to vChartForm.ComponentCount-1 do
+        if vChartForm.Components[vIndex] is TChart then
+          with vChartForm.Components[vIndex] as TChart do
+            Title.Text.Text := DoChartNaming(vColumn);
+      vChartForm.OnChartChange := @DoChartChange;
+      vChartForm.OnChartFillSource := @DoChartFillSource;
       // add columns
       for vIndex := 0 to Header.Columns.Count - 1 do
       begin
         with Header.Columns[vIndex] as TSOGridColumn do
         begin
           if coVisible in Options then
-            PieValuesCombo.Items.Add(Text + ' (' + Utf8ToString(PropertyName) + ')');
+            vChartForm.PieValuesCombo.Items.Add(Text + ' (' + Utf8ToString(PropertyName) + ')');
         end;
       end;
-      ShowModal;
+      vChartForm.ShowModal;
     finally
-      Free;
+      vChartForm.Free;
     end;
   end;
 end;
