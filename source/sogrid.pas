@@ -325,8 +325,8 @@ type
   TOnGridBeforeAddingChartSource = procedure(aSender: TSOGrid; aColumn: TSOGridColumn;
     var aX, aY: Double; var aLabel: string; var aColor: TColor) of object;
 
-  /// event that allows naming the chart's name
-  TOnGridChartNaming = procedure(aSender: TSOGrid; aColumn: TSOGridColumn; var aChartName: string) of object;
+  /// event that allows naming the chart's title
+  TOnGridChartTitle = procedure(aSender: TSOGrid; aColumn: TSOGridColumn; var aChartTitle: string) of object;
 
   /// event that will fired if user changes something on the chart
   TOnGridChartChange = procedure(aSender: TSOGrid; aChart: TChart; aColumn: TSOGridColumn) of object;
@@ -366,7 +366,7 @@ type
     fOnEditValidated: TOnGridEditValidated;
     fOnNodeFiltering: TOnGridNodeFiltering;
     fOnBeforeAddingChartSource: TOnGridBeforeAddingChartSource;
-    fOnChartNaming: TOnGridChartNaming;
+    fOnChartTitle: TOnGridChartTitle;
     fOnChartChange: TOnGridChartChange;
     function FocusedPropertyName: String;
     function GetData: ISuperObject;
@@ -493,15 +493,15 @@ type
     function DoNodeFiltering(aNode: PVirtualNode): Boolean; virtual;
     procedure DoBeforeAddingChartSource(aColumn: TSOGridColumn; var aX, aY: Double;
       var aLabel: string; var aColor: TColor); virtual;
-    function DoChartNaming(aColumn: TSOGridColumn): string; virtual;
+    function DoChartTitle(aColumn: TSOGridColumn): string; virtual;
     procedure DoChartFillSource(aChart: TChart; aSource: TListChartSource; aValueColumnIndex: Integer); virtual;
     procedure DoChartChange(aChart: TChart); virtual;
   public
     const POPUP_ITEM_TAG = 250;
   public
-    /// default callback for naming all charts
+    /// default callback for naming all charts' title
     // - use this callback to set a global algorithm for all grids and its charts
-    class var OnDefaultChartNaming: TOnGridChartNaming;
+    class var OnDefaultChartTitle: TOnGridChartTitle;
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
@@ -620,7 +620,7 @@ type
     /// event that allows changing the chart's source values before sending to it
     property OnBeforeAddingChartSource: TOnGridBeforeAddingChartSource read fOnBeforeAddingChartSource write fOnBeforeAddingChartSource;
     /// event that allows naming the chart's name
-    property OnChartNaming: TOnGridChartNaming read fOnChartNaming write fOnChartNaming;
+    property OnChartTitle: TOnGridChartTitle read fOnChartTitle write fOnChartTitle;
     /// event that will fired if user changes something on the chart
     property OnChartChange: TOnGridChartChange read fOnChartChange write fOnChartChange;
     //inherited properties
@@ -2628,13 +2628,13 @@ begin
     fOnBeforeAddingChartSource(self, aColumn, aX, aY, aLabel, aColor);
 end;
 
-function TSOGrid.DoChartNaming(aColumn: TSOGridColumn): string;
+function TSOGrid.DoChartTitle(aColumn: TSOGridColumn): string;
 begin
   result := 'Chart per ' + aColumn.Text;
-  if Assigned(OnDefaultChartNaming) then
-    OnDefaultChartNaming(self, aColumn, result);
-  if Assigned(fOnChartNaming) then
-    fOnChartNaming(self, aColumn, result);
+  if Assigned(OnDefaultChartTitle) then
+    OnDefaultChartTitle(self, aColumn, result);
+  if Assigned(fOnChartTitle) then
+    fOnChartTitle(self, aColumn, result);
 end;
 
 procedure TSOGrid.DoChartFillSource(aChart: TChart; aSource: TListChartSource;
@@ -2681,7 +2681,7 @@ begin
   vLabels.InitFast;
   vColumn := FocusedColumnObject;
   if Header.Columns.IsValidColumn(aValueColumnIndex) then
-    aChart.Title.Text.Text := DoChartNaming(FindColumnByIndex(aValueColumnIndex));
+    aChart.Title.Text.Text := DoChartTitle(FindColumnByIndex(aValueColumnIndex));
   // if one or none rows selected, assume that all (visible) rows have to be shown in the chart
   if not Assigned(SelectedRows) or (SelectedRows.AsArray.Length=1) then
   begin
@@ -3230,7 +3230,7 @@ begin
       for vIndex := 0 to vChartForm.ComponentCount-1 do
         if vChartForm.Components[vIndex] is TChart then
           with vChartForm.Components[vIndex] as TChart do
-            Title.Text.Text := DoChartNaming(vColumn);
+            Title.Text.Text := DoChartTitle(vColumn);
       vChartForm.OnChartChange := @DoChartChange;
       vChartForm.OnChartFillSource := @DoChartFillSource;
       // add columns
