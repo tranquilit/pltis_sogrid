@@ -7,7 +7,7 @@ msgstr "Configuration avancée de la grille..."
 
 #: sogrid.gsconst_collapseall
 msgid "Collapse all"
-msgstr ""
+msgstr "Tout replier"
 
 #: sogrid.gsconst_confdeleterow
 #, object-pascal-format
@@ -52,7 +52,7 @@ msgstr "Tout développer"
 
 #: sogrid.gsconst_exportall
 msgid "Export all rows to file..."
-msgstr ""
+msgstr "Exporter toutes les lignes vers un fichier"
 
 #: sogrid.gsconst_exportselected
 msgid "Export selected rows to file..."
@@ -72,7 +72,7 @@ msgstr "Rechercher et remplacer..."
 
 #: sogrid.gsconst_gridchartshow
 msgid "Show chart"
-msgstr ""
+msgstr "Afficher un graphe"
 
 #: sogrid.gsconst_gridfilterclear
 msgid "Clear filter"
