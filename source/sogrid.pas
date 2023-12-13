@@ -328,7 +328,7 @@ type
   /// event that allows naming the chart's title
   /// event that allows naming the chart's title
   TOnGridChartTitle = procedure(aSender: TSOGrid; aChart: TChart;
-    aColumn: TSOGridColumn; aFlags: TTisChartChangeFlags; var aChartTitle: string) of object;
+    aColumn: TSOGridColumn; var aFlags: TTisChartChangeFlags; var aChartTitle: string) of object;
 
   /// event that will fired if user changes something on the chart
   TOnGridChartChange = procedure(aSender: TSOGrid; aChart: TChart;
