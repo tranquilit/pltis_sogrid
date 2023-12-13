@@ -326,10 +326,13 @@ type
     var aX, aY: Double; var aLabel: string; var aColor: TColor) of object;
 
   /// event that allows naming the chart's title
-  TOnGridChartTitle = procedure(aSender: TSOGrid; aColumn: TSOGridColumn; var aChartTitle: string) of object;
+  /// event that allows naming the chart's title
+  TOnGridChartTitle = procedure(aSender: TSOGrid; aChart: TChart;
+    aColumn: TSOGridColumn; aFlags: TTisChartChangeFlags; var aChartTitle: string) of object;
 
   /// event that will fired if user changes something on the chart
-  TOnGridChartChange = procedure(aSender: TSOGrid; aChart: TChart; aColumn: TSOGridColumn) of object;
+  TOnGridChartChange = procedure(aSender: TSOGrid; aChart: TChart;
+    aColumn: TSOGridColumn; var aFlags: TTisChartChangeFlags) of object;
 
   { TSOGrid }
   TSOGrid = class(TCustomVirtualStringTree,ISODataView)
@@ -493,9 +496,9 @@ type
     function DoNodeFiltering(aNode: PVirtualNode): Boolean; virtual;
     procedure DoBeforeAddingChartSource(aColumn: TSOGridColumn; var aX, aY: Double;
       var aLabel: string; var aColor: TColor); virtual;
-    function DoChartTitle(aColumn: TSOGridColumn): string; virtual;
-    procedure DoChartFillSource(aChart: TChart; aSource: TListChartSource; aValueColumnIndex: Integer); virtual;
-    procedure DoChartChange(aChart: TChart); virtual;
+    procedure DoChartTitle(aChart: TChart; aColumn: TSOGridColumn; var aFlags: TTisChartChangeFlags); virtual;
+    procedure DoChartFillSource(aChart: TChart; aSource: TListChartSource; var aFlags: TTisChartFillSourceFlags); virtual;
+    procedure DoChartChange(aChart: TChart; var aFlags: TTisChartChangeFlags); virtual;
   public
     const POPUP_ITEM_TAG = 250;
   public
@@ -2628,17 +2631,25 @@ begin
     fOnBeforeAddingChartSource(self, aColumn, aX, aY, aLabel, aColor);
 end;
 
-function TSOGrid.DoChartTitle(aColumn: TSOGridColumn): string;
+procedure TSOGrid.DoChartTitle(aChart: TChart; aColumn: TSOGridColumn;
+  var aFlags: TTisChartChangeFlags);
+var
+  vTitle: string;
 begin
-  result := 'Chart per ' + aColumn.Text;
   if Assigned(OnDefaultChartTitle) then
-    OnDefaultChartTitle(self, aColumn, result);
+  begin
+    vTitle := '';
+    OnDefaultChartTitle(self, aChart, aColumn, aFlags, vTitle);
+  end
+  else
+    vTitle := 'Chart per ' + aColumn.Text;
   if Assigned(fOnChartTitle) then
-    fOnChartTitle(self, aColumn, result);
+    fOnChartTitle(self, aChart, aColumn, aFlags, vTitle);
+  aChart.Title.Text.Text := vTitle;
 end;
 
 procedure TSOGrid.DoChartFillSource(aChart: TChart; aSource: TListChartSource;
-  aValueColumnIndex: Integer);
+  var aFlags: TTisChartFillSourceFlags);
 
   function Darkened(aValue: TColor): TColor;
   var
@@ -2657,9 +2668,9 @@ procedure TSOGrid.DoChartFillSource(aChart: TChart; aSource: TListChartSource;
   function Compute(aRow: ISuperObject): Double;
   begin
     result := 1;
-    if Header.Columns.IsValidColumn(aValueColumnIndex) then
+    if Header.Columns.IsValidColumn(aFlags.ValueColumnIndex) then
     begin
-      result := aRow.GetD(FindColumnByIndex(aValueColumnIndex).PropertyName);
+      result := aRow.GetD(FindColumnByIndex(aFlags.ValueColumnIndex).PropertyName);
       if result = 0 then
         result := 1;
     end;
@@ -2676,12 +2687,9 @@ var
   vValue: RawUtf8;
   vRow, vRows: ISuperObject;
   vNode: PVirtualNode;
-
 begin
   vLabels.InitFast;
   vColumn := FocusedColumnObject;
-  if Header.Columns.IsValidColumn(aValueColumnIndex) then
-    aChart.Title.Text.Text := DoChartTitle(FindColumnByIndex(aValueColumnIndex));
   // if one or none rows selected, assume that all (visible) rows have to be shown in the chart
   if not Assigned(SelectedRows) or (SelectedRows.AsArray.Length=1) then
   begin
@@ -2715,10 +2723,15 @@ begin
   end;
 end;
 
-procedure TSOGrid.DoChartChange(aChart: TChart);
+procedure TSOGrid.DoChartChange(aChart: TChart; var aFlags: TTisChartChangeFlags);
+var
+  vColumn: TSOGridColumn;
 begin
+  vColumn := FocusedColumnObject;
+  if not aFlags.Title.Customized then
+    DoChartTitle(aChart, vColumn, aFlags);
   if Assigned(fOnChartChange) then
-    fOnChartChange(self, aChart, FocusedColumnObject);
+    fOnChartChange(self, aChart, vColumn, aFlags);
 end;
 
 procedure TSOGrid.FixDesignFontsPPI(const ADesignTimePPI: Integer);
@@ -3221,16 +3234,18 @@ var
   vColumn: TSOGridColumn;
   vIndex: Integer;
   vChartForm: TVisGridChartForm;
+  vFlags: TTisChartChangeFlags;
 begin
   vColumn := FocusedColumnObject;
   if Assigned(vColumn) and vColumn.AllowChart then
   begin
     vChartForm := TVisGridChartForm.Create(Owner);
     try
+      vFlags.Init;
       for vIndex := 0 to vChartForm.ComponentCount-1 do
         if vChartForm.Components[vIndex] is TChart then
           with vChartForm.Components[vIndex] as TChart do
-            Title.Text.Text := DoChartTitle(vColumn);
+            DoChartTitle(vChartForm.Components[vIndex] as TChart, vColumn, vFlags);
       vChartForm.OnChartChange := @DoChartChange;
       vChartForm.OnChartFillSource := @DoChartFillSource;
       // add columns

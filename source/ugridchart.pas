@@ -19,7 +19,9 @@ uses
   Forms,
   Controls,
   Graphics,
-  Dialogs, ActnList,
+  Dialogs,
+  ActnList,
+  mormot.core.rtti,
   TAGraph,
   TARadialSeries,
   TASeries,
@@ -32,15 +34,34 @@ uses
 type
   TVisGridChartForm = class;
 
-  TChartFillSourceEvent = procedure(aChart: TChart; aSource: TListChartSource; aValueColumnIndex: Integer) of object;
-  TChartChange = procedure(aChart: TChart) of object;
+  TTisChartFillSourceFlags = object
+  public
+    ValueColumnIndex: Integer;
+    procedure Init;
+  end;
+
+  TTisChartFillSourceEvent = procedure(aChart: TChart; aSource: TListChartSource; var aFlags: TTisChartFillSourceFlags) of object;
+
+  TTisChartChangeFlags = object
+  public
+    Title: record
+      Customized: Boolean;
+      Text: string;
+    end;
+    Values: record
+      ColumnIndex: Integer
+    end;
+    procedure Init;
+  end;
+
+  TTisChartChangeEvent = procedure(aChart: TChart; var aFlags: TTisChartChangeFlags) of object;
 
   TVisGridChartForm = class(TForm)
     cbMarkAttachment: TComboBox;
     cmbOrientation: TComboBox;
     PieChart: TChart;
     PieChartPieSeries1: TPieSeries;
-    ChartToolset1: TChartToolset;
+    ChartToolset: TChartToolset;
     cbRotate: TCheckBox;
     cbMarkPositions: TComboBox;
     Cb3D: TCheckBox;
@@ -113,19 +134,35 @@ type
       Style: TSeriesMarksStyle;
       Format: string;
     end;
-    fOnChartFillSource: TChartFillSourceEvent;
-    fOnChartChange: TChartChange;
+    fOnChartFillSource: TTisChartFillSourceEvent;
+    fOnChartChange: TTisChartChangeEvent;
   protected
+    function PieValuesIndexAsColumnIndex: Integer;
     procedure DoChartFillSource(aChart: TChart);
     procedure DoChartChange(aChart: TChart);
   public
-    property OnChartFillSource: TChartFillSourceEvent read fOnChartFillSource write fOnChartFillSource;
-    property OnChartChange: TChartChange read fOnChartChange write fOnChartChange;
+    property OnChartFillSource: TTisChartFillSourceEvent read fOnChartFillSource write fOnChartFillSource;
+    property OnChartChange: TTisChartChangeEvent read fOnChartChange write fOnChartChange;
   end;
 
 implementation
 
 {$R *.lfm}
+
+{ TTisChartChangeFlags }
+
+procedure TTisChartChangeFlags.Init;
+begin
+  RecordZero(@self, TypeInfo(TTisChartChangeFlags));
+  Values.ColumnIndex := -1;
+end;
+
+{ TTisChartFillSourceFlags }
+
+procedure TTisChartFillSourceFlags.Init;
+begin
+  RecordZero(@self, TypeInfo(TTisChartFillSourceFlags));
+end;
 
 { TVisGridChartForm }
 
@@ -266,7 +303,6 @@ procedure TVisGridChartForm.FormShow(Sender: TObject);
 begin
   DoChartFillSource(PieChart);
   seWordsChange(seWords);
-  PieTitleEdit.Text := PieChart.Title.Text.Text;
 end;
 
 procedure TVisGridChartForm.PieClipboardActionExecute(Sender: TObject);
@@ -288,13 +324,22 @@ end;
 procedure TVisGridChartForm.PieTitleEditChange(Sender: TObject);
 begin
   PieChart.Title.Text.Text := PieTitleEdit.Text;
+  DoChartChange(PieChart);
 end;
 
 procedure TVisGridChartForm.PieValuesComboChange(Sender: TObject);
 begin
   DoChartFillSource(PieChart);
   DoChartChange(PieChart);
-  PieTitleEdit.Text := PieChart.Title.Text.Text;
+end;
+
+function TVisGridChartForm.PieValuesIndexAsColumnIndex: Integer;
+begin
+  result := PieValuesCombo.ItemIndex;
+  if PieValuesCombo.ItemIndex > 0 then // -1 or 0 is the same as empty
+    Dec(result)
+  else
+    result := -1;
 end;
 
 procedure TVisGridChartForm.seWordsChange(Sender: TObject);
@@ -337,24 +382,32 @@ end;
 
 procedure TVisGridChartForm.DoChartFillSource(aChart: TChart);
 var
-  vIndex: Integer;
+  vFlags: TTisChartFillSourceFlags;
 begin
-  PieSource.Clear;
   if Assigned(fOnChartFillSource) then
   begin
-    vIndex := PieValuesCombo.ItemIndex;
-    if PieValuesCombo.ItemIndex > 0 then // -1 or 0 is the same as empty
-      Dec(vIndex)
-    else
-      vIndex := -1;
-    fOnChartFillSource(aChart, PieSource, vIndex);
+    PieSource.Clear;
+    vFlags.Init;
+    vFlags.ValueColumnIndex := PieValuesIndexAsColumnIndex;
+    fOnChartFillSource(aChart, PieSource, vFlags);
   end;
 end;
 
 procedure TVisGridChartForm.DoChartChange(aChart: TChart);
+var
+  vFlags: TTisChartChangeFlags;
 begin
   if Assigned(fOnChartChange) then
-    fOnChartChange(aChart);
+  begin
+    vFlags.Init;
+    with vFlags.Title do
+    begin
+      Customized := PieTitleEdit.Text <> '';
+      Text := PieTitleEdit.Text;
+    end;
+    vFlags.Values.ColumnIndex := PieValuesIndexAsColumnIndex;
+    fOnChartChange(aChart, vFlags);
+  end;
 end;
 
 end.
