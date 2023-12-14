@@ -70,6 +70,10 @@ msgstr ""
 msgid "Find and replace..."
 msgstr ""
 
+#: sogrid.gsconst_gridchartotherslabel
+msgid "Others"
+msgstr ""
+
 #: sogrid.gsconst_gridchartshow
 msgid "Show chart"
 msgstr ""

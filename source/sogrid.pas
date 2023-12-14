@@ -54,7 +54,37 @@ type
 
   TSOCanPasteEvent = function(Sender: TSOGrid;Row:ISuperObject):boolean of object;
 
-  TisGridFilterSort = (
+  /// most used values on a chart
+  TTisGridChartMostUsedValues = class(TPersistent)
+  private
+    fCount: Integer;
+    fEnabled: Boolean;
+  protected const
+    DefaultCount = 10;
+    DefaultEnabled = False;
+  public
+    constructor Create; reintroduce;
+  published
+    /// how many values will be used as the most used ones
+    property Count: Integer read fCount write fCount default DefaultCount;
+    /// enable/disable the use of it
+    property Enabled: Boolean read fEnabled write fEnabled default DefaultEnabled;
+  end;
+
+  /// grid chart options for column chart
+  TTisGridChartOptions = class(TPersistent)
+  private
+    fGrid: TSOGrid;
+    fMostUsedValues: TTisGridChartMostUsedValues;
+  public
+    constructor Create(aGrid: TSOGrid); reintroduce;
+    destructor Destroy; override;
+  published
+    /// most used values on a chart source
+    property MostUsedValues: TTisGridChartMostUsedValues read fMostUsedValues write fMostUsedValues;
+  end;
+
+  TTisGridFilterSort = (
     gfsMostUsedValues,
     gfsFirstValues
   );
@@ -69,7 +99,7 @@ type
     fDisplayedCount: Integer;
     fEnabled: Boolean;
     fMaxCaptionLength: Integer;
-    fSort: TisGridFilterSort;
+    fSort: TTisGridFilterSort;
     fShowAutoFilters: Boolean;
   protected const
     DefaultDisplayedCount = 10;
@@ -78,12 +108,11 @@ type
     DefaultClearAfterLoadingData = False;
     DefaultMaxCaptionLength = 45;
     DefaultSort = gfsMostUsedValues;
-  protected const
-    MARK_ARROW = ' ↓';
+    DownArrow = ' ↓';
   protected
     class var fMruFilters: TDocVariantData;
     class procedure InitClass;
-    /// clear MARK_ARROW mark of all header columns
+    /// clear DownArrow mark of all header columns
     procedure ClearHeaderArrows;
   public
     constructor Create(aGrid: TSOGrid); reintroduce;
@@ -121,7 +150,7 @@ type
     /// it determines the max length a menu item caption can be
     property MaxCaptionLength: Integer read fMaxCaptionLength write fMaxCaptionLength default DefaultMaxCaptionLength;
     /// which order it will show the menu items
-    property Sort: TisGridFilterSort read fSort write fSort default DefaultSort;
+    property Sort: TTisGridFilterSort read fSort write fSort default DefaultSort;
   end;
 
   { TSOGridColumn }
@@ -364,6 +393,7 @@ type
 
     FDefaultPopupMenu: TPopupMenu;
     fExportFormatOptions: TTisGridExportFormatOptions;
+    fChartOptions: TTisGridChartOptions;
     fFilterOptions: TTisGridFilterOptions;
     fDefaultSettings: ISuperObject; // all default settings after load component
     fOnEditValidated: TOnGridEditValidated;
@@ -614,6 +644,7 @@ type
     property GridSettings: String read GetGridSettings write SetGridSettings stored False;
     property ExportFormatOptions: TTisGridExportFormatOptions
       read fExportFormatOptions write fExportFormatOptions default DefaultExportFormatOptions;
+    property ChartOptions: TTisGridChartOptions read fChartOptions write fChartOptions;
     property FilterOptions: TTisGridFilterOptions read fFilterOptions write fFilterOptions;
     property OnEditValidated: TOnGridEditValidated
       read fOnEditValidated write fOnEditValidated;
@@ -843,6 +874,8 @@ type
     GSConst_GridFilterClearAll = 'Clear all filters';
     GSConst_GridFilterEnabled = 'Enable AutoFilter';
     GSConst_GridChartShow = 'Show chart';
+    GSConst_GridChartOthersLabel = 'Others';
+
 
 procedure Translate(const aDirectory, aLang: string);
 
@@ -867,6 +900,30 @@ begin
     aLang, vDir, 'sogrid.po', 'sogrid');
 end;
 
+{ TTisGridChartMostUsedValues }
+
+constructor TTisGridChartMostUsedValues.Create;
+begin
+  inherited Create;
+  fCount := DefaultCount;
+  fEnabled := DefaultEnabled;
+end;
+
+{ TTisGridChartOptions }
+
+constructor TTisGridChartOptions.Create(aGrid: TSOGrid);
+begin
+  inherited Create;
+  fGrid := aGrid;
+  fMostUsedValues := TTisGridChartMostUsedValues.Create;
+end;
+
+destructor TTisGridChartOptions.Destroy;
+begin
+  fMostUsedValues.Free;
+  inherited Destroy;
+end;
+
 { TTisGridFilterOptions }
 
 class procedure TTisGridFilterOptions.InitClass;
@@ -882,7 +939,7 @@ begin
   for v1 := 0 to fGrid.Header.Columns.Count-1 do
   begin
     vColumn := fGrid.Header.Columns[v1];
-    vColumn.Text := StringReplace(vColumn.Text, MARK_ARROW, '', [rfReplaceAll]);
+    vColumn.Text := StringReplace(vColumn.Text, DownArrow, '', [rfReplaceAll]);
   end;
 end;
 
@@ -1022,10 +1079,10 @@ begin
                 SetNodeVisible(vNode, False);
             end;
           end;
-          // add an MARK_ARROW in header column text, if there are filters for this column
-          if Pos(MARK_ARROW, vColumn.Text) = 0 then
+          // add an DownArrow in header column text, if there are filters for this column
+          if Pos(DownArrow, vColumn.Text) = 0 then
           begin
-            vColumn.Text := vColumn.Text + MARK_ARROW;
+            vColumn.Text := vColumn.Text + DownArrow;
             fShowAutoFilters := True;
           end;
         end;
@@ -1512,7 +1569,7 @@ begin
           and vColumn.AllowFilter then
         begin
           // add a item for delete filters for the column, if it has filter(s) already
-          if Pos(vGrid.FilterOptions.MARK_ARROW, vColumn.Text) > 0 then
+          if Pos(vGrid.FilterOptions.DownArrow, vColumn.Text) > 0 then
           begin
             NewMenuItem := TSOMenuItem.Create(Self);
             NewMenuItem.Tag := ColIdx; // it will be use to locate the column by its index
@@ -2353,6 +2410,7 @@ begin
 
   FItemDataOffset := AllocateInternalDataArea(SizeOf(TSOItemData));
   fExportFormatOptions := DefaultExportFormatOptions;
+  fChartOptions := TTisGridChartOptions.Create(self);
   fFilterOptions := TTisGridFilterOptions.Create(self);
   WantTabs:=True;
   TabStop:=True;
@@ -2479,6 +2537,7 @@ begin
   FData := Nil;
   if Assigned(FindDlg) then
     FreeAndNil(FindDlg);
+  fChartOptions.Free;
   fFilterOptions.Free;
   inherited Destroy;
 end;
@@ -2676,14 +2735,25 @@ procedure TSOGrid.DoChartFillSource(aChart: TChart; aSource: TListChartSource;
     end;
   end;
 
+  procedure AddSource(aColumn: TSOGridColumn; aDefX, aDefY: Double; const aDefLabel: string);
+  var
+    vDefX, vDefY: Double;
+    vDefLabel: string;
+    vDefColor: TColor;
+  begin
+    vDefX := aDefX;
+    vDefY := aDefY;
+    vDefLabel := aDefLabel;
+    vDefColor := Darkened(RGBToColor(Random(256), Random(256), Random(256)));
+    DoBeforeAddingChartSource(aColumn, vDefX, vDefY, vDefLabel, vDefColor);
+    aSource.Add(vDefX, vDefY, vDefLabel, vDefColor);
+  end;
+
 var
   vColumn: TSOGridColumn;
   vObj: PDocVariantData;
   vLabels: TDocVariantData;
-  vIndex: Integer;
-  vDefX, vDefY: Double;
-  vDefLabel: string;
-  vDefColor: TColor;
+  vIndex, vMostUsedCount, vOthersCount: Integer;
   vValue: RawUtf8;
   vRow, vRows: ISuperObject;
   vNode: PVirtualNode;
@@ -2711,16 +2781,26 @@ begin
     else
       vLabels.AddItem(_ObjFast(['field', vValue, 'count', Compute(vRow)]));
   end;
+  vMostUsedCount := 0;
+  vOthersCount := 0;
+  if ChartOptions.MostUsedValues.Enabled then
+    vLabels.SortArrayByFields(['count', vColumn.PropertyName], nil, nil, True);
   Randomize;
   for vObj in vLabels.Objects do
   begin
-    vDefX := 0;
-    vDefY := vObj^.D['count'];
-    vDefLabel := vObj^.S['field'];
-    vDefColor := Darkened(RGBToColor(Random(256), Random(256), Random(256)));
-    DoBeforeAddingChartSource(vColumn, vDefX, vDefY, vDefLabel, vDefColor);
-    aSource.Add(vDefX, vDefY, vDefLabel, vDefColor);
+    if ChartOptions.MostUsedValues.Enabled then
+    begin
+      Inc(vMostUsedCount);
+      if vMostUsedCount <= ChartOptions.MostUsedValues.Count then
+        AddSource(vColumn, 0, vObj^.D['count'], vObj^.S['field'])
+      else
+        Inc(vOthersCount);
+    end
+    else
+      AddSource(vColumn, 0, vObj^.D['count'], vObj^.S['field']);
   end;
+  if vOthersCount > 0 then
+    AddSource(vColumn, 0, vOthersCount, GSConst_GridChartOthersLabel);
 end;
 
 procedure TSOGrid.DoChartChange(aChart: TChart; var aFlags: TTisChartChangeFlags);
