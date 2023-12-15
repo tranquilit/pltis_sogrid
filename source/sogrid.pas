@@ -374,6 +374,7 @@ type
     FParentProperty: String;
     FSelectedAndTotalLabel: TLabel;
     FShowAdvancedColumnsCustomize: Boolean;
+    FAllowChart: Boolean;
     FAllowDataExport: Boolean;
     FTextFound: boolean;
     FindDlg: TFindDialog;
@@ -430,6 +431,7 @@ type
 
   protected
     const DefaultExportFormatOptions = [efoCsv, efoJson];
+    const DefaultAllowChart = False;
     procedure Loaded; override;
 
     property RootNodeCount stored False;
@@ -635,7 +637,9 @@ type
     property OnNodesDelete: TSONodesEvent read FOnNodesDelete write FOnNodesDelete;
 
     property ShowAdvancedColumnsCustomize: Boolean read FShowAdvancedColumnsCustomize write SetShowAdvancedColumnsCustomize;
+    property AllowChart: Boolean read FAllowChart write FAllowChart default DefaultAllowChart;
     property AllowDataExport: Boolean read FAllowDataExport write SetAllowDataExport;
+
     property KeyFieldsList: TStringDynArray read FKeyFieldsList;
     property KeyFieldsNames: String read GetKeyFieldsNames write SetKeyFieldsNames;
 
@@ -2414,7 +2418,7 @@ begin
   fFilterOptions := TTisGridFilterOptions.Create(self);
   WantTabs:=True;
   TabStop:=True;
-
+  FAllowChart := DefaultAllowChart;
 
   with TreeOptions do
   begin
@@ -2496,7 +2500,7 @@ begin
     _AddItem(GSConst_DeleteRows, ShortCut(VK_DELETE, [ssCtrl]), @DoDeleteRows);
   if toMultiSelect in TreeOptions.SelectionOptions then
     _AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), @DoSelectAllRows);
-  if Assigned(Data) and (Data.AsArray.Length > 0) then
+  if Assigned(Data) and (Data.AsArray.Length > 0) and AllowChart then
   begin
     _AddItem('-', 0, nil);
     _AddItem(GSConst_GridChartShow, 0, @DoShowChart);
