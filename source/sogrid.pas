@@ -164,12 +164,15 @@ type
     fAllowChart: Boolean;
     fAllowFilter: Boolean;
     FPropertyName: string;
+    fChartSettings: RawUtf8;
     procedure SetPropertyName(const Value: string);
     function GetTitle: TCaption;
     procedure SetTitle(AValue: TCaption);
   protected const
     DefaultAllowChart = True;
     DefaultAllowFilter = True;
+  protected
+    property ChartSettings: RawUtf8 read fChartSettings write fChartSettings;
   public
     constructor Create(aCollection: TCollection); override;
     procedure Assign(Source: TPersistent); override;
@@ -2009,6 +2012,8 @@ begin
               gridcol.Options := gridcol.Options + [coVisible]
             else
               gridcol.Options := gridcol.Options - [coVisible];
+          if column.AsObject.Find('chartsettings', prop) then
+            gridcol.ChartSettings := prop.AsString;
         end;
       end;
     end;
@@ -2338,6 +2343,7 @@ begin
     col.I['position'] := Header.Columns[i].Position;
     col.I['width'] := Header.Columns[i].Width;
     col.B['visible'] := (coVisible in Header.Columns[i].Options);
+    col.S['chartsettings'] := TSOGridColumn(Header.Columns[i]).ChartSettings;
   end;
   if not FilterOptions.Filters.IsVoid then
   begin
@@ -3349,7 +3355,9 @@ begin
             vChartForm.PieValuesCombo.Items.Add(Text + ' (' + Utf8ToString(PropertyName) + ')');
         end;
       end;
+      vChartForm.Settings := vColumn.ChartSettings;
       vChartForm.ShowModal;
+      vColumn.ChartSettings := vChartForm.Settings;
     finally
       vChartForm.Free;
     end;
