@@ -40,6 +40,10 @@ type
   TTisChartFillSourceFlags = object
   public
     ValueColumnIndex: Integer;
+    MostUsedValues: record
+      Enabled: Boolean;
+      Count: Integer;
+    end;
     procedure Init;
   end;
 
@@ -105,6 +109,9 @@ type
     PieTitleEdit: TEdit;
     Label1: TLabel;
     PieValuesCombo: TComboBox;
+    MostUsedCheckbox: TCheckBox;
+    TopMostUsedEdit: TSpinEdit;
+    TopMostUsedLabel: TLabel;
     procedure cbMarkAttachmentChange(Sender: TObject);
     procedure cbMarkPositionsCenteredChange(Sender: TObject);
     procedure cbMarkPositionsChange(Sender: TObject);
@@ -131,6 +138,8 @@ type
     procedure PieCloseActionExecute(Sender: TObject);
     procedure PieTitleEditChange(Sender: TObject);
     procedure PieValuesComboChange(Sender: TObject);
+    procedure MostUsedCheckboxChange(Sender: TObject);
+    procedure TopMostUsedEditChange(Sender: TObject);
   private
     fSavedDataPoints: TStrings;
     fSaveMarks: record
@@ -339,13 +348,40 @@ begin
   DoChartChange(PieChart);
 end;
 
+procedure TVisGridChartForm.MostUsedCheckboxChange(Sender: TObject);
+begin
+  TopMostUsedEdit.Enabled := MostUsedCheckbox.Checked;
+  DoChartFillSource(PieChart);
+  DoChartChange(PieChart);
+end;
+
+procedure TVisGridChartForm.TopMostUsedEditChange(Sender: TObject);
+begin
+  DoChartFillSource(PieChart);
+  DoChartChange(PieChart);
+end;
+
 function TVisGridChartForm.GetSettings: RawUtf8;
 var
   vObj: TDocVariantData;
 begin
   vObj.InitFast(dvObject);
+  // form
+  with vObj.O_['form']^ do
+  begin
+    I['top'] := Self.Top;
+    I['left'] := Self.Left;
+    I['height'] := Self.Height;
+    I['width'] := Self.Width;
+  end;
+  // customization
   vObj.S['title'] := PieTitleEdit.Text;
-  vObj.I['values_itemindex'] := PieValuesCombo.ItemIndex;
+  vObj.O_['valuescombo']^.I['itemindex'] := PieValuesCombo.ItemIndex;
+  with vObj.O_['mostusedvalues']^ do
+  begin
+    B['enabled'] := MostUsedCheckbox.Checked;
+    I['count'] := TopMostUsedEdit.Value;
+  end;
   result := BinToBase64(vObj.ToJson);
 end;
 
@@ -356,8 +392,22 @@ begin
   if aValue <> '' then
   begin
     vObj.InitJson(Base64ToBin(aValue), JSON_FAST_FLOAT);
+    // form
+    with vObj.O_['form']^ do
+    begin
+      Self.Top := GetValueOrDefault('top', Self.Top);
+      Self.Left := GetValueOrDefault('left', Self.Left);
+      Self.Height := GetValueOrDefault('height', Self.Height);
+      Self.Width := GetValueOrDefault('width', Self.Width);
+    end;
+    // customization
     PieTitleEdit.Text := vObj.S['title'];
-    PieValuesCombo.ItemIndex := vObj.GetValueOrDefault('values_itemindex', -1);
+    PieValuesCombo.ItemIndex := vObj.O_['valuescombo']^.GetValueOrDefault('itemindex', -1);
+    with vObj.O_['mostusedvalues']^ do
+    begin
+      MostUsedCheckbox.Checked := GetValueOrDefault('enabled', True);
+      TopMostUsedEdit.Value := GetValueOrDefault('count', 10);
+    end;
   end;
 end;
 
@@ -417,6 +467,11 @@ begin
     PieSource.Clear;
     vFlags.Init;
     vFlags.ValueColumnIndex := PieValuesIndexAsColumnIndex;
+    with vFlags.MostUsedValues do
+    begin
+      Enabled := MostUsedCheckbox.Checked;
+      Count := TopMostUsedEdit.Value;
+    end;
     fOnChartFillSource(aChart, PieSource, vFlags);
   end;
 end;
