@@ -172,6 +172,7 @@ type
     DefaultAllowChart = True;
     DefaultAllowFilter = True;
   protected
+    fOriginal: Boolean; // from designtime
     property ChartSettings: RawUtf8 read fChartSettings write fChartSettings;
   public
     constructor Create(aCollection: TCollection); override;
@@ -217,6 +218,7 @@ type
     procedure OnMenuShowAllClick(Sender: TObject);
     procedure OnMenuHideAllClick(Sender: TObject);
     procedure OnMenuRestoreClick(Sender: TObject);
+    procedure OnMenuRemoveCustomColumnClick(aSender: TObject);
     procedure OnMenuFilterEnableClick(aSender: TObject);
     procedure OnMenuFilterClick(aSender: TObject);
     procedure OnMenuFilterClearClick(aSender: TObject);
@@ -879,6 +881,7 @@ type
     GSConst_ShowAllColumns = 'Show all columns';
     GSConst_HideAllColumns = 'Hide all columns';
     GSConst_RestoreDefaultColumns = 'Restore default columns';
+    GSConst_RemoveCustomColumn = 'Remove custom column';
     GSConst_GridFilterClear = 'Clear filter';
     GSConst_GridFilterCustomExpression = 'Custom expression';
     GSConst_GridFilterCustomExpressionCaption = 'Type a custom expression:'#13'(you can add "*" at the beginning and/or end for partial match)';
@@ -1293,6 +1296,26 @@ begin
   TSOGrid(PopupComponent).RestoreSettings;
 end;
 
+procedure TSOHeaderPopupMenu.OnMenuRemoveCustomColumnClick(aSender: TObject);
+var
+  vGrid: TSOGrid;
+  vItem: TMenuItem;
+begin
+  if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
+  begin
+    if PopupComponent is TSOGrid then
+    begin
+      vGrid := PopupComponent as TSOGrid;
+      vItem := aSender as TMenuItem;
+      vGrid.Header.Columns.Delete(vItem.Tag);
+      if vGrid.Header.Columns.IsValidColumn(vItem.Tag) then
+        vGrid.FocusedColumn := vItem.Tag
+      else if vGrid.Header.Columns.GetLastVisibleColumn >= 0 then
+        vGrid.FocusedColumn := vGrid.Header.Columns.GetLastVisibleColumn;
+    end;
+  end;
+end;
+
 procedure TSOHeaderPopupMenu.OnMenuFilterEnableClick(aSender: TObject);
 var
   vGrid: TSOGrid;
@@ -1531,6 +1554,34 @@ procedure TSOHeaderPopupMenu.FillPopupMenu;
     end;
   end;
 
+  procedure AddCustomColumns(aGrid: TSOGrid);
+  var
+    vColumn: TSOGridColumn;
+    vParentMenuItem, vNewMenuItem: TMenuItem;
+    v1: Integer;
+  begin
+    vParentMenuItem := nil;
+    for v1 := 0 to aGrid.Header.Columns.Count-1 do
+    begin
+      vColumn := aGrid.Header.Columns[v1] as TSOGridColumn;
+      if not vColumn.fOriginal then
+      begin
+        if not Assigned(vParentMenuItem) then
+        begin
+          vParentMenuItem := TSOMenuItem.Create(Self);
+          vParentMenuItem.Tag := NoColumn;
+          vParentMenuItem.Caption := GSConst_RemoveCustomColumn;
+          Items.Add(vParentMenuItem);
+        end;
+        vNewMenuItem := TSOMenuItem.Create(self);
+        vNewMenuItem.Tag := vColumn.Index; // it will be use to locate the column by its index
+        vNewMenuItem.Caption := vColumn.Text + ' (' + Utf8ToString(vColumn.PropertyName) + ')';
+        vNewMenuItem.OnClick := @OnMenuRemoveCustomColumnClick;
+        vParentMenuItem.Add(vNewMenuItem);
+      end;
+    end;
+  end;
+
 var
   I: Integer;
   ColPos: TColumnPosition;
@@ -1659,26 +1710,26 @@ begin
             end;
           end;
         end;
-
+        // show all columns
         NewMenuItem := TSOMenuItem.Create(Self);
         NewMenuItem.Tag := -1;
         NewMenuItem.Caption := GSConst_ShowAllColumns;
         NewMenuItem.OnClick := @OnMenuShowAllClick;
         Items.Add(NewMenuItem);
-
+        // hide all columns
         NewMenuItem := TSOMenuItem.Create(Self);
         NewMenuItem.Tag := -2;
         NewMenuItem.Caption := GSConst_HideAllColumns;
         NewMenuItem.OnClick := @OnMenuHideAllClick;
         Items.Add(NewMenuItem);
-
         // restore default columns
-
         NewMenuItem := TSOMenuItem.Create(Self);
         NewMenuItem.Tag := -3;
         NewMenuItem.Caption := GSConst_RestoreDefaultColumns;
         NewMenuItem.OnClick := @OnMenuRestoreClick;
         Items.Add(NewMenuItem);
+        // custom columns
+        AddCustomColumns(vGrid);
         // Conditionally disable menu item of last enabled column.
         if (VisibleCounter = 1) and (VisibleItem <> nil) and not (poAllowHideAll in FOptions) then
           VisibleItem.Enabled := False;
@@ -2148,9 +2199,17 @@ begin
 end;
 
 procedure TSOGrid.Loaded;
+var
+  v1: Integer;
+  vCol: TSOGridColumn;
 begin
   inherited Loaded;
   fDefaultSettings := GetSettings;
+  for v1 := 0 to Header.Columns.Count-1 do
+  begin
+    vCol := Header.Columns[v1] as TSOGridColumn;
+    vCol.fOriginal := True; // set all original columns
+  end;
 end;
 
 

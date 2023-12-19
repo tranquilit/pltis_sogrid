@@ -133,6 +133,10 @@ msgstr ""
 msgid "Printed on"
 msgstr ""
 
+#: sogrid.gsconst_removecustomcolumn
+msgid "Remove custom column"
+msgstr ""
+
 #: sogrid.gsconst_restoredefaultcolumns
 msgid "Restore default columns"
 msgstr ""
