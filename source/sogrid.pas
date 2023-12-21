@@ -3604,6 +3604,11 @@ begin
       aCanvas.FillRect(aCellRect);
     end;
   end;
+  {$ifdef LINUX}
+  aCanvas.Pen.Color := $00F0F0F0;
+  aCanvas.MoveTo(aCellRect.Right, aCellRect.Top);
+  aCanvas.LineTo(aCellRect.Right, aCellRect.Bottom);
+  {$endif LINUX}
   inherited DoBeforeCellPaint(aCanvas, aNode, aColumn, aCellPaintMode, aCellRect, aContentRect);
 end;
 
