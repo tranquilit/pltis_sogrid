@@ -3604,13 +3604,6 @@ begin
       aCanvas.FillRect(aCellRect);
     end;
   end;
-  {$ifdef LINUX}
-  aCanvas.Pen.Color := clAppWorkspace;
-  aCanvas.MoveTo(aCellRect.Right, aCellRect.Top);
-  aCanvas.LineTo(aCellRect.Right, aCellRect.Bottom);
-  aCanvas.MoveTo(aCellRect.Left, aCellRect.Bottom);
-  aCanvas.LineTo(aCellRect.Right, aCellRect.Bottom);
-  {$endif LINUX}
   inherited DoBeforeCellPaint(aCanvas, aNode, aColumn, aCellPaintMode, aCellRect, aContentRect);
 end;
 
