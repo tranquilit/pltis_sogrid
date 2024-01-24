@@ -705,7 +705,7 @@ type
     property DragImageKind;
     property DragMode;
     property DragOperations;
-    property DragType;
+    property DragType default dtVCL;
     property DragWidth;
     property DrawSelectionMode;
     property EditDelay;
@@ -2493,6 +2493,7 @@ begin
   WantTabs:=True;
   TabStop:=True;
   FAllowChart := DefaultAllowChart;
+  DragType := dtVCL;
 
   with TreeOptions do
   begin
@@ -2500,7 +2501,7 @@ begin
       [toAlwaysHideSelection, toShowHorzGridLines, toShowVertGridLines, toHideFocusRect];
     SelectionOptions := SelectionOptions + [toExtendedFocus, toSimpleDrawSelection, toRightClickSelect, toDisableDrawSelection];
     MiscOptions := MiscOptions + [toGridExtensions, toFullRowDrag] -
-      [toWheelPanning,toEditOnClick,toEditOnDblClick,toToggleOnDblClick];
+      [toWheelPanning,toEditOnClick,toEditOnDblClick,toToggleOnDblClick,toAcceptOLEDrop];
 
     AutoOptions := AutoOptions + [toAutoSort,toAutoChangeScale];
   end;
