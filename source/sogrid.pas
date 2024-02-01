@@ -1756,6 +1756,8 @@ end;
 
 destructor TTisGridControl.Destroy;
 begin
+  fInternal.OnExit := Nil;
+  fInternal.OnKeyDown := Nil;
   Application.ReleaseComponent(fInternal);
   inherited Destroy;
 end;
