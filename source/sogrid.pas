@@ -1782,7 +1782,7 @@ begin
   if fInternal.Caption = '' then
     result := NULL
   else
-    result := fInternal.Caption;
+    result := Trim(fInternal.Caption);
 end;
 
 procedure TTisGridControl.SetValue(const aValue: Variant);
@@ -1807,7 +1807,7 @@ end;
 
 function TTisGridEditControl.GetValue: Variant;
 begin
-  result := Edit.Text;
+  result := Trim(Edit.Text);
 end;
 
 procedure TTisGridEditControl.SetValue(const aValue: Variant);
