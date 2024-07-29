@@ -1058,10 +1058,7 @@ var
   vData: ISuperObject;
   vObj: PDocVariantData;
   vNode: PVirtualNode;
-  vField: TDocVariantFields;
-  v1: Integer;
   vColumn: TSOGridColumn;
-  vCaseInsensitive: Boolean;
   vPropertyName: RawUtf8;
 begin
   ClearHeaderArrows;
@@ -3443,8 +3440,6 @@ end;
 
 function TSOGrid.DoKeyAction(var CharCode: Word; var Shift: TShiftState
   ): Boolean;
-var
-  newdata:ISuperObject;
 begin
   Result:=inherited DoKeyAction(CharCode, Shift);
 end;
@@ -3805,7 +3800,7 @@ begin
     ReplaceDialog.Options := [frDown, frDisableUpDown, frReplace, frReplaceAll,frEntireScope];
     //ReplaceDialog.OnReplace := ReplaceDialog1Replace;
     if EditLink<>Nil  then
-      ReplaceDialog.FindText :=  TStringEditLink(EditLink).Edit.Text
+      ReplaceDialog.FindText :=  (EditLink as TStringEditLink).Edit.Text
     else
       ReplaceDialog.FindText :=  GetCellStrValue(FocusedNode,FocusedPropertyName);
     ReplaceDialog.Execute;
@@ -4043,11 +4038,10 @@ procedure TSOGrid.DoNewText(Node: PVirtualNode; Column: TColumnIndex;
   const AText: string);
 var
   ItemData: PSOItemData;
-  RowData, OldCellData, NewCellData: ISuperObject;
+  RowData, NewCellData: ISuperObject;
   PropertyName:String;
 begin
   RowData := nil;
-  OldCellData := nil;
   NewCellData := nil;
 
   if Node <> nil then
@@ -4062,14 +4056,12 @@ begin
         begin
           PropertyName:=TSOGridColumn(Header.Columns.Items[Column]).PropertyName;
           //standalone grid
-          OldCelldata := RowData[PropertyName];
           NewCellData := TSuperObject.Create(UTF8Decode(AText));
           RowData[PropertyName] := NewCellData;
         end
         else
         begin
           PropertyName:=DefaultText;
-          OldCelldata := RowData[DefaultText];
           NewCellData := TSuperObject.Create(UTF8Decode(AText));
           RowData[DefaultText] := NewCellData;
         end;
@@ -4160,6 +4152,13 @@ begin
       begin
         fGrid.EndEditNode;
         Key := 0;
+      end;
+    VK_TAB:
+      if CanAdvance then
+      begin
+        fGrid.EndEditNode;
+        fGrid.FocusedColumn := fGrid.FocusedColumn+1;
+        //Key := 0;
       end;
     VK_UP,
     VK_DOWN:
@@ -4258,7 +4257,10 @@ end;
 
 function TSOStringEditLink.GetBounds: TRect; stdcall;
 begin
-  result := fControl.Internal.BoundsRect;
+  if Assigned(fControl) then
+    result := fControl.Internal.BoundsRect
+  else
+    result := Rect(0,0,0,0);
 end;
 
 function TSOStringEditLink.PrepareEdit(aTree: TBaseVirtualTree; aNode: PVirtualNode;
@@ -4290,7 +4292,8 @@ begin
   // influence how the selection is drawn)
   // we have to set the edit's width explicitly to the width of the column.
   fGrid.Header.Columns.GetColumnBounds(fColumn, dummy, R.Right);
-  fControl.Internal.BoundsRect := R;
+  if assigned(fControl) then
+    fControl.Internal.BoundsRect := R;
 end;
 
 { TTisGridExportFormatOptionAdapter }
