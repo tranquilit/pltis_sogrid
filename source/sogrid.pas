@@ -613,6 +613,8 @@ type
     function FindColumnByPropertyName(propertyname: string): TSOGridColumn;
     function FindColumnByIndex(const aIndex: TColumnIndex): TSOGridColumn;
 
+    function IsVisibleColumnByPropertyName(const aPropertyName: String): Boolean;
+
     //Ajouter les colonnes en s'inspirant du contenu Data
     procedure CreateColumnsFromData(FitWidth,AppendMissingAsHidden: Boolean);
 
@@ -1976,6 +1978,16 @@ begin
     result := TSOGridColumn(Header.Columns[aIndex])
   else
     result := nil;
+end;
+
+function TSOGrid.IsVisibleColumnByPropertyName(const aPropertyName: String): Boolean;
+var
+  Col: TVirtualTreeColumn;
+begin
+  Result := False;
+  for Col in Header.Columns.GetVisibleColumns do
+    if TSOGridColumn(Col).PropertyName = aPropertyName then
+      Exit(True);
 end;
 
 procedure TSOGrid.CreateColumnsFromData(FitWidth,AppendMissingAsHidden: Boolean);
