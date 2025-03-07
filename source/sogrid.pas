@@ -2451,22 +2451,23 @@ procedure TSOGrid.DoGetText(Node: PVirtualNode; Column: TColumnIndex;
 var
   ItemData: PSOItemData;
   RowData, CellData: ISuperObject;
+  propertyName: String;
 begin
   RowData := nil;
   CellData := nil;
   if Node <> nil then
   begin
     ItemData := GetItemData(Node);
+    if (Column >= 0) and Header.Columns.IsValidColumn(Column) then
+      propertyName := TSOGridColumn(Header.Columns.Items[Column]).PropertyName
+    else
+      propertyName := DefaultText;
     if ItemData <> nil then
     begin
       RowData := ItemData^.JSONData;
       if RowData <> nil then
       begin
-        if (Column >= 0) and Header.Columns.IsValidColumn(Column) then
-          CellData := RowData[TSOGridColumn(Header.Columns.Items[Column]).PropertyName]
-        else
-          CellData := RowData[DefaultText];
-
+        CellData := RowData.AsObject[Utf8Decode(propertyName)];
         if CellData <> nil then
           CellText := UTF8Encode(CellData.AsString)
         else
@@ -2478,7 +2479,10 @@ begin
   end
   else
     CellText := '';
-  if Assigned(FOnGetText) and (Column >= 0) and Header.Columns.IsValidColumn(Column) then
+
+  // called only if not in edit mode
+  if Assigned(FOnGetText) and (Column >= 0) and Header.Columns.IsValidColumn(Column) and
+      (not Assigned(EditLink) or (Column<>FocusedColumn) or (Node <> FocusedNode) )  then
     FOnGetText(Self, Node, RowData, CellData, Column, TextType, CellText);
 end;
 
