@@ -2066,9 +2066,8 @@ begin
           gridcol.Text:=UTF8Encode(column.S['text']);
           gridcol.PropertyName:=propname;
           gridcol.Width:= 100;
-        end;
-
-        if gridcol <> nil then
+        end
+        else
         begin
           if column.AsObject.Find('position', prop) then
             gridcol.Position := prop.AsInteger;
