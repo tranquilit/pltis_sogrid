@@ -2325,7 +2325,7 @@ begin
       pdata := GetItemData(N);
       if pdata <> nil then
       begin
-        idata := pdata^.JSONData[FieldName];
+        idata := pdata^.JSONData.AsObject[FieldName];
         if idata <> nil then
           Result := idata
         else
@@ -3322,6 +3322,8 @@ var
   ANodes:TNodeArray;
 
 begin
+  if not assigned(Data) or (SelectedCount=0) then
+    Exit;
   if Assigned(FOnNodesDelete) then
   begin
     todelete := SelectedRows;
@@ -3329,7 +3331,7 @@ begin
   end
   else
   begin
-    if Assigned(Data)
+    if Assigned(Data) 
       and (Dialogs.MessageDlg(GSConst_Confirmation, Format(GSConst_ConfDeleteRow,[SelectedCount]), mtConfirmation, mbYesNoCancel, 0) = mrYes) then
     begin
       todelete := SelectedRows;
