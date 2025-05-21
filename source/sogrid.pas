@@ -55,7 +55,7 @@ type
   TSOCanPasteEvent = function(Sender: TSOGrid;Row:ISuperObject):boolean of object;
 
   /// most used values on a chart
-  TTisGridChartMostUsedValues = class(TPersistent)
+  TSOGridChartMostUsedValues = class(TPersistent)
   private
     fCount: Integer;
     fEnabled: Boolean;
@@ -72,11 +72,11 @@ type
   end;
 
   /// grid chart options for column chart
-  TTisGridChartOptions = class(TPersistent)
+  TSOGridChartOptions = class(TPersistent)
   private
     fGrid: TSOGrid;
     fMaxLabelLength: Integer;
-    fMostUsedValues: TTisGridChartMostUsedValues;
+    fMostUsedValues: TSOGridChartMostUsedValues;
   protected const
     DefaultMaxLabelLength = 30;
   public
@@ -86,16 +86,16 @@ type
     /// it determines the max length that a label can have
     property MaxLabelLength: Integer read fMaxLabelLength write fMaxLabelLength default DefaultMaxLabelLength;
     /// most used values on a chart source
-    property MostUsedValues: TTisGridChartMostUsedValues read fMostUsedValues write fMostUsedValues;
+    property MostUsedValues: TSOGridChartMostUsedValues read fMostUsedValues write fMostUsedValues;
   end;
 
-  TTisGridFilterSort = (
+  TSOGridFilterSort = (
     gfsMostUsedValues,
     gfsFirstValues
   );
 
   /// filter options for header popup menu
-  TTisGridFilterOptions = class(TPersistent)
+  TSOGridFilterOptions = class(TPersistent)
   private
     fGrid: TSOGrid;
     fFilters: TDocVariantData;
@@ -104,7 +104,7 @@ type
     fDisplayedCount: Integer;
     fEnabled: Boolean;
     fMaxCaptionLength: Integer;
-    fSort: TTisGridFilterSort;
+    fSort: TSOGridFilterSort;
     fShowAutoFilters: Boolean;
   protected const
     DefaultDisplayedCount = 10;
@@ -155,7 +155,7 @@ type
     /// it determines the max length a menu item caption can have
     property MaxCaptionLength: Integer read fMaxCaptionLength write fMaxCaptionLength default DefaultMaxCaptionLength;
     /// which order it will show the menu items
-    property Sort: TTisGridFilterSort read fSort write fSort default DefaultSort;
+    property Sort: TSOGridFilterSort read fSort write fSort default DefaultSort;
   end;
 
   { TSOGridColumn }
@@ -240,16 +240,17 @@ type
   /// this class implements the base for an in-place edit control
   // - use it if you want to implement your own controls
 
-  { TTisGridControl }
+  { TSOGridControl }
 
-  TTisGridControl = class(TObject)
+  TSOGridControl = class(TObject)
   private
   protected
     fInternal: TWinControl;
+    fOwner: TWinControl;
     fIsReadOnly: Boolean;
     procedure SetIsReadOnly(AValue: Boolean); Virtual;
   public
-    constructor Create; reintroduce; virtual;
+    constructor Create(aOwner: TWinControl); reintroduce; virtual;
     destructor Destroy; override;
     /// access to the internal (generic) WinControl instance
     function Internal: TWinControl;
@@ -267,13 +268,13 @@ type
 
   /// control used for all String data type
 
-  { TTisGridEditControl }
+  { TSOGridEditControl }
 
-  TTisGridEditControl = class(TTisGridControl)
+  TSOGridEditControl = class(TSOGridControl)
   protected
     procedure SetIsReadOnly(AValue: Boolean); override;
   public
-    constructor Create; override;
+    constructor Create(aOwner: TWinControl); override;
     function GetValue: Variant; override;
     procedure SetValue(const aValue: Variant); override;
     function Edit: TEdit;
@@ -281,7 +282,7 @@ type
 
   TSOStringEditLink = class(TInterfacedObject, IVTEditLink)
   private
-    fControl: TTisGridControl;
+    fControl: TSOGridControl;
     fGrid: TSOGrid;
     fNode: PVirtualNode;
     fColumn: Integer;
@@ -289,10 +290,11 @@ type
   protected
     procedure EditKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState); virtual;
     procedure EditExit(Sender: TObject); virtual;
-    function NewControl: TTisGridControl; virtual;
+    function NewControl: TSOGridControl; virtual;
   public
     constructor Create;
     destructor Destroy; override;
+    property Grid: TSOGrid read fGrid;
     function BeginEdit: Boolean; stdcall;
     function CancelEdit: Boolean; stdcall;
     function EndEdit: Boolean; stdcall;
@@ -302,7 +304,7 @@ type
     procedure SetBounds(R: TRect); stdcall;
   end;
 
-  TTisGridExportFormatOption = (
+  TSOGridExportFormatOption = (
     /// inherited types
     efoRtf,  // by ContentToRTF
     efoHtml, // by ContentToHTML
@@ -312,30 +314,30 @@ type
     efoJson // by ContentToJson
   );
 
-  TTisGridExportFormatOptions = set of TTisGridExportFormatOption;
+  TSOGridExportFormatOptions = set of TSOGridExportFormatOption;
 
-  /// adapter for TTisGridExportFormatOption
-  TTisGridExportFormatOptionAdapter = object
+  /// adapter for TSOGridExportFormatOption
+  TSOGridExportFormatOptionAdapter = object
     /// convert enum to caption
-    function EnumToCaption(const aValue: TTisGridExportFormatOption): string;
+    function EnumToCaption(const aValue: TSOGridExportFormatOption): string;
     /// convert caption to enum
     // - if aValue not found, it will return the first element
-    function CaptionToEnum(const aValue: string): TTisGridExportFormatOption;
+    function CaptionToEnum(const aValue: string): TSOGridExportFormatOption;
     /// convert all enums to strings
     // - you can customize elements using aCustom
-    procedure EnumsToStrings(aDest: TStrings; const aCustom: TTisGridExportFormatOptions = [
-      low(TTisGridExportFormatOption)..high(TTisGridExportFormatOption)]);
+    procedure EnumsToStrings(aDest: TStrings; const aCustom: TSOGridExportFormatOptions = [
+      low(TSOGridExportFormatOption)..high(TSOGridExportFormatOption)]);
     /// convert file extension to enum
     // - if aValue not found, it will return the first element
-    function ExtensionToEnum(const aValue: TFileName): TTisGridExportFormatOption;
+    function ExtensionToEnum(const aValue: TFileName): TSOGridExportFormatOption;
     /// convert enum to save dialog filter
-    function EnumToFilter(const aValue: TTisGridExportFormatOption): string;
+    function EnumToFilter(const aValue: TSOGridExportFormatOption): string;
   end;
 
-  TTisGridTextSourceTypes = set of TVSTTextSourceType;
+  TSOGridTextSourceTypes = set of TVSTTextSourceType;
 
   /// adapter for TVSTTextSourceType
-  TTisGridTextSourceTypeAdapter = object
+  TSOGridTextSourceTypeAdapter = object
     /// convert enum to caption
     function EnumToCaption(const aValue: TVSTTextSourceType): string;
     /// convert caption to enum
@@ -343,7 +345,7 @@ type
     function CaptionToEnum(const aValue: string): TVSTTextSourceType;
     /// convert all enums to strings
     // - you can customize elements using aCustom
-    procedure EnumsToStrings(aDest: TStrings; const aCustom: TTisGridTextSourceTypes = [tstAll, tstSelected]);
+    procedure EnumsToStrings(aDest: TStrings; const aCustom: TSOGridTextSourceTypes = [tstAll, tstSelected]);
   end;
 
   TSOGridGetText = procedure(Sender: TBaseVirtualTree; Node: PVirtualNode;
@@ -403,9 +405,9 @@ type
     FPendingAppendObject:ISuperObject;
 
     FDefaultPopupMenu: TPopupMenu;
-    fExportFormatOptions: TTisGridExportFormatOptions;
-    fChartOptions: TTisGridChartOptions;
-    fFilterOptions: TTisGridFilterOptions;
+    fExportFormatOptions: TSOGridExportFormatOptions;
+    fChartOptions: TSOGridChartOptions;
+    fFilterOptions: TSOGridFilterOptions;
     fDefaultSettings: ISuperObject; // all default settings after load component
     fOnEditValidated: TOnGridEditValidated;
     fOnNodeFiltering: TOnGridNodeFiltering;
@@ -658,10 +660,10 @@ type
     property OnSOCompareNodes: TSOCompareNodesEvent read FOnSOCompareNodes write FOnSOCompareNodes;
 
     property GridSettings: String read GetGridSettings write SetGridSettings stored False;
-    property ExportFormatOptions: TTisGridExportFormatOptions
+    property ExportFormatOptions: TSOGridExportFormatOptions
       read fExportFormatOptions write fExportFormatOptions default DefaultExportFormatOptions;
-    property ChartOptions: TTisGridChartOptions read fChartOptions write fChartOptions;
-    property FilterOptions: TTisGridFilterOptions read fFilterOptions write fFilterOptions;
+    property ChartOptions: TSOGridChartOptions read fChartOptions write fChartOptions;
+    property FilterOptions: TSOGridFilterOptions read fFilterOptions write fFilterOptions;
     property OnEditValidated: TOnGridEditValidated
       read fOnEditValidated write fOnEditValidated;
     /// event that allows change aNode.States after it was changed
@@ -917,39 +919,39 @@ begin
     aLang, vDir, 'sogrid.po', 'sogrid');
 end;
 
-{ TTisGridChartMostUsedValues }
+{ TSOGridChartMostUsedValues }
 
-constructor TTisGridChartMostUsedValues.Create;
+constructor TSOGridChartMostUsedValues.Create;
 begin
   inherited Create;
   fCount := DefaultCount;
   fEnabled := DefaultEnabled;
 end;
 
-{ TTisGridChartOptions }
+{ TSOGridChartOptions }
 
-constructor TTisGridChartOptions.Create(aGrid: TSOGrid);
+constructor TSOGridChartOptions.Create(aGrid: TSOGrid);
 begin
   inherited Create;
   fGrid := aGrid;
   fMaxLabelLength := DefaultMaxLabelLength;
-  fMostUsedValues := TTisGridChartMostUsedValues.Create;
+  fMostUsedValues := TSOGridChartMostUsedValues.Create;
 end;
 
-destructor TTisGridChartOptions.Destroy;
+destructor TSOGridChartOptions.Destroy;
 begin
   fMostUsedValues.Free;
   inherited Destroy;
 end;
 
-{ TTisGridFilterOptions }
+{ TSOGridFilterOptions }
 
-class procedure TTisGridFilterOptions.InitClass;
+class procedure TSOGridFilterOptions.InitClass;
 begin
   fMruFilters.InitArray([], JSON_FAST_FLOAT);
 end;
 
-procedure TTisGridFilterOptions.ClearHeaderArrows;
+procedure TSOGridFilterOptions.ClearHeaderArrows;
 var
   v1: Integer;
   vColumn: TVirtualTreeColumn;
@@ -961,7 +963,7 @@ begin
   end;
 end;
 
-constructor TTisGridFilterOptions.Create(aGrid: TSOGrid);
+constructor TSOGridFilterOptions.Create(aGrid: TSOGrid);
 begin
   inherited Create;
   fGrid := aGrid;
@@ -973,11 +975,11 @@ begin
   fSort := DefaultSort;
 end;
 
-procedure TTisGridFilterOptions.AssignTo(aDest: TPersistent);
+procedure TSOGridFilterOptions.AssignTo(aDest: TPersistent);
 begin
-  if aDest is TTisGridFilterOptions then
+  if aDest is TSOGridFilterOptions then
   begin
-    with TTisGridFilterOptions(aDest) do
+    with TSOGridFilterOptions(aDest) do
     begin
       fFilters.Reset;
       if not self.fFilters.IsVoid then
@@ -992,7 +994,7 @@ begin
     inherited AssignTo(aDest);
 end;
 
-function TTisGridFilterOptions.AddFilter(const aFieldName, aValue: RawUtf8;
+function TSOGridFilterOptions.AddFilter(const aFieldName, aValue: RawUtf8;
   aCustom: Boolean): Variant;
 begin
   result := _ObjFast(['field', aFieldName, 'value', aValue]);
@@ -1002,7 +1004,7 @@ begin
   fGrid.FilterOptions.ApplyFilters;
 end;
 
-function TTisGridFilterOptions.FilterExists(const aFieldName: RawUtf8;
+function TSOGridFilterOptions.FilterExists(const aFieldName: RawUtf8;
   const aValue: string): Boolean;
 var
   vObj: PDocVariantData;
@@ -1022,7 +1024,7 @@ begin
   end;
 end;
 
-procedure TTisGridFilterOptions.ApplyFilters;
+procedure TSOGridFilterOptions.ApplyFilters;
 
   procedure SetNodeVisible(aNode: PVirtualNode; aInclude: Boolean);
   begin
@@ -1119,13 +1121,13 @@ begin
   //fGrid.ScrollIntoView(fGrid.FocusedNode, False);
 end;
 
-procedure TTisGridFilterOptions.ClearFilters;
+procedure TSOGridFilterOptions.ClearFilters;
 begin
   fFilters.Clear;
   ApplyFilters;
 end;
 
-procedure TTisGridFilterOptions.AddMruFilter(const aFieldName, aValue: RawUtf8);
+procedure TSOGridFilterOptions.AddMruFilter(const aFieldName, aValue: RawUtf8);
 var
   vObj: PDocVariantData;
   vNewObj: Variant;
@@ -1145,12 +1147,12 @@ begin
   fMruFilters.AddItem(vNewObj);
 end;
 
-procedure TTisGridFilterOptions.RemoveMruFilter(const aFieldName, aValue: RawUtf8);
+procedure TSOGridFilterOptions.RemoveMruFilter(const aFieldName, aValue: RawUtf8);
 begin
   fMruFilters.DeleteByValue(_ObjFast(['field', aFieldName, 'value', aValue]), fCaseInsensitive);
 end;
 
-function TTisGridFilterOptions.GetMruFiltersAsArrayOfString(
+function TSOGridFilterOptions.GetMruFiltersAsArrayOfString(
   const aFieldName: RawUtf8): TStringArray;
 var
   vObj: PDocVariantData;
@@ -1742,20 +1744,21 @@ begin
   end;
 end;
 
-{ TTisGridControl }
+{ TSOGridControl }
 
-procedure TTisGridControl.SetIsReadOnly(AValue: Boolean);
+procedure TSOGridControl.SetIsReadOnly(AValue: Boolean);
 begin
   if fIsReadOnly = AValue then Exit;
   fIsReadOnly := AValue;
 end;
 
-constructor TTisGridControl.Create;
+constructor TSOGridControl.Create(aOwner: TWinControl);
 begin
   inherited Create;
+  fOwner := aOwner;
 end;
 
-destructor TTisGridControl.Destroy;
+destructor TSOGridControl.Destroy;
 begin
   fInternal.OnExit := Nil;
   fInternal.OnKeyDown := Nil;
@@ -1763,22 +1766,22 @@ begin
   inherited Destroy;
 end;
 
-function TTisGridControl.Internal: TWinControl;
+function TSOGridControl.Internal: TWinControl;
 begin
   result := fInternal;
 end;
 
-procedure TTisGridControl.SetOnKeyDown(aEvent: TKeyEvent);
+procedure TSOGridControl.SetOnKeyDown(aEvent: TKeyEvent);
 begin
   fInternal.OnKeyDown := aEvent;
 end;
 
-procedure TTisGridControl.SetOnExit(aEvent: TNotifyEvent);
+procedure TSOGridControl.SetOnExit(aEvent: TNotifyEvent);
 begin
   fInternal.OnExit := aEvent;
 end;
 
-function TTisGridControl.GetValue: Variant;
+function TSOGridControl.GetValue: Variant;
 begin
   if fInternal.Caption = '' then
     result := NULL
@@ -1786,37 +1789,37 @@ begin
     result := Trim(fInternal.Caption);
 end;
 
-procedure TTisGridControl.SetValue(const aValue: Variant);
+procedure TSOGridControl.SetValue(const aValue: Variant);
 begin
   fInternal.Caption := VarToStr(aValue);
 end;
 
-{ TTisGridEditControl }
+{ TSOGridEditControl }
 
-procedure TTisGridEditControl.SetIsReadOnly(AValue: Boolean);
+procedure TSOGridEditControl.SetIsReadOnly(AValue: Boolean);
 begin
   inherited SetIsReadOnly(AValue);
   Edit.ReadOnly := fIsReadOnly;
 end;
 
-constructor TTisGridEditControl.Create;
+constructor TSOGridEditControl.Create(aOwner: TWinControl);
 begin
-  inherited Create;
+  inherited Create(aOwner);
   fInternal := TEdit.Create(nil);
   Edit.Clear;
 end;
 
-function TTisGridEditControl.GetValue: Variant;
+function TSOGridEditControl.GetValue: Variant;
 begin
   result := Trim(Edit.Text);
 end;
 
-procedure TTisGridEditControl.SetValue(const aValue: Variant);
+procedure TSOGridEditControl.SetValue(const aValue: Variant);
 begin
   Edit.Text := VarToStr(aValue);
 end;
 
-function TTisGridEditControl.Edit: TEdit;
+function TSOGridEditControl.Edit: TEdit;
 begin
   result := fInternal as TEdit;
 end;
@@ -1937,11 +1940,11 @@ end;
 
 function TSOGrid.GetExportDialogFilter: string;
 var
-  efo: TTisGridExportFormatOptionAdapter;
-  i: TTisGridExportFormatOption;
+  efo: TSOGridExportFormatOptionAdapter;
+  i: TSOGridExportFormatOption;
 begin
   result := '';
-  for i := high(TTisGridExportFormatOption) downto low(TTisGridExportFormatOption) do
+  for i := high(TSOGridExportFormatOption) downto low(TSOGridExportFormatOption) do
   begin
     if i in fExportFormatOptions then
     begin
@@ -2504,8 +2507,8 @@ begin
 
   FItemDataOffset := AllocateInternalDataArea(SizeOf(TSOItemData));
   fExportFormatOptions := DefaultExportFormatOptions;
-  fChartOptions := TTisGridChartOptions.Create(self);
-  fFilterOptions := TTisGridFilterOptions.Create(self);
+  fChartOptions := TSOGridChartOptions.Create(self);
+  fFilterOptions := TSOGridFilterOptions.Create(self);
   WantTabs:=True;
   TabStop:=True;
   FAllowChart := DefaultAllowChart;
@@ -2943,7 +2946,7 @@ begin
   //Result := inherited DoCreateEditor(Node, Column);
   // Enable generic label editing support if the application does not have own editors.
   //if Result = nil then
-  Result := TSOStringEditLink.Create;
+    Result := TSOStringEditLink.Create;
 end;
 
 function TSOGrid.DoCompare(Node1, Node2: PVirtualNode; Column: TColumnIndex): integer;
@@ -3261,11 +3264,11 @@ end;
 procedure TSOGrid.DoCopySpecialToClipboard(aSender: TObject);
 var
   buf: RawByteString;
-  efo: TTisGridExportFormatOptionAdapter;
-  tst: TTisGridTextSourceTypeAdapter;
+  efo: TSOGridExportFormatOptionAdapter;
+  tst: TSOGridTextSourceTypeAdapter;
   params: record
     Selection: TVSTTextSourceType;
-    Format: TTisGridExportFormatOption;
+    Format: TSOGridExportFormatOption;
     Columns: record
       VisibleOnly: Boolean;
       Translated: Boolean;
@@ -4207,9 +4210,9 @@ begin
   end;
 end;
 
-function TSOStringEditLink.NewControl: TTisGridControl;
+function TSOStringEditLink.NewControl: TSOGridControl;
 begin
-  result := TTisGridEditControl.Create;
+  result := TSOGridEditControl.Create(fGrid);
   result.SetOnKeyDown(@EditKeyDown);
   result.SetOnExit(@EditExit);
   result.Internal.Visible := False;
@@ -4248,8 +4251,10 @@ var
   vAborted: Boolean;
 begin
   result := True;
+  if not Assigned(fControl) then
+    Exit;
   vDoc := nil;
-  vCur := nil;
+  vCur := Null;
   vCol := fGrid.FindColumnByIndex(fColumn);
   vDoc := fGrid.GetNodeSOData(fNode);
   if vDoc <> nil then
@@ -4261,7 +4266,7 @@ begin
     if vAborted then
       exit;
     if VarIsNull(vNew) then
-      vDoc.O[vCol.PropertyName] := NULL
+      vDoc.O[vCol.PropertyName] := Nil
     else
     begin
       fGrid.Text[fNode, fColumn] := VarToStr(vNew);
@@ -4315,10 +4320,10 @@ begin
     fControl.Internal.BoundsRect := R;
 end;
 
-{ TTisGridExportFormatOptionAdapter }
+{ TSOGridExportFormatOptionAdapter }
 
 const
-  GRID_EXPORT_FORMAT_OPTIONS: array[TTisGridExportFormatOption] of record
+  GRID_EXPORT_FORMAT_OPTIONS: array[TSOGridExportFormatOption] of record
     Caption: string;
     Extension: string;
     Filter: string;
@@ -4330,17 +4335,17 @@ const
     (Caption: 'JSON'; Extension: '.json'; Filter: 'JSON (*.json)|*.json')
   );
 
-function TTisGridExportFormatOptionAdapter.EnumToCaption(
-  const aValue: TTisGridExportFormatOption): string;
+function TSOGridExportFormatOptionAdapter.EnumToCaption(
+  const aValue: TSOGridExportFormatOption): string;
 begin
   result := GRID_EXPORT_FORMAT_OPTIONS[aValue].Caption;
 end;
 
-function TTisGridExportFormatOptionAdapter.CaptionToEnum(const aValue: string): TTisGridExportFormatOption;
+function TSOGridExportFormatOptionAdapter.CaptionToEnum(const aValue: string): TSOGridExportFormatOption;
 var
-  i: TTisGridExportFormatOption;
+  i: TSOGridExportFormatOption;
 begin
-  result := low(TTisGridExportFormatOption);
+  result := low(TSOGridExportFormatOption);
   for i := low(GRID_EXPORT_FORMAT_OPTIONS) to high(GRID_EXPORT_FORMAT_OPTIONS) do
     if GRID_EXPORT_FORMAT_OPTIONS[i].Caption = aValue then
     begin
@@ -4349,22 +4354,22 @@ begin
     end;
 end;
 
-procedure TTisGridExportFormatOptionAdapter.EnumsToStrings(aDest: TStrings;
-  const aCustom: TTisGridExportFormatOptions);
+procedure TSOGridExportFormatOptionAdapter.EnumsToStrings(aDest: TStrings;
+  const aCustom: TSOGridExportFormatOptions);
 var
-  i: TTisGridExportFormatOption;
+  i: TSOGridExportFormatOption;
 begin
-  for i := low(TTisGridExportFormatOption) to high(TTisGridExportFormatOption) do
+  for i := low(TSOGridExportFormatOption) to high(TSOGridExportFormatOption) do
     if i in aCustom then
       aDest.Append(EnumToCaption(i));
 end;
 
-function TTisGridExportFormatOptionAdapter.ExtensionToEnum(
-  const aValue: TFileName): TTisGridExportFormatOption;
+function TSOGridExportFormatOptionAdapter.ExtensionToEnum(
+  const aValue: TFileName): TSOGridExportFormatOption;
 var
-  i: TTisGridExportFormatOption;
+  i: TSOGridExportFormatOption;
 begin
-  result := low(TTisGridExportFormatOption);
+  result := low(TSOGridExportFormatOption);
   for i := low(GRID_EXPORT_FORMAT_OPTIONS) to high(GRID_EXPORT_FORMAT_OPTIONS) do
     if GRID_EXPORT_FORMAT_OPTIONS[i].Extension = aValue then
     begin
@@ -4373,13 +4378,13 @@ begin
     end;
 end;
 
-function TTisGridExportFormatOptionAdapter.EnumToFilter(
-  const aValue: TTisGridExportFormatOption): string;
+function TSOGridExportFormatOptionAdapter.EnumToFilter(
+  const aValue: TSOGridExportFormatOption): string;
 begin
   result := GRID_EXPORT_FORMAT_OPTIONS[aValue].Filter;
 end;
 
-{ TTisGridTextSourceTypeAdapter }
+{ TSOGridTextSourceTypeAdapter }
 
 const
   GRID_TEXT_SOURCE_TYPES: array[TVSTTextSourceType] of record
@@ -4393,13 +4398,13 @@ const
     (Caption: 'Checked')
   );
 
-function TTisGridTextSourceTypeAdapter.EnumToCaption(
+function TSOGridTextSourceTypeAdapter.EnumToCaption(
   const aValue: TVSTTextSourceType): string;
 begin
   result := GRID_TEXT_SOURCE_TYPES[aValue].Caption;
 end;
 
-function TTisGridTextSourceTypeAdapter.CaptionToEnum(const aValue: string): TVSTTextSourceType;
+function TSOGridTextSourceTypeAdapter.CaptionToEnum(const aValue: string): TVSTTextSourceType;
 var
   i: TVSTTextSourceType;
 begin
@@ -4412,8 +4417,8 @@ begin
     end;
 end;
 
-procedure TTisGridTextSourceTypeAdapter.EnumsToStrings(aDest: TStrings;
-  const aCustom: TTisGridTextSourceTypes);
+procedure TSOGridTextSourceTypeAdapter.EnumsToStrings(aDest: TStrings;
+  const aCustom: TSOGridTextSourceTypes);
 var
   i: TVSTTextSourceType;
 begin
@@ -4447,6 +4452,6 @@ begin
 end;
 
 initialization
-  TTisGridFilterOptions.InitClass;
+  TSOGridFilterOptions.InitClass;
 
 end.
