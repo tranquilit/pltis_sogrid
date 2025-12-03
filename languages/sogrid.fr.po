@@ -76,7 +76,7 @@ msgstr "Autres"
 
 #: sogrid.gsconst_gridchartshow
 msgid "Show chart"
-msgstr "Afficher un graphe"
+msgstr "Afficher le graphique"
 
 #: sogrid.gsconst_gridfilterclear
 msgid "Clear filter"
