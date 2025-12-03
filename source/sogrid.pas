@@ -2577,6 +2577,11 @@ begin
     PopupMenu.OnPopup(PopupMenu);
   if PopupMenu.Items.Count > 0 then
     _AddItem('-', 0, nil);
+  if Assigned(Data) and (Data.AsArray.Length > 0) and AllowChart then
+  begin
+    _AddItem(GSConst_GridChartShow, 0, @DoShowChart);
+    _AddItem('-', 0, nil);
+  end;
   _AddItem(GSConst_Find, ShortCut(Ord('F'), [ssCtrl]), @DoFindText);
   _AddItem(GSConst_FindNext, VK_F3, @DoFindNext);
   {_AddItem(GSConst_FindReplace, ShortCut(Ord('H'), [ssCtrl]),
@@ -2595,11 +2600,6 @@ begin
     _AddItem(GSConst_DeleteRows, ShortCut(VK_DELETE, [ssCtrl]), @DoDeleteRows);
   if toMultiSelect in TreeOptions.SelectionOptions then
     _AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), @DoSelectAllRows);
-  if Assigned(Data) and (Data.AsArray.Length > 0) and AllowChart then
-  begin
-    _AddItem('-', 0, nil);
-    _AddItem(GSConst_GridChartShow, 0, @DoShowChart);
-  end;
   _AddItem('-', 0, nil);
   if AllowDataExport then
   begin
