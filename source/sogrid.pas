@@ -168,6 +168,8 @@ type
     procedure SetPropertyName(const Value: string);
     function GetTitle: TCaption;
     procedure SetTitle(AValue: TCaption);
+    function GetVisible: Boolean;
+    procedure SetVisible(AValue: Boolean);
   protected const
     DefaultAllowChart = True;
     DefaultAllowFilter = True;
@@ -184,6 +186,7 @@ type
     property AllowFilter: Boolean read fAllowFilter write fAllowFilter default DefaultAllowFilter;
     property Text: TCaption read GetTitle write SetTitle;
     property PropertyName: string read FPropertyName write SetPropertyName;
+    property Visible: Boolean read GetVisible write SetVisible;
   end;
 
   TSOHeaderPopupOption = (
@@ -1187,6 +1190,22 @@ end;
 procedure TSOGridColumn.SetTitle(AValue: TCaption);
 begin
   SetText(AValue);
+end;
+
+function TSOGridColumn.GetVisible: Boolean;
+begin
+  Result := coVisible in Self.Options;
+end;
+
+procedure TSOGridColumn.SetVisible(AValue: Boolean);
+begin
+  if  AValue = (coVisible in Self.Options) then
+    Exit;
+
+  if AValue then
+    Self.Options := Self.Options + [coVisible]
+  else
+    Self.Options := Self.Options - [coVisible];
 end;
 
 constructor TSOGridColumn.Create(aCollection: TCollection);
