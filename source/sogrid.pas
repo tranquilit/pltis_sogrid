@@ -41,7 +41,8 @@ uses
   mormot.core.os,
   mormot.core.text,
   ugridchart,
-  sogridcommon;
+  sogridcommon,
+  ImgList;
 
 type
 
@@ -53,6 +54,65 @@ type
     var Result: Integer) of object;
 
   TSOCanPasteEvent = function(Sender: TSOGrid;Row:ISuperObject):boolean of object;
+
+  { TSOGridPopupMenuOptions }
+
+  TSOGridPopupMenuOptions = class(TPersistent)
+  private
+    FGrid: TSOGrid;
+    FAllowChart: Boolean;
+    FAllowDataExport: Boolean;
+    FShowAdvancedColumnsCustomize: Boolean;
+    FAllowChartImageIndex: TImageIndex;
+    FAllowDataExportImageIndex: TImageIndex;
+    FShowAdvancedColumnsCustomizeImageIndex: TImageIndex;
+    FFindTextImageIndex: TImageIndex;
+    FFindNextImageIndex: TImageIndex;
+    FCutToClipBoardImageIndex: TImageIndex;
+    FCopyToClipBoardImageIndex: TImageIndex;
+    FCopyCellToClipBoardImageIndex: TImageIndex;
+    FCopySpecialToClipboardImageIndex: TImageIndex;
+    FPasteImageIndex: TImageIndex;
+    FDeleteRowsImageIndex: TImageIndex;
+    FSelectAllRowsImageIndex: TImageIndex;
+    FCustomizeColumnsImageIndex: TImageIndex;
+  protected const
+    DefaultAllowChart = False;
+    DefaultAllowDataExport = False;
+    DefaultShowAdvancedColumnsCustomize = False;
+    DefaultAllowChartImageIndex = -1;
+    DefaultAllowDataExportImageIndex = -1;
+    DefaultShowAdvancedColumnsCustomizeImageIndex = -1;
+    DefaultFindTextImageIndex = -1;
+    DefaultFindNextImageIndex = -1;
+    DefaultCutToClipBoardImageIndex = -1;
+    DefaultCopyToClipBoardImageIndex = -1;
+    DefaultCopyCellToClipBoardImageIndex = -1;
+    DefaultCopySpecialToClipboardImageIndex = -1;
+    DefaultPasteImageIndex = -1;
+    DefaultDeleteRowsImageIndex = -1;
+    DefaultSelectAllRowsImageIndex = -1;
+    DefaultCustomizeColumnsImageIndex = -1;
+  public
+    constructor Create(aGrid: TSOGrid); reintroduce;
+  published
+    property AllowChart: Boolean read FAllowChart write FAllowChart default DefaultAllowChart;
+    property AllowDataExport: Boolean read FAllowDataExport write FAllowDataExport default DefaultAllowDataExport;
+    property ShowAdvancedColumnsCustomize: Boolean read FShowAdvancedColumnsCustomize write FShowAdvancedColumnsCustomize default DefaultShowAdvancedColumnsCustomize;
+    property AllowChartImageIndex: TImageIndex read FAllowChartImageIndex write FAllowChartImageIndex default DefaultAllowChartImageIndex;
+    property AllowDataExportImageIndex: TImageIndex read FAllowDataExportImageIndex write FAllowDataExportImageIndex default DefaultAllowDataExportImageIndex;
+    property ShowAdvancedColumnsCustomizeImageIndex: TImageIndex read FShowAdvancedColumnsCustomizeImageIndex write FShowAdvancedColumnsCustomizeImageIndex default DefaultShowAdvancedColumnsCustomizeImageIndex;
+    property FindTextImageIndex: TImageIndex read FFindTextImageIndex write FFindTextImageIndex default DefaultFindTextImageIndex;
+    property FindNextImageIndex: TImageIndex read FFindNextImageIndex write FFindNextImageIndex default DefaultFindNextImageIndex;
+    property CutToClipBoardImageIndex: TImageIndex read FCutToClipBoardImageIndex write FCutToClipBoardImageIndex default DefaultCutToClipBoardImageIndex;
+    property CopyToClipBoardImageIndex: TImageIndex read FCopyToClipBoardImageIndex write FCopyToClipBoardImageIndex default DefaultCopyToClipBoardImageIndex;
+    property CopyCellToClipBoardImageIndex: TImageIndex read FCopyCellToClipBoardImageIndex write FCopyCellToClipBoardImageIndex default DefaultCopyCellToClipBoardImageIndex;
+    property CopySpecialToClipboardImageIndex: TImageIndex read FCopySpecialToClipboardImageIndex write FCopySpecialToClipboardImageIndex default DefaultCopySpecialToClipboardImageIndex;
+    property PasteImageIndex: TImageIndex read FPasteImageIndex write FPasteImageIndex default DefaultPasteImageIndex;
+    property DeleteRowsImageIndex: TImageIndex read FDeleteRowsImageIndex write FDeleteRowsImageIndex default DefaultDeleteRowsImageIndex;
+    property SelectAllRowsImageIndex: TImageIndex read FSelectAllRowsImageIndex write FSelectAllRowsImageIndex default DefaultSelectAllRowsImageIndex;
+    property CustomizeColumnsImageIndex: TImageIndex read FCustomizeColumnsImageIndex write FCustomizeColumnsImageIndex default DefaultCustomizeColumnsImageIndex;
+  end;
 
   /// most used values on a chart
   TSOGridChartMostUsedValues = class(TPersistent)
@@ -388,9 +448,6 @@ type
     FOnSOCompareNodes: TSOCompareNodesEvent;
     FParentProperty: String;
     FSelectedAndTotalLabel: TLabel;
-    FShowAdvancedColumnsCustomize: Boolean;
-    FAllowChart: Boolean;
-    FAllowDataExport: Boolean;
     FTextFound: boolean;
     FindDlg: TFindDialog;
     FZebraPaint: Boolean;
@@ -407,7 +464,6 @@ type
 
     FPendingAppendObject:ISuperObject;
 
-    FDefaultPopupMenu: TPopupMenu;
     fExportFormatOptions: TSOGridExportFormatOptions;
     fChartOptions: TSOGridChartOptions;
     fFilterOptions: TSOGridFilterOptions;
@@ -417,6 +473,7 @@ type
     fOnBeforeAddingChartSource: TOnGridBeforeAddingChartSource;
     fOnChartTitle: TOnGridChartTitle;
     fOnChartChange: TOnGridChartChange;
+    FPopupMenuOptions: TSOGridPopupMenuOptions;
     function FocusedPropertyName: String;
     function GetData: ISuperObject;
     function GetFocusedColumnObject: TSOGridColumn;
@@ -438,15 +495,12 @@ type
     procedure SetSelectedRows(AValue: ISuperObject);
     procedure SetSelectedAndTotalLabel(AValue: TLabel);
     procedure SetSettings(AValue: ISuperObject);
-    procedure SetShowAdvancedColumnsCustomize(AValue: Boolean);
-    procedure SetAllowDataExport(AValue: Boolean);
 
     procedure WMKeyDown(var Message: TLMKeyDown); message LM_KEYDOWN;
 
 
   protected
     const DefaultExportFormatOptions = [efoCsv, efoJson];
-    const DefaultAllowChart = False;
     procedure Loaded; override;
 
     property RootNodeCount stored False;
@@ -653,9 +707,7 @@ type
     property OnBeforePaste: TSOCanPasteEvent read FOnBeforePaste write FOnBeforePaste;
     property OnNodesDelete: TSONodesEvent read FOnNodesDelete write FOnNodesDelete;
 
-    property ShowAdvancedColumnsCustomize: Boolean read FShowAdvancedColumnsCustomize write SetShowAdvancedColumnsCustomize;
-    property AllowChart: Boolean read FAllowChart write FAllowChart default DefaultAllowChart;
-    property AllowDataExport: Boolean read FAllowDataExport write SetAllowDataExport;
+    property PopupMenuOptions: TSOGridPopupMenuOptions read FPopupMenuOptions write FPopupMenuOptions;
 
     property KeyFieldsList: TStringDynArray read FKeyFieldsList;
     property KeyFieldsNames: String read GetKeyFieldsNames write SetKeyFieldsNames;
@@ -2146,18 +2198,6 @@ begin
   end;
 end;
 
-procedure TSOGrid.SetShowAdvancedColumnsCustomize(AValue: Boolean);
-begin
-  if FShowAdvancedColumnsCustomize=AValue then Exit;
-  FShowAdvancedColumnsCustomize:=AValue;
-end;
-
-procedure TSOGrid.SetAllowDataExport(AValue: Boolean);
-begin
-  if FAllowDataExport = AValue then Exit;
-  FAllowDataExport := AValue;
-end;
-
 {$IFNDEF windows}
 procedure GetKeyboardState( ks : TKeyBoardState );
 var
@@ -2529,9 +2569,9 @@ begin
   fExportFormatOptions := DefaultExportFormatOptions;
   fChartOptions := TSOGridChartOptions.Create(self);
   fFilterOptions := TSOGridFilterOptions.Create(self);
+  FPopupMenuOptions := TSOGridPopupMenuOptions.Create(Self);
   WantTabs:=True;
   TabStop:=True;
-  FAllowChart := DefaultAllowChart;
   DragType := dtVCL;
 
   with TreeOptions do
@@ -2569,7 +2609,7 @@ procedure TSOGrid.FillPopupMenu;
 const
   cDIVIDER = '-';
 
-  procedure _AddItem(ACaption: string; AShortcut: TShortCut; AEvent: TNotifyEvent);
+  procedure _AddItem(ACaption: string; AShortcut: TShortCut; AEvent: TNotifyEvent; aImageIndex: TImageIndex = -1);
   var
     vMenuItem: TMenuItem;
   begin
@@ -2583,6 +2623,7 @@ const
         ShortCut := AShortcut;
         OnClick := AEvent;
         Tag := POPUP_ITEM_TAG;
+        ImageIndex := aImageIndex;
       end;
       PopupMenu.Items.Add(vMenuItem);
     end;
@@ -2596,36 +2637,36 @@ begin
     PopupMenu.OnPopup(PopupMenu);
   if PopupMenu.Items.Count > 0 then
     _AddItem('-', 0, nil);
-  if Assigned(Data) and (Data.AsArray.Length > 0) and AllowChart then
+  if Assigned(Data) and (Data.AsArray.Length > 0) and FPopupMenuOptions.AllowChart then
   begin
-    _AddItem(GSConst_GridChartShow, 0, @DoShowChart);
+    _AddItem(GSConst_GridChartShow, 0, @DoShowChart, FPopupMenuOptions.AllowChartImageIndex);
     _AddItem('-', 0, nil);
   end;
-  _AddItem(GSConst_Find, ShortCut(Ord('F'), [ssCtrl]), @DoFindText);
-  _AddItem(GSConst_FindNext, VK_F3, @DoFindNext);
+  _AddItem(GSConst_Find, ShortCut(Ord('F'), [ssCtrl]), @DoFindText, FPopupMenuOptions.FindTextImageIndex);
+  _AddItem(GSConst_FindNext, VK_F3, @DoFindNext, FPopupMenuOptions.FindNextImageIndex);
   {_AddItem(GSConst_FindReplace, ShortCut(Ord('H'), [ssCtrl]),
     @DoFindReplace);}
   _AddItem('-', 0, nil);
   if (not (toReadOnly in TreeOptions.MiscOptions)) and Assigned(FOnCutToClipBoard) then
-    _AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), @DoCutToClipBoard);
-  _AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), @DoCopyToClipBoard);
-  _AddItem(GSConst_CopyCell, ShortCut(Ord('C'), [ssCtrl,ssShift]), @DoCopyCellToClipBoard);
-  if AllowDataExport then
-    _AddItem(GSConst_CopySpecial, ShortCut(Ord('S'), [ssCtrl,ssShift]), @DoCopySpecialToClipboard);
+    _AddItem(GSConst_Cut, ShortCut(Ord('X'), [ssCtrl]), @DoCutToClipBoard, FPopupMenuOptions.CutToClipBoardImageIndex);
+  _AddItem(GSConst_Copy, ShortCut(Ord('C'), [ssCtrl]), @DoCopyToClipBoard, FPopupMenuOptions.CopyToClipBoardImageIndex);
+  _AddItem(GSConst_CopyCell, ShortCut(Ord('C'), [ssCtrl,ssShift]), @DoCopyCellToClipBoard, FPopupMenuOptions.CopyCellToClipBoardImageIndex);
+  if FPopupMenuOptions.AllowDataExport then
+    _AddItem(GSConst_CopySpecial, ShortCut(Ord('S'), [ssCtrl,ssShift]), @DoCopySpecialToClipboard, FPopupMenuOptions.CopySpecialToClipboardImageIndex);
   if not (toReadOnly in TreeOptions.MiscOptions) and ((toEditable in TreeOptions.MiscOptions) or Assigned(FOnBeforePaste))  then
-    _AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), @DoPaste);
+    _AddItem(GSConst_Paste, ShortCut(Ord('V'), [ssCtrl]), @DoPaste, FPopupMenuOptions.PasteImageIndex);
   _AddItem('-', 0, nil);
   if not (toReadOnly in TreeOptions.MiscOptions) or Assigned(FOnNodesDelete) then
-    _AddItem(GSConst_DeleteRows, ShortCut(VK_DELETE, [ssCtrl]), @DoDeleteRows);
+    _AddItem(GSConst_DeleteRows, ShortCut(VK_DELETE, [ssCtrl]), @DoDeleteRows, FPopupMenuOptions.DeleteRowsImageIndex);
   if toMultiSelect in TreeOptions.SelectionOptions then
-    _AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), @DoSelectAllRows);
+    _AddItem(GSConst_SelectAll, ShortCut(Ord('A'), [ssCtrl]), @DoSelectAllRows, FPopupMenuOptions.SelectAllRowsImageIndex);
   _AddItem('-', 0, nil);
-  if AllowDataExport then
+  if FPopupMenuOptions.AllowDataExport then
   begin
     if (toMultiSelect in TreeOptions.SelectionOptions) then
-      _AddItem(GSConst_ExportSelected, 0, @DoExport)
+      _AddItem(GSConst_ExportSelected, 0, @DoExport, FPopupMenuOptions.AllowDataExportImageIndex)
     else
-      _AddItem(GSConst_ExportAll, 0, @DoExport);
+      _AddItem(GSConst_ExportAll, 0, @DoExport, FPopupMenuOptions.AllowDataExportImageIndex);
   end;
   {if (HMPrint = 0) then
     HMPrint := _AddItem(GSConst_Print, ShortCut(Ord('P'), [ssCtrl]), @DoPrint);
@@ -2635,9 +2676,9 @@ begin
   HMCollAll := _AddItem(GSConst_CollapseAll, Shortcut(Ord('R'), [ssCtrl, ssShift]),
     @DoCollapseAll);}
   _AddItem('-', 0, nil);
-  _AddItem(GSConst_CustomizeColumns, 0, @DoCustomizeColumns);
-  if (csDesigning in ComponentState) or ShowAdvancedColumnsCustomize then
-    _AddItem(GSConst_AdvancedCustomizeColumns, 0, @DoAdvancedCustomizeColumns);
+  _AddItem(GSConst_CustomizeColumns, 0, @DoCustomizeColumns, FPopupMenuOptions.CustomizeColumnsImageIndex);
+  if (csDesigning in ComponentState) or FPopupMenuOptions.ShowAdvancedColumnsCustomize then
+    _AddItem(GSConst_AdvancedCustomizeColumns, 0, @DoAdvancedCustomizeColumns, FPopupMenuOptions.ShowAdvancedColumnsCustomizeImageIndex);
 end;
 
 procedure TSOGrid.CleanPopupMenu;
@@ -2655,6 +2696,7 @@ begin
   FData := Nil;
   if Assigned(FindDlg) then
     FreeAndNil(FindDlg);
+  FPopupMenuOptions.Free;
   fChartOptions.Free;
   fFilterOptions.Free;
   inherited Destroy;
@@ -4171,6 +4213,30 @@ begin
        Message.Msg := 0;
     //// end BUGFIX
   end;
+end;
+
+{ TSOGridPopupMenuOptions }
+
+constructor TSOGridPopupMenuOptions.Create(aGrid: TSOGrid);
+begin
+  FGrid := aGrid;
+
+  FAllowChart := DefaultAllowChart;
+  FAllowDataExport := DefaultAllowDataExport;
+  FShowAdvancedColumnsCustomize := DefaultShowAdvancedColumnsCustomize;
+  FAllowChartImageIndex := DefaultAllowChartImageIndex;
+  FAllowDataExportImageIndex := DefaultAllowDataExportImageIndex;
+  FShowAdvancedColumnsCustomizeImageIndex := DefaultShowAdvancedColumnsCustomizeImageIndex;
+  FFindTextImageIndex := DefaultFindTextImageIndex;
+  FFindNextImageIndex := DefaultFindNextImageIndex;
+  FCutToClipBoardImageIndex := DefaultCutToClipBoardImageIndex;
+  FCopyToClipBoardImageIndex := DefaultCopyToClipBoardImageIndex;
+  FCopyCellToClipBoardImageIndex := DefaultCopyCellToClipBoardImageIndex;
+  FCopySpecialToClipboardImageIndex := DefaultCopySpecialToClipboardImageIndex;
+  FPasteImageIndex := DefaultPasteImageIndex;
+  FDeleteRowsImageIndex := DefaultDeleteRowsImageIndex;
+  FSelectAllRowsImageIndex := DefaultSelectAllRowsImageIndex;
+  FCustomizeColumnsImageIndex := DefaultCustomizeColumnsImageIndex;
 end;
 
 //----------------- TSOStringEditLink ------------------------------------------------------------------------------------
