@@ -60,6 +60,7 @@ type
   TSOGridPopupMenuOptions = class(TPersistent)
   private
     FGrid: TSOGrid;
+    FImages: TCustomImageList;
     FAllowChart: Boolean;
     FAllowDataExport: Boolean;
     FShowAdvancedColumnsCustomize: Boolean;
@@ -77,6 +78,7 @@ type
     FSelectAllRowsImageIndex: TImageIndex;
     FCustomizeColumnsImageIndex: TImageIndex;
   protected const
+    DefaultImages = nil;
     DefaultAllowChart = False;
     DefaultAllowDataExport = False;
     DefaultShowAdvancedColumnsCustomize = False;
@@ -96,6 +98,7 @@ type
   public
     constructor Create(aGrid: TSOGrid); reintroduce;
   published
+    property Images: TCustomImageList read FImages write FImages default DefaultImages;
     property AllowChart: Boolean read FAllowChart write FAllowChart default DefaultAllowChart;
     property AllowDataExport: Boolean read FAllowDataExport write FAllowDataExport default DefaultAllowDataExport;
     property ShowAdvancedColumnsCustomize: Boolean read FShowAdvancedColumnsCustomize write FShowAdvancedColumnsCustomize default DefaultShowAdvancedColumnsCustomize;
@@ -2632,6 +2635,8 @@ const
 begin
   if not Assigned(PopupMenu) then
     PopupMenu := TPopupMenu.Create(self);
+  if (PopupMenu.Images = nil) and (FPopupMenuOptions.Images <> nil) then
+    PopupMenu.Images := FPopupMenuOptions.Images;
   // fire the original user event, if it exists, for customize its items
   if Assigned(PopupMenu.OnPopup) then
     PopupMenu.OnPopup(PopupMenu);
@@ -4221,6 +4226,7 @@ constructor TSOGridPopupMenuOptions.Create(aGrid: TSOGrid);
 begin
   FGrid := aGrid;
 
+  FImages := DefaultImages;
   FAllowChart := DefaultAllowChart;
   FAllowDataExport := DefaultAllowDataExport;
   FShowAdvancedColumnsCustomize := DefaultShowAdvancedColumnsCustomize;
