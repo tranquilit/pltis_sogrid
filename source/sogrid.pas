@@ -246,7 +246,7 @@ type
     property AllowFilter: Boolean read fAllowFilter write fAllowFilter default DefaultAllowFilter;
     property Text: TCaption read GetTitle write SetTitle;
     property PropertyName: string read FPropertyName write SetPropertyName;
-    property Visible: Boolean read GetVisible write SetVisible;
+    property Visible: Boolean read GetVisible write SetVisible stored False;
   end;
 
   TSOHeaderPopupOption = (

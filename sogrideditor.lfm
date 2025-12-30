@@ -13,7 +13,6 @@ object SOGridEditor: TSOGridEditor
     Height = 207
     Top = 40
     Width = 484
-    ShowAdvancedColumnsCustomize = False
     Align = alClient
     Color = clWhite
     Colors.UnfocusedColor = clMedGray
