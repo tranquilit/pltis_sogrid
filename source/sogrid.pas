@@ -2151,6 +2151,10 @@ begin
             gridcol.Position := prop.AsInteger;
           if column.AsObject.Find('width', prop) then
             gridcol.Width := prop.AsInteger;
+          if AValue.AsObject.Find('last_fixed_colunm_pos', prop)
+            and (gridcol.Position <= prop.AsInteger)
+            and (not (coFixed in gridcol.Options)) then
+            gridcol.Options := gridcol.Options + [coFixed];
           if column.AsObject.Find('visible', prop) then
             if prop.AsBoolean then
               gridcol.Options := gridcol.Options + [coVisible]
@@ -2473,6 +2477,7 @@ begin
   Result.I['sortdirection'] := integer(Header.SortDirection);
   Result.I['headerheight'] := integer(Header.Height);
   Result.I['defaultnodeheight'] := integer(DefaultNodeHeight);
+  Result.I['last_fixed_colunm_pos'] := -1;
   Result['columns'] := TSuperObject.Create(stArray);
   for i := 0 to Header.Columns.Count - 1 do
   begin
@@ -2484,6 +2489,8 @@ begin
     col.I['width'] := Header.Columns[i].Width;
     col.B['visible'] := (coVisible in Header.Columns[i].Options);
     col.S['chartsettings'] := TSOGridColumn(Header.Columns[i]).ChartSettings;
+    if (coFixed in Header.Columns[i].Options) and (Result.I['last_fixed_colunm_pos'] < Header.Columns[i].Position) then
+      Result.I['last_fixed_colunm_pos'] := Header.Columns[i].Position;
   end;
   if not FilterOptions.Filters.IsVoid then
   begin
