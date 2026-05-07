@@ -2929,32 +2929,30 @@ var
   vLabels: TDocVariantData;
   vIndex, vMostUsedCount, vOthersCount: Integer;
   vValue: RawUtf8;
-  vRow, vRows: ISuperObject;
+  vNodes: TVTVirtualNodeEnumeration;
   vNode: PVirtualNode;
 begin
   vLabels.InitFast;
   vColumn := FocusedColumnObject;
   // if one or none rows selected, assume that all (visible) rows have to be shown in the chart
-  if not Assigned(SelectedRows) or (SelectedRows.AsArray.Length=1) then
-  begin
-    vRows := SA([]);
-    for vNode in VisibleNodes do
-      vRows.AsArray.Add(GetNodeSOData(vNode));
-  end
+  if Self.SelectedCount > 1 then
+    vNodes := SelectedNodes
   else
-    vRows := SelectedRows;
-  for vRow in vRows do
+    vNodes := Self.Nodes;
+
+  for vNode in vNodes do
   begin
-    vValue := vRow.S[vColumn.PropertyName];
+    vValue := self.StaticText[vNode, vColumn.Index];
     vIndex := vLabels.SearchItemByProp('field', vValue, not FilterOptions.CaseInsensitive);
     if vIndex >= 0 then
     begin
-      with _Safe(vLabels.Value[vIndex])^ do
-        D['count'] := D['count'] + Compute(vRow);
+      with _Safe(vLabels.Value[vIndex{%H-}])^ do
+        D['count'] := D['count'] + Compute(Self.GetCellData(vNode, vColumn.PropertyName));
     end
     else
-      vLabels.AddItem(_ObjFast(['field', vValue, 'count', Compute(vRow)]));
+      vLabels.AddItem(_ObjFast(['field', vValue, 'count', Compute(Self.GetCellData(vNode, vColumn.PropertyName))]));
   end;
+
   vMostUsedCount := 0;
   vOthersCount := 0;
   if aFlags.MostUsedValues.Enabled then
