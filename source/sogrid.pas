@@ -2196,11 +2196,6 @@ begin
     if AValue.AsObject.Find('sortdirection', prop) then
       Header.SortDirection := VirtualTrees.TSortDirection(prop.AsInteger);
 
-    if AValue.AsObject.Find('headerheight', prop) then
-      Header.Height := prop.AsInteger;
-
-    if AValue.AsObject.Find('defaultnodeheight', prop) then
-      DefaultNodeHeight := prop.AsInteger;
 
   end;
 end;
@@ -2475,8 +2470,7 @@ begin
   Result := TSuperObject.Create;
   Result.I['sortcolumn'] := Header.SortColumn;
   Result.I['sortdirection'] := integer(Header.SortDirection);
-  Result.I['headerheight'] := integer(Header.Height);
-  Result.I['defaultnodeheight'] := integer(DefaultNodeHeight);
+
   Result.I['last_fixed_colunm_pos'] := -1;
   Result['columns'] := TSuperObject.Create(stArray);
   for i := 0 to Header.Columns.Count - 1 do
