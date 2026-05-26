@@ -4267,11 +4267,18 @@ begin
         Key := 0;
       end;
     VK_TAB:
-      if CanAdvance then
       begin
-        fGrid.EndEditNode;
-        fGrid.FocusedColumn := fGrid.FocusedColumn+1;
-        //Key := 0;
+        if Shift = [] then
+          if (fGrid.FocusedColumn < fGrid.Header.Columns.Count-1) then
+            fGrid.FocusedColumn := fGrid.FocusedColumn + 1
+          else
+            fGrid.EndEditNode
+        else if Shift = [ssShift] then
+          if (fGrid.FocusedColumn > 0) then
+            fGrid.FocusedColumn := fGrid.FocusedColumn - 1
+          else
+            fGrid.EndEditNode;
+        Key := 0;
       end;
     VK_UP,
     VK_DOWN:
