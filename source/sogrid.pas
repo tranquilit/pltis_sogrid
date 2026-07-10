@@ -2367,9 +2367,7 @@ begin
         // restore visible focused column
         ScrollIntoView(FocusedColumn, False);
       end;
-      // should update the popup menu as some items depend on whether or not there is data
-      CleanPopupMenu;
-      FillPopupMenu;
+
       // clear all filters after loading
       if fFilterOptions.ClearAfterLoadingData then
         fFilterOptions.ClearFilters
