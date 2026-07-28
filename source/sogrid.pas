@@ -2637,8 +2637,9 @@ begin
   if (PopupMenu.Images = nil) and (FPopupMenuOptions.Images <> nil) then
     PopupMenu.Images := FPopupMenuOptions.Images;
   // fire the original user event, if it exists, for customize its items
-  if Assigned(PopupMenu.OnPopup) then
-    PopupMenu.OnPopup(PopupMenu);
+  // HT: don't do that as it has side effects when we actually want to lock refreshing grid when popup menu actually popup.
+  //if Assigned(PopupMenu.OnPopup) then
+  //  PopupMenu.OnPopup(PopupMenu);
   if PopupMenu.Items.Count > 0 then
     _AddItem('-', 0, nil);
   if Assigned(Data) and (Data.AsArray.Length > 0) and FPopupMenuOptions.AllowChart then
