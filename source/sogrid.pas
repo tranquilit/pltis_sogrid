@@ -29,7 +29,6 @@ uses
   LMessages,
   StdCtrls,
   Types,
-  DefaultTranslator,
   TAGraph,
   TASources,
   TAChartUtils,

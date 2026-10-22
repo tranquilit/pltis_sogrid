@@ -13,7 +13,7 @@ uses
   Windows,
   {$ENDIF}
   Classes, SysUtils,
-  LCLType, Types, DefaultTranslator,
+  LCLType, Types,
   SuperObject, sogridcommon;
 
 type
